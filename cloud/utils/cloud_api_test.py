@@ -19,7 +19,7 @@ import unittest
 
 import mock
 import requests
-from google3.testing.pybase import parameterized
+from absl.testing import parameterized
 from gps_building_blocks.cloud.utils import cloud_api
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import utils

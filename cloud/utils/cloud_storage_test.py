@@ -23,7 +23,7 @@ import mock
 from google.api_core import exceptions
 from google.auth import credentials
 from google.cloud import storage
-from google3.testing.pybase import parameterized
+from absl.testing import parameterized
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import cloud_storage
 

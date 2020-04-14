@@ -21,7 +21,7 @@ import unittest
 from googleapiclient import errors
 from googleapiclient import http
 import mock
-from google3.testing.pybase import parameterized
+from absl.testing import parameterized
 from gps_building_blocks.cloud.utils import utils
 
 
