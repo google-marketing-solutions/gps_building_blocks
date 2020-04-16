@@ -9,4 +9,3 @@ organization (gPS).
 Contributions are highly encouraged; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **This is not an official Google product.**
-

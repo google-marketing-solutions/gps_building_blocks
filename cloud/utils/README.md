@@ -48,7 +48,7 @@ all the available roles. Please note that the role names should **not** contain
 **"roles/"** prefix.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_auth
 
 
 PROJECT_ID = 'test-project'
@@ -73,7 +73,7 @@ all the available roles. Please note that the role names should **not** contain
 **"roles/"** prefix.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_auth
 
 
 PROJECT_ID = 'test-project'
@@ -90,7 +90,7 @@ There are two ways to construct a client.
 ##### a. Using service account credentials (Recommended)
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_auth
 
 
 SERVICE_NAME = 'composer'
@@ -102,7 +102,7 @@ client = cloud_auth.build_service_client(SERVICE_NAME, SERVICE_ACCOUNT_KEY_FILE)
 ##### b. Using default credentials
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_auth
 
 
 SERVICE_NAME = 'composer'
@@ -121,7 +121,7 @@ using Cloud API module. [Here](https://cloud.google.com/apis/docs/overview) is
 the list of available Cloud APIs.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_api
+from gps_building_blocks.cloud.utils import cloud_api
 
 
 SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
@@ -140,8 +140,8 @@ Cloud API can be disabled for the GCP project using Cloud API module.
 Cloud APIs.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_auth
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_api
+from gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_api
 
 
 SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
@@ -157,8 +157,8 @@ Its possible to verify if a Cloud API has already been enabled on the GCP
 project as shown below.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_auth
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_api
+from gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_api
 
 
 SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
@@ -187,7 +187,7 @@ When creating Composer environment, the following parameters can be configured.
     VM. Default value - 'n1-standard-1'
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_composer
+from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
@@ -217,7 +217,7 @@ More details on installing python packages on Composer environment can be found
 [here](https://cloud.google.com/composer/docs/how-to/using/installing-python-dependencies).
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_composer
+from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
@@ -248,7 +248,7 @@ found
 [here](https://cloud.google.com/composer/docs/how-to/managing/environment-variables).
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_composer
+from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
@@ -275,7 +275,7 @@ There are some configurations which are not allowed to be
 [overridden](https://cloud.google.com/composer/docs/concepts/airflow-configurations#airflow_configuration_blacklists)
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_composer
+from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
@@ -309,7 +309,7 @@ If you have fully formed Cloud Storage URL for the destination in the form of
 be created if it doesn't exist.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_storage
+from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
@@ -329,7 +329,7 @@ fully formed Cloud Storage URL, use this method to upload file. The bucket will
 be created if it doesn't exist.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_storage
+from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
@@ -357,7 +357,7 @@ If you have fully formed Cloud Storage URL for the destination in the form of
 be created if it doesn't exist.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_storage
+from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
@@ -378,7 +378,7 @@ of a fully formed Cloud Storage URL, use this method to upload directory. The
 bucket will be created if it doesn't exist.
 
 ```python
-from google3.third_party.gps_building_blocks.cloud.utils import cloud_storage
+from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
