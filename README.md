@@ -1,3 +1,5 @@
+**This is not an official Google product.**
+
 # gPS Solutions - Core Libraries Repository
 
 This repository contains modules and tools useful for use with advanced data
@@ -8,4 +10,3 @@ organization (gPS).
 
 Contributions are highly encouraged; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**This is not an official Google product.**
