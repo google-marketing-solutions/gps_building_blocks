@@ -9,7 +9,7 @@ freshness: { owner: 'mfekry' reviewed: '2020-04-17' }
 
 **Note:** This is the internal documentation for the gps_building_blocks
 repository and should be used for any content that we do not want to publicize.
-The external documentation can be found [here](EXTERNAL.md)
+The external documentation can be found [here](index.md)
 and should only contain external-friendly information pertaining to the
 repository contents.
 
