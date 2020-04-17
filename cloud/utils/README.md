@@ -25,7 +25,7 @@ solution developers. It offers utility modules to automate common tasks in GCP.
 
 The below diagram shows different modules and their functionalities.
 
-<img src="/third_party/gps_building_blocks/cloud/utils/g3doc/images/module_overview.png" width="40%">
+<img src="images/module_overview.png" width="40%">
 
 ## How to use?
 
