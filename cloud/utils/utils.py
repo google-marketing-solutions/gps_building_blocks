@@ -98,15 +98,16 @@ def wait_for_operation(operation_client: apiclient.discovery.Resource,
     request = operation_client.get(name=operation['name'])
     updated_operation = execute_request(request)
     if updated_operation.get('done'):
-      logging.info(f'Operation {operation["name"]} successfully completed.')
+      logging.info('Operation "%s" successfully completed.', operation['name'])
       return
     if updated_operation.get('error'):
       logging.info(
-          f'Operation {operation["name"]} failed to complete successfully.')
+          'Operation "%s" failed to complete successfully.', operation['name'])
       raise Error(
           f'Operation {operation["name"]} not completed. Error Details - '
           f'{updated_operation["error"]}')
     logging.info(
-        f'Operation {operation["name"]} still in progress. Sleeping for '
-        f'{_WAIT_FOR_OPERATION_SLEEP_SECONDS} seconds before retrying.')
+        'Operation "%s" still in progress. Sleeping for '
+        '"%s" seconds before retrying.', operation['name'],
+        _WAIT_FOR_OPERATION_SLEEP_SECONDS)
     time.sleep(_WAIT_FOR_OPERATION_SLEEP_SECONDS)

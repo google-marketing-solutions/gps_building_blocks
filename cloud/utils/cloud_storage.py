@@ -96,11 +96,11 @@ class CloudStorageUtils(object):
     try:
       return self.client.get_bucket(bucket_name)
     except exceptions.NotFound:
-      logging.info(f'Cloud Storage bucket "{bucket_name}" not found. '
-                   'Hence creating the bucket.')
+      logging.info('Cloud Storage bucket "%s" not found. '
+                   'Hence creating the bucket.', bucket_name)
       bucket = self.client.create_bucket(bucket_name)
       logging.info(
-          f'Cloud Storage bucket "{bucket_name}" created successfully.')
+          'Cloud Storage bucket "%s" created successfully.', bucket_name)
       return bucket
 
   def upload_file_to_url(self, source_file_path: str,
@@ -138,7 +138,7 @@ class CloudStorageUtils(object):
       Error: If the upload was not successful.
     """
     if not os.path.isfile(source_file_path):
-      logging.error(f'The file "{source_file_path}" could not be found.')
+      logging.error('The file "%s" could not be found.', source_file_path)
       raise FileNotFoundError(
           f'The file "{source_file_path}" could not be found.')
     try:
@@ -216,8 +216,8 @@ class CloudStorageUtils(object):
       FileNotFoundError: If the provided directory is not found.
     """
     if not os.path.isdir(source_directory_path):
-      logging.error(
-          f'The directory "{source_directory_path}" could not be found.')
+      logging.error('The directory "%s" could not be found.',
+                    source_directory_path)
       raise FileNotFoundError(
           f'The directory "{source_directory_path}" could not be found.')
     logging.info('Uploading "%s" directory to "gs://%s/%s"',
