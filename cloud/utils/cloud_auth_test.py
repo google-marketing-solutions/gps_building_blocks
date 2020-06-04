@@ -24,6 +24,7 @@ from googleapiclient import discovery
 from googleapiclient import errors
 import mock
 from google import auth
+from google.auth import impersonated_credentials
 from google.oauth2 import service_account
 from gps_building_blocks.cloud.utils import cloud_auth
 
@@ -270,6 +271,31 @@ class AuthTest(unittest.TestCase):
 
     session = cloud_auth.get_auth_session('/tmp/valid_file')
     self.assertEqual(mock_credentials, session.credentials)
+
+  def test_impersonate_service_account(self):
+    mock_credentials = mock.Mock(spec=service_account.Credentials)
+    self.mock_auth_default.return_value = (mock_credentials, self.project_id)
+
+    credentials = cloud_auth.impersonate_service_account(
+        self.service_account_name)
+
+    self.assertIsNotNone(credentials)
+    self.assertIsInstance(credentials, impersonated_credentials.Credentials)
+    self.mock_auth_default.assert_called_once()
+
+  @mock.patch.object(impersonated_credentials, 'Credentials', autospec=True)
+  def test_impersonate_service_account_sets_target_scopes(
+      self, mock_credentials):
+    target_scopes = ['https://www.googleapis.com/auth/devstorage.read_only']
+
+    cloud_auth.impersonate_service_account(self.service_account_name,
+                                           target_scopes)
+
+    default_credentials, _ = self.mock_auth_default.return_value
+    mock_credentials.assert_called_once_with(
+        source_credentials=default_credentials,
+        target_principal=self.service_account_name,
+        target_scopes=target_scopes)
 
 
 if __name__ == '__main__':

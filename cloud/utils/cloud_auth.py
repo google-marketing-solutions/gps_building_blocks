@@ -19,7 +19,7 @@ import base64
 import json
 import os
 import textwrap
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 from absl import logging
 
 import apiclient
@@ -27,6 +27,7 @@ from googleapiclient import discovery
 from googleapiclient import errors
 import google.auth
 from google.auth import credentials
+from google.auth import impersonated_credentials
 from google.auth.transport import requests
 from google.oauth2 import service_account
 from gps_building_blocks.cloud.utils import utils
@@ -312,3 +313,38 @@ def get_auth_session(
   """
   credentials_info = get_credentials(service_account_key_file)
   return requests.AuthorizedSession(credentials_info)
+
+
+def impersonate_service_account(
+    service_account_name: str,
+    target_scopes: Sequence[str] = None
+) -> impersonated_credentials.Credentials:
+  """Impersonates a service account.
+
+  This method impersonates a service account and returns a credential object
+  which then can be used to authenticate calls to Google Cloud APIs. The caller
+  must have "Service Account Token Creator" IAM role explicitly added. This is
+  applicable even for users who have "Owner" IAM role.
+
+  Args:
+    service_account_name: The service account name.
+    target_scopes: Scopes to request during the authorization grant.
+
+  Returns:
+    Credential object to authenticate while calling GCP APIs.
+  """
+  if not target_scopes:
+    # Full access to all resources and services in the specified GCP project.
+    logging.info('The target scope was not passed. So by default requesting'
+                 'impersonated credentials to access all resources and services'
+                 )
+    target_scopes = [_SCOPE]
+
+  # The google.auth.default returns a tuple holding default_credentials and
+  # project_id.
+  default_credentials, _ = google.auth.default()
+
+  return impersonated_credentials.Credentials(
+      source_credentials=default_credentials,
+      target_principal=service_account_name,
+      target_scopes=target_scopes)
