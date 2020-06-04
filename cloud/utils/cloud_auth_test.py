@@ -297,6 +297,22 @@ class AuthTest(unittest.TestCase):
         target_principal=self.service_account_name,
         target_scopes=target_scopes)
 
+  @mock.patch.object(cloud_auth, 'impersonate_service_account', autospec=True)
+  def test_build_impersonated_client(self, mock_impersonate_service_account):
+    service_name = 'service_name'
+    version = 'v2'
+    mock_credentials = mock.Mock(spec=service_account.Credentials)
+    mock_impersonate_service_account.return_value = mock_credentials
+
+    cloud_auth.build_impersonated_client(
+        service_name, self.service_account_name, version=version)
+
+    self.mock_client.assert_called_once_with(
+        service_name,
+        version,
+        credentials=mock_credentials,
+        cache_discovery=False)
+
 
 if __name__ == '__main__':
   unittest.main()

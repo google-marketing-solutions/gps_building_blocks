@@ -87,7 +87,23 @@ cloud_auth.set_service_account_role(PROJECT_ID, SERVICE_ACCOUNT_NAME, ROLE_NAME)
 
 There are two ways to construct a client.
 
-##### a. Using service account credentials (Recommended)
+##### a. Using service account impersonation (Recommended)
+
+```python
+from gps_building_blocks.cloud.utils import cloud_auth
+
+# Each Google Cloud API has different service name and versions. For composer
+# the details can be found here - https://cloud.google.com/composer/docs/reference/rest.
+# Use reference docs to get the service name and versions of required API.
+SERVICE_NAME = 'composer'
+VERSION = 'v1beta1'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
+
+client = cloud_auth.build_impersonated_client(
+    SERVICE_NAME, SERVICE_ACCOUNT_NAME, VERSION)
+```
+
+##### b. Using service account credentials
 
 ```python
 from gps_building_blocks.cloud.utils import cloud_auth
@@ -99,7 +115,7 @@ SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
 client = cloud_auth.build_service_client(SERVICE_NAME, SERVICE_ACCOUNT_KEY_FILE)
 ```
 
-##### b. Using default credentials
+##### c. Using default credentials
 
 ```python
 from gps_building_blocks.cloud.utils import cloud_auth

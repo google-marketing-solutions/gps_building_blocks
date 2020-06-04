@@ -83,6 +83,9 @@ def build_service_client(
     service_account_key_file: str = None) -> apiclient.discovery.Resource:
   """Construct a Resource for interacting with GCP service APIs.
 
+  Note: Use `build_impersonated_client` method to build client without providing
+  a private key for a service account.
+
   Args:
     service_name: Name of the service for which the client is created.
     service_account_key_file: Optional. File containing service account key. If
@@ -348,3 +351,31 @@ def impersonate_service_account(
       source_credentials=default_credentials,
       target_principal=service_account_name,
       target_scopes=target_scopes)
+
+
+def build_impersonated_client(
+    service_name: str,
+    service_account_name: str,
+    version: str = 'v1') -> apiclient.discovery.Resource:
+  """Constructs a Resource for interacting with GCP service APIs.
+
+  This method impersonates a service account and builds client to interact with
+  GCP APIs. Make sure the caller has "Service Account Token Creator" IAM role
+  explicitly added.
+
+  Args:
+    service_name: Name of the service for which the client is created.
+      E.g. 'composer' or 'serviceusage'.
+    service_account_name: Name of the service account to be impersonated.
+      E.g. 'my-svc-account@project-id.iam.gserviceaccount.com'.
+    version: The version of the service. It defaults to 'v1'.
+
+  Returns:
+    client: A client with methods for interacting with the service APIs.
+  """
+  credentials_info = impersonate_service_account(service_account_name)
+  return discovery.build(
+      service_name,
+      version,
+      credentials=credentials_info,
+      cache_discovery=False)
