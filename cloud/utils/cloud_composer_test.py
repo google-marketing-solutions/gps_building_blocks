@@ -17,10 +17,9 @@
 
 from typing import Dict
 import unittest
-
+from unittest import mock
 from googleapiclient import errors
 from googleapiclient import http
-import mock
 
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import cloud_composer

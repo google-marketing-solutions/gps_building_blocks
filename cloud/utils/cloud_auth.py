@@ -22,7 +22,6 @@ import textwrap
 from typing import Any, Dict, Sequence
 from absl import logging
 
-import apiclient
 from googleapiclient import discovery
 from googleapiclient import errors
 import google.auth
@@ -80,7 +79,7 @@ def get_credentials(
 
 def build_service_client(
     service_name: str,
-    service_account_key_file: str = None) -> apiclient.discovery.Resource:
+    service_account_key_file: str = None) -> discovery.Resource:
   """Construct a Resource for interacting with GCP service APIs.
 
   Note: Use `build_impersonated_client` method to build client without providing
@@ -99,7 +98,7 @@ def build_service_client(
       service_name, 'v1', credentials=credentials_info, cache_discovery=False)
 
 
-def _get_resource_manager_client() -> apiclient.discovery.Resource:
+def _get_resource_manager_client() -> discovery.Resource:
   """Creates a new resource manager client to manage GCP projects.
 
   Returns:
@@ -108,7 +107,7 @@ def _get_resource_manager_client() -> apiclient.discovery.Resource:
   return build_service_client('cloudresourcemanager')
 
 
-def _get_iam_client() -> apiclient.discovery.Resource:
+def _get_iam_client() -> discovery.Resource:
   """Creates a new iam client.
 
   Returns:
@@ -117,7 +116,7 @@ def _get_iam_client() -> apiclient.discovery.Resource:
   return build_service_client('iam')
 
 
-def _get_service_account_client() -> apiclient.discovery.Resource:
+def _get_service_account_client() -> discovery.Resource:
   """Creates a new client to manage service accounts.
 
   Returns:
@@ -356,7 +355,7 @@ def impersonate_service_account(
 def build_impersonated_client(
     service_name: str,
     service_account_name: str,
-    version: str = 'v1') -> apiclient.discovery.Resource:
+    version: str = 'v1') -> discovery.Resource:
   """Constructs a Resource for interacting with GCP service APIs.
 
   This method impersonates a service account and builds client to interact with

@@ -23,7 +23,7 @@ import time
 from typing import Any, Dict, Text
 
 from absl import logging
-import apiclient
+from googleapiclient import discovery
 from googleapiclient import errors
 from googleapiclient import http
 
@@ -77,7 +77,7 @@ def execute_request(request: http.HttpRequest) -> Any:
   return response
 
 
-def wait_for_operation(operation_client: apiclient.discovery.Resource,
+def wait_for_operation(operation_client: discovery.Resource,
                        operation: Dict[Text, Any]) -> None:
   """Waits for the completion of operation.
 

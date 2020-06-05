@@ -19,10 +19,11 @@ import base64
 import io
 import os
 import unittest
+from unittest import mock
 
 from googleapiclient import discovery
 from googleapiclient import errors
-import mock
+
 from google import auth
 from google.auth import impersonated_credentials
 from google.oauth2 import service_account

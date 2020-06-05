@@ -18,7 +18,7 @@
 import os
 import unittest
 
-import mock
+from unittest import mock
 
 from google.api_core import exceptions
 from google.auth import credentials

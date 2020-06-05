@@ -17,10 +17,10 @@
 
 import time
 import unittest
-
+from unittest import mock
 from googleapiclient import errors
 from googleapiclient import http
-import mock
+
 from absl.testing import parameterized
 from gps_building_blocks.cloud.utils import utils
 

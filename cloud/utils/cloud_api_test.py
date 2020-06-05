@@ -16,9 +16,10 @@
 """Tests for google3.third_party.gps_building_blocks.cloud.utils.cloud_api."""
 
 import unittest
+from unittest import mock
 
-import mock
 import requests
+
 from absl.testing import parameterized
 from gps_building_blocks.cloud.utils import cloud_api
 from gps_building_blocks.cloud.utils import cloud_auth
