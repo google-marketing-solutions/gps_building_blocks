@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for google3.third_party.gps_building_blocks.cloud.utils.cloud_composer."""
 
 from typing import Dict
@@ -47,7 +46,9 @@ class CloudComposerUtilsTest(unittest.TestCase):
 
     self.service_account_key_file = '/tmp/service_account_key.json'
     self.composer = cloud_composer.CloudComposerUtils(
-        self.project_id, self.location, self.service_account_key_file)
+        project_id=self.project_id,
+        location=self.location,
+        service_account_key_file=self.service_account_key_file)
     self.operation_client = mock.Mock()
     self.operation = {}
     (self.mock_client.projects.return_value.locations.return_value.operations
@@ -61,6 +62,28 @@ class CloudComposerUtilsTest(unittest.TestCase):
         self.mock_client.projects.return_value.locations.return_value
         .environments)
     self.mock_request = mock.Mock(http.HttpRequest)
+
+  @mock.patch.object(cloud_auth, 'build_impersonated_client', autospec=True)
+  def test_client_initializes_with_impersonated_service_account(
+      self, mock_impersonated_client):
+    service_account_name = 'my-svc-account@project-id.iam.gserviceaccount.com'
+    version = 'v1beta1'
+
+    cloud_composer.CloudComposerUtils(
+        project_id=self.project_id,
+        service_account_name=service_account_name,
+        version=version)
+
+    mock_impersonated_client.assert_called_once_with('composer',
+                                                     service_account_name,
+                                                     version)
+
+  def test_client_raises_error_on_missing_service_account_key_or_name(self):
+    version = 'v1beta1'
+
+    with self.assertRaises(ValueError):
+      cloud_composer.CloudComposerUtils(
+          project_id=self.project_id, version=version)
 
   def test_get_fully_qualified_environment_name(self):
     expected_name = (f'projects/{self.project_id}/locations/'

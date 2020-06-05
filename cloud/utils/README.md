@@ -207,13 +207,14 @@ from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
+VERSION = 'v1beta1'
 ENVIRONMENT_NAME = 'environment-name'
 LOCATION = 'us-west1'
 
 cloud_composer_utils = cloud_composer.CloudComposerUtils(
     project_id=PROJECT_ID, location=LOCATION,
-    service_account_key_file=SERVICE_ACCOUNT_KEY_FILE)
+    service_account_name=SERVICE_ACCOUNT_NAME, version=VERSION)
 cloud_composer_utils.create_environment(ENVIRONMENT_NAME)
 ```
 
