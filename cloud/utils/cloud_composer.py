@@ -29,6 +29,7 @@ _PYTHON_VERSION = '3'
 _HTTP_CONFLICT_CODE = 409
 _CLIENT_NAME = 'composer'
 _VERSION = 'v1beta1'
+_HTTP_NOT_FOUND_CODE = 404
 
 
 class Error(Exception):
@@ -346,3 +347,30 @@ class CloudComposerUtils(object):
     environment_details = self.get_environment(environment_name)
     environment_config = environment_details[self._CONFIG_KEY]
     return environment_config[self._DAG_FOLDER_KEY]
+
+  def delete_environment(self,
+                         environment_name: str) -> None:
+    """Deletes an existing Cloud Composer environment.
+
+    Args:
+      environment_name: Name of Composer environment.
+
+    Raises:
+      Error: If the request was not processed successfully.
+    """
+    fully_qualified_name = self._get_fully_qualified_env_name(environment_name)
+    logging.info('Deleting "%s" Composer environment from "%s" project.',
+                 fully_qualified_name, self.project_id)
+    try:
+      request = self.client.projects().locations().environments().delete(
+          name=fully_qualified_name)
+      operation = utils.execute_request(request)
+      operation_client = self.client.projects().locations().operations()
+      utils.wait_for_operation(operation_client, operation)
+    except errors.HttpError as error:
+      if error.__dict__['resp'].status == _HTTP_NOT_FOUND_CODE:
+        logging.info('The Composer environment %s does not exists.',
+                     fully_qualified_name)
+        return
+      logging.exception('Error occurred while deleting Composer environment.')
+      raise Error('Error occurred while deleting Composer environment.')

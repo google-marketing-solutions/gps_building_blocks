@@ -292,6 +292,32 @@ class CloudComposerUtilsTest(unittest.TestCase):
 
     self.assertEqual(actual_dags_folder, dags_folder)
 
+  def test_delete_environment(self):
+    mock_delete_env = self.mock_environment_client.return_value.delete
+
+    self.composer.delete_environment(self.environment_name)
+
+    request_body = {
+        'name': self.fully_qualified_name
+    }
+    mock_delete_env.assert_called_once_with(body=request_body)
+    self.mock_build_service_client.assert_called_once_with(
+        'composer', self.service_account_key_file)
+    self.assertEqual(self.mock_client, self.composer.client)
+    self.mock_wait_for_operation.assert_called_once_with(
+        self.operation_client, self.operation)
+
+  def test_delete_environment_raises_error_on_http_error(self):
+    self.mock_environment_client.side_effect = self.http_error
+
+    with self.assertRaises(cloud_composer.Error):
+      self.composer.delete_environment(self.environment_name)
+
+  def test_delete_environment_sliently_skips_on_http_error(self):
+    http_error_conflict = errors.HttpError(mock.MagicMock(status=404), b'')
+    self.mock_client.projects.side_effect = http_error_conflict
+
+    self.composer.delete_environment(self.environment_name)
 
 if __name__ == '__main__':
   unittest.main()

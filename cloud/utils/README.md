@@ -308,6 +308,30 @@ cloud_composer_utils = cloud_composer.CloudComposerUtils(
 cloud_composer_utils.override_airflow_configs(ENVIRONMENT_NAME,
                                               AIRFLOW_CONFIG_OVERRIDES)
 ```
+#### 3.5. Delete Cloud Composer environment
+
+When deleting Composer environment, the following parameters can be configured.
+
+*   Project Id where Composer environment needs to be managed
+*   Location under which the Composer environment needs to be managed. Default
+    value - 'us-central1'
+*   Service Account Name
+*   Name of the Composer environment
+
+```python
+from gps_building_blocks.cloud.utils import cloud_composer
+
+
+PROJECT_ID = 'project-id'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
+ENVIRONMENT_NAME = 'environment-name'
+LOCATION = 'us-west1'
+
+cloud_composer_utils = cloud_composer.CloudComposerUtils(
+    project_id=PROJECT_ID, location=LOCATION,
+    service_account_name=SERVICE_ACCOUNT_NAME)
+cloud_composer_utils.delete_environment(ENVIRONMENT_NAME)
+```
 
 ### 4. Cloud Storage
 
