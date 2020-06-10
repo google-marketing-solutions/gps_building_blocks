@@ -78,13 +78,6 @@ class CloudComposerUtilsTest(unittest.TestCase):
                                                      service_account_name,
                                                      version)
 
-  def test_client_raises_error_on_missing_service_account_key_or_name(self):
-    version = 'v1beta1'
-
-    with self.assertRaises(ValueError):
-      cloud_composer.CloudComposerUtils(
-          project_id=self.project_id, version=version)
-
   def test_get_fully_qualified_environment_name(self):
     expected_name = (f'projects/{self.project_id}/locations/'
                      f'{self.location}/environments/{self.environment_name}')

@@ -14,7 +14,7 @@
 # limitations under the License.
 """Manage operations on Cloud Composer."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from absl import logging
 
 from googleapiclient import errors
@@ -56,8 +56,8 @@ class CloudComposerUtils(object):
   def __init__(self,
                project_id: str,
                location: str = _LOCATION,
-               service_account_name: str = None,
-               service_account_key_file: str = None,
+               service_account_name: Optional[str] = None,
+               service_account_key_file: Optional[str] = None,
                version: str = _VERSION) -> None:
     """Initialise new instance of CloudComposerUtils.
 
@@ -68,25 +68,24 @@ class CloudComposerUtils(object):
         https://cloud.google.com/compute/docs/regions-zones/.
       service_account_name: The service account name.
       service_account_key_file: Optional. File containing service account key.
-        If not passed the default credential will be used. There are following
-        ways to create service accounts: 1. Use `build_service_client` method
-          from `cloud_auth` module. 2. Use `gcloud` command line utility as
-          documented here -
-             https://cloud.google.com/iam/docs/creating-managing-service-account-keys
+        If both service_account_name and not service_account_key_file are not
+        passed the default credential will be used. There are following ways to
+        create service accounts:
+          1. Use `build_service_client` method from `cloud_auth` module.
+          2. Use `gcloud` command line utility as
+             documented here -
+               https://cloud.google.com/iam/docs/creating-managing-service-account-keys
       version: The version of the service. It defaults to 'v1beta1'.
     """
-    if not service_account_key_file and not service_account_name:
-      raise ValueError(
-          'Service account key file or servie account name is not provided. '
-          'Provide either path to service account key file or name of the '
-          'service account.')
-
-    if service_account_key_file:
-      self.client = cloud_auth.build_service_client(_CLIENT_NAME,
-                                                    service_account_key_file)
-    else:
+    if service_account_name:
       self.client = cloud_auth.build_impersonated_client(
           _CLIENT_NAME, service_account_name, version)
+    else:
+      if not service_account_key_file:
+        logging.info('Neither Service account key file nor servie account name '
+                     'was provided. So using default credentials.')
+      self.client = cloud_auth.build_service_client(_CLIENT_NAME,
+                                                    service_account_key_file)
     self.project_id = project_id
     self.location = location
 

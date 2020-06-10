@@ -47,6 +47,12 @@ def get_credentials(
     service_account_key_file: str = None) -> credentials.Credentials:
   """Get credentials to authenticate while calling GCP APIs.
 
+  If the "service_account_key_file" is not provided then we return default
+  credentials. See
+  https://google-auth.readthedocs.io/en/latest/reference/google.auth.html
+  to understand how default credentials are obtained for the current
+  environment.
+
   Args:
     service_account_key_file: Optional. File containing service account key. If
       not passed the default credential will be used.

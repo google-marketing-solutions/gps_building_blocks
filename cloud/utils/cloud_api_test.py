@@ -53,7 +53,20 @@ class CloudApiTest(parameterized.TestCase):
     self.mock_execute_request.return_value = self.operation
     self.mock_client.operations.return_value = self.operation_client
     self.cloud_api_utils = cloud_api.CloudApiUtils(
-        self.project_id, self.service_account_key_file)
+        self.project_id, service_account_key_file=self.service_account_key_file)
+
+  @mock.patch.object(cloud_auth, 'build_impersonated_client', autospec=True)
+  def test_client_initializes_with_impersonated_service_account(
+      self, mock_impersonated_client):
+    service_account_name = 'my-svc-account@project-id.iam.gserviceaccount.com'
+    version = 'v1beta1'
+
+    cloud_api.CloudApiUtils(
+        self.project_id, service_account_name=service_account_name)
+
+    mock_impersonated_client.assert_called_once_with('serviceusage',
+                                                     service_account_name,
+                                                     version)
 
   def test_enable_cloud_apis(self):
     apis = [self.api_name]

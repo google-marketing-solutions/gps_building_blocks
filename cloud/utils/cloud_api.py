@@ -16,7 +16,7 @@
 """Wrapper for Cloud APIs."""
 
 import json
-from typing import Any, List
+from typing import Any, List, Optional
 
 from absl import logging
 from googleapiclient import errors
@@ -28,6 +28,7 @@ from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import utils
 
 _SERVICE_URL = 'https://serviceusage.googleapis.com/v1/projects'
+_VERSION = 'v1beta1'  # Version of the service usage API.
 
 
 class Error(Exception):
@@ -48,20 +49,34 @@ class CloudApiUtils(object):
 
   def __init__(self,
                project_id: str,
-               service_account_key_file: str = None) -> None:
+               service_account_name: Optional[str] = None,
+               service_account_key_file: Optional[str] = None,
+               version: str = _VERSION) -> None:
     """Initialise new instance of CloudApiUtils.
 
     Args:
       project_id: GCP project id.
+      service_account_name: The service account name. If provided, the service
+        account will be impersonated to acquire credentials.
       service_account_key_file: Optional. File containing service account key.
-        If not passed the default credential will be used. There are following
-        ways to create service accounts:
+        If both service_account_name and not service_account_key_file are not
+        passed the default credential will be used. There are following ways to
+        create service accounts:
           1. Use `create_service_account_key` method from `cloud_auth` module.
           2. Use `gcloud` command line utility as documented here -
-             https://cloud.google.com/iam/docs/creating-managing-service-account-keys
+               https://cloud.google.com/iam/docs/creating-managing-service-account-keys
+      version: The version of the service usage service. It defaults to
+        'v1beta1'.
     """
-    self.client = cloud_auth.build_service_client('serviceusage',
-                                                  service_account_key_file)
+    if service_account_name:
+      self.client = cloud_auth.build_impersonated_client(
+          'serviceusage', service_account_name, version)
+    else:
+      if not service_account_key_file:
+        logging.info('Neither Service account key file nor servie account name '
+                     'was provided. So using default credentials.')
+      self.client = cloud_auth.build_service_client('serviceusage',
+                                                    service_account_key_file)
     self.project_id = project_id
 
   def enable_apis(self, apis: List[str]) -> None:

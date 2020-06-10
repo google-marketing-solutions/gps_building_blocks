@@ -58,6 +58,20 @@ class CloudStorageTest(parameterized.TestCase):
     self.file_content = 'Content of the file.'
     self.cloud_storage_obj = cloud_storage.CloudStorageUtils(self.project_id)
 
+  @mock.patch.object(cloud_auth, 'impersonate_service_account', autospec=True)
+  def test_client_initializes_with_impersonated_service_account(
+      self, mock_impersonated_account):
+    service_account_name = 'my-svc-account@project-id.iam.gserviceaccount.com'
+    mock_impersonated_account.return_value = self.mock_credentials
+
+    cloud_storage.CloudStorageUtils(
+        project_id=self.project_id,
+        service_account_name=service_account_name)
+
+    mock_impersonated_account.assert_called_once_with(service_account_name)
+    self.mock_client.assert_called_with(
+        project=self.project_id, credentials=self.mock_credentials)
+
   def test_parse_blob_url(self):
     bucket_name, path = self.cloud_storage_obj._parse_blob_url(
         self.destination_blob_url)
@@ -104,7 +118,7 @@ class CloudStorageTest(parameterized.TestCase):
   def test_credential_retrieval_logic_when_initializing_cloud_storage_utils(
       self, service_account_key_file):
     cloud_storage_obj = cloud_storage.CloudStorageUtils(
-        self.project_id, service_account_key_file)
+        self.project_id, service_account_key_file=service_account_key_file)
 
     self.mock_get_credentials.assert_called_with(service_account_key_file)
     self.mock_client.assert_called_with(

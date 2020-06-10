@@ -140,12 +140,14 @@ the list of available Cloud APIs.
 from gps_building_blocks.cloud.utils import cloud_api
 
 
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
+VERSION = 'v1'
 APIS_TO_BE_ENABLED = ['storage-component.googleapis.com',
                       'composer.googleapis.com', 'ml.googleapis.com']
 
 cloud_api_utils = cloud_api.CloudApiUtils(
-      project_id=PROJECT_ID, service_account_key_file=SERVICE_ACCOUNT_KEY_FILE)
+      project_id=PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME,
+      version=VERSION)
 cloud_api_utils.enable_apis(APIS_TO_BE_ENABLED)
 ```
 
@@ -238,12 +240,12 @@ from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 ENVIRONMENT_NAME = 'environment-name'
 PYTHON_PACKAGES = {'tensorflow' : "<=1.0.1", 'apache-beam': '==2.12.0'}
 
 cloud_composer_utils = cloud_composer.CloudComposerUtils(
-    project_id=PROJECT_ID, service_account_key_file=SERVICE_ACCOUNT_KEY_FILE)
+    project_id=PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_composer_utils.install_python_packages(ENVIRONMENT_NAME, PYTHON_PACKAGES)
 ```
 
@@ -269,12 +271,12 @@ from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 ENVIRONMENT_NAME = 'environment-name'
 ENVIRONMENT_VARIABLES = {'key1' : "value1", 'key2': 'value2'}
 
 cloud_composer_utils = cloud_composer.CloudComposerUtils(
-    project_id=PROJECT_ID, service_account_key_file=SERVICE_ACCOUNT_KEY_FILE)
+    project_id=PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_composer_utils.set_environment_variables(ENVIRONMENT_NAME,
                                                ENVIRONMENT_VARIABLES)
 ```
@@ -296,7 +298,7 @@ from gps_building_blocks.cloud.utils import cloud_composer
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 ENVIRONMENT_NAME = 'environment-name'
 AIRFLOW_CONFIG_OVERRIDES = {
     'smtp-smtp_mail_from': 'no-reply@abc.com',
@@ -304,7 +306,7 @@ AIRFLOW_CONFIG_OVERRIDES = {
 }
 
 cloud_composer_utils = cloud_composer.CloudComposerUtils(
-    project_id=PROJECT_ID, service_account_key_file=SERVICE_ACCOUNT_KEY_FILE)
+    project_id=PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_composer_utils.override_airflow_configs(ENVIRONMENT_NAME,
                                               AIRFLOW_CONFIG_OVERRIDES)
 ```
@@ -354,12 +356,12 @@ from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 SOURCE_FILE_PATH = '/tmp/file.txt'
 DESTINATION_FILE_URL = 'gs://bucket_name/blob1/blob2/file.txt'
 
-cloud_storage_utils = cloud_storage.CloudStorageUtils(PROJECT_ID,
-                                                      SERVICE_ACCOUNT_KEY_FILE)
+cloud_storage_utils = cloud_storage.CloudStorageUtils(
+    PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_storage_utils.upload_file_to_url(SOURCE_FILE_PATH, DESTINATION_FILE_URL)
 ```
 
@@ -374,13 +376,13 @@ from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 SOURCE_FILE_PATH = '/tmp/file.txt'
 BUCKET_NAME = 'bucket_name'
 DESTINATION_FILE_PATH = 'blob1/blob2/file.txt'
 
-cloud_storage_utils = cloud_storage.CloudStorageUtils(PROJECT_ID,
-                                                      SERVICE_ACCOUNT_KEY_FILE)
+cloud_storage_utils = cloud_storage.CloudStorageUtils(
+    PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_storage_utils.upload_file(SOURCE_FILE_PATH,
                                 BUCKET_NAME,
                                 DESTINATION_FILE_PATH)
@@ -402,12 +404,12 @@ from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 SOURCE_DIR_PATH = '/tmp/path/to/dir'
 DESTINATION_DIR_URL = 'gs://bucket_name/path/to/dir'
 
-cloud_storage_utils = cloud_storage.CloudStorageUtils(PROJECT_ID,
-                                                      SERVICE_ACCOUNT_KEY_FILE)
+cloud_storage_utils = cloud_storage.CloudStorageUtils(
+    PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_storage_utils.upload_directory_to_url(SOURCE_DIR_PATH,
                                             DESTINATION_DIR_URL)
 ```
@@ -423,13 +425,13 @@ from gps_building_blocks.cloud.utils import cloud_storage
 
 
 PROJECT_ID = 'project-id'
-SERVICE_ACCOUNT_KEY_FILE = '/tmp/service_account_key.json'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
 SOURCE_DIR_PATH = '/tmp/path/to/dir'
 BUCKET_NAME = 'bucket_name'
 DESTINATION_DIR_PATH = 'blob1/blob2'
 
-cloud_storage_utils = cloud_storage.CloudStorageUtils(PROJECT_ID,
-                                                      SERVICE_ACCOUNT_KEY_FILE)
+cloud_storage_utils = cloud_storage.CloudStorageUtils(
+    PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
 cloud_storage_utils.upload_directory(SOURCE_DIR_PATH,
                                      BUCKET_NAME,
                                      DESTINATION_DIR_PATH)
