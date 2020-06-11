@@ -82,8 +82,8 @@ class CloudComposerUtils(object):
           _CLIENT_NAME, service_account_name, version)
     else:
       if not service_account_key_file:
-        logging.info('Neither Service account key file nor servie account name '
-                     'was provided. So using default credentials.')
+        logging.info('Neither Service account key file nor service account '
+                     'name was provided. So using default credentials.')
       self.client = cloud_auth.build_service_client(_CLIENT_NAME,
                                                     service_account_key_file)
     self.project_id = project_id
