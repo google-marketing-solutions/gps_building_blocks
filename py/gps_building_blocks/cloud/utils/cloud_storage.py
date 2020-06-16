@@ -24,7 +24,7 @@ from absl import logging
 from google.api_core import exceptions
 from google.api_core import retry
 from google.cloud import storage
-from gps_building_blocks.cloud.utils import cloud_auth
+from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_auth
 
 
 class Error(Exception):

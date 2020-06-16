@@ -21,9 +21,9 @@ from unittest import mock
 import requests
 
 from absl.testing import parameterized
-from gps_building_blocks.cloud.utils import cloud_api
-from gps_building_blocks.cloud.utils import cloud_auth
-from gps_building_blocks.cloud.utils import utils
+from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_api
+from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_auth
+from google3.third_party.gps_building_blocks.py.cloud.utils import utils
 
 
 class CloudApiTest(parameterized.TestCase):

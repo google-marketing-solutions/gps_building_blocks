@@ -22,7 +22,7 @@ from googleapiclient import errors
 from googleapiclient import http
 
 from absl.testing import parameterized
-from gps_building_blocks.cloud.utils import utils
+from google3.third_party.gps_building_blocks.py.cloud.utils import utils
 
 
 class UtilsTest(parameterized.TestCase):

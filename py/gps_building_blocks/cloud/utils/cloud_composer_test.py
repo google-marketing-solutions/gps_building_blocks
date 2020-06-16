@@ -20,9 +20,9 @@ from unittest import mock
 from googleapiclient import errors
 from googleapiclient import http
 
-from gps_building_blocks.cloud.utils import cloud_auth
-from gps_building_blocks.cloud.utils import cloud_composer
-from gps_building_blocks.cloud.utils import utils
+from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_auth
+from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_composer
+from google3.third_party.gps_building_blocks.py.cloud.utils import utils
 
 
 class CloudComposerUtilsTest(unittest.TestCase):
