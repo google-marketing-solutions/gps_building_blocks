@@ -29,7 +29,7 @@ from google.auth import credentials
 from google.auth import impersonated_credentials
 from google.auth.transport import requests
 from google.oauth2 import service_account
-from google3.third_party.gps_building_blocks.py.cloud.utils import utils
+from gps_building_blocks.cloud.utils import utils
 
 # HTTP status code
 _NOT_FOUND_ERROR_CODE = 404

@@ -24,8 +24,8 @@ from google.api_core import exceptions
 from google.auth import credentials
 from google.cloud import storage
 from absl.testing import parameterized
-from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_auth
-from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_storage
+from gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_storage
 
 
 class CloudStorageTest(parameterized.TestCase):

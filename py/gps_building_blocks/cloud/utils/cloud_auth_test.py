@@ -27,7 +27,7 @@ from googleapiclient import errors
 from google import auth
 from google.auth import impersonated_credentials
 from google.oauth2 import service_account
-from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import cloud_auth
 
 
 class AuthTest(unittest.TestCase):

@@ -24,8 +24,8 @@ import requests.exceptions
 
 from google.auth.transport.requests import AuthorizedSession
 
-from google3.third_party.gps_building_blocks.py.cloud.utils import cloud_auth
-from google3.third_party.gps_building_blocks.py.cloud.utils import utils
+from gps_building_blocks.cloud.utils import cloud_auth
+from gps_building_blocks.cloud.utils import utils
 
 _SERVICE_URL = 'https://serviceusage.googleapis.com/v1/projects'
 _VERSION = 'v1beta1'  # Version of the service usage API.
