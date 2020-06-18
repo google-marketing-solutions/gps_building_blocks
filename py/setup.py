@@ -17,12 +17,16 @@
 
 import setuptools
 
-with open("README.md", "r") as fh:
+
+# It is assumed that this file will moved to gps_building_block/py/setup.py,
+# while the README resides at gps_building_blocks/README.md.
+
+with open("../README.md", "r") as fh:
   long_description = fh.read()
 
 setuptools.setup(
     name="gps-building-blocks",
-    version="0.1.0",
+    version="0.1.5",
     author="gPS Team",
     author_email="no-reply@google.com",
     description="Modules and tools useful for use with advanced data solutions on Google Ads, Google Marketing Platform and Google Cloud.",

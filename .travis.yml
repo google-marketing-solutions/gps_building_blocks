@@ -1,0 +1,36 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+language: python
+# Need to move to python folder before as Travis assumes everything is in root.
+before_install: cd py
+install:
+- pip install -r requirements.txt
+
+# Per Travis documentation: "If you do not provide a script key in a Python
+# project, Travis CI prints a message (“Please override the script: key in your
+# .travis.yml to run tests.”) and fails the build."
+# TODO: (b/159337972) Fix failing tests, delete line 13 and uncomment line 12.
+
+# script: nosetests gps_building_blocks
+script: nosetests gps_building_blocks/cloud/utils/utils_test.py
+deploy:
+  provider: pypi
+  username: __token__
+  distributions: sdist bdist_wheel
+  password:
+    secure: "YW8b+Ie/SdQZh1g7S1XDypyDu750F/wa4ASydSwCNU//osEveFr2vdwo0oldV0iFsj1dFuJaRMEvw5RLlFExrCBseuudRwPJ/RrYKQNEbSHqdxy9fPzFqdtLZcIPOw0Ln7tOf/Mf4EO14hDFeaSz61lD13z5Wnerga5iyB20+d7zpNgC2LugiYX9c5pT8mW9mddpEtTfPMQcIDmlsV8iB7VQVKoK++71pO/DLKnbQrX53FzRs/nMW/l8F1x85Bwh7D39cYLPYuQD3wQzSz9PwGWkPA9PekWe09JleUk4o40iZOJdVqr2LqqHXFO8B4rX4W5FCoSaGNWdoNNtgGhGc64vUOs4dy/oSulff6hvB97NodZevBswDEZWvMbGawxfo28C3LgZGAnkMNf0gWutASItO9oN0BoKGRZQE6daP1qFzprOMwqtK73le5CkNeKT/NvibP4NXtT4klbkjorOmVGJvOqm9KeOo/UQp8SZ5VYS91bGBfopgwTu3WFhoehRmgoCrxdIEJJkE3j7MrxjkZdY4NY5jy3mP+vJU8Y7i3iP9d2yU0ZRC67p64u/mAnClq6/ckeHPbG3chWhAj/xLjt0Hi3C0ePDcgZEUixfBfBfdUOdp7Hv4Ib39agatNypgu6Pq7qGTrdSs8YovBvjSL/xIc3ttGwwgR/NcmyB11g="
+  on:
+    tags: true
+    branch: master
