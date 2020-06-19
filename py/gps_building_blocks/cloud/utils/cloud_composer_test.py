@@ -290,10 +290,9 @@ class CloudComposerUtilsTest(unittest.TestCase):
 
     self.composer.delete_environment(self.environment_name)
 
-    request_body = {
-        'name': self.fully_qualified_name
-    }
-    mock_delete_env.assert_called_once_with(body=request_body)
+    fully_qualified_name = self.fully_qualified_name
+
+    mock_delete_env.assert_called_once_with(name=fully_qualified_name)
     self.mock_build_service_client.assert_called_once_with(
         'composer', self.service_account_key_file)
     self.assertEqual(self.mock_client, self.composer.client)
