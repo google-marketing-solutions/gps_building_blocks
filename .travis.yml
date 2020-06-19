@@ -21,10 +21,8 @@ install:
 # Per Travis documentation: "If you do not provide a script key in a Python
 # project, Travis CI prints a message (“Please override the script: key in your
 # .travis.yml to run tests.”) and fails the build."
-# TODO: (b/159337972) Fix failing tests, delete line 13 and uncomment line 12.
 
-# script: nosetests gps_building_blocks
-script: nosetests gps_building_blocks/cloud/utils/utils_test.py
+script: nosetests gps_building_blocks
 deploy:
   provider: pypi
   username: __token__
