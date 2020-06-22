@@ -14,10 +14,10 @@
 # limitations under the License.
 
 """Tests for google3.third_party.gps_building_blocks.cloud.utils.cloud_scheduler."""
-
 import unittest
-
 from unittest import mock
+
+from googleapiclient import errors
 
 from absl.testing import parameterized
 from gps_building_blocks.cloud.utils import cloud_auth
@@ -31,6 +31,20 @@ class CloudSchedulerTest(parameterized.TestCase):
     super(CloudSchedulerTest, self).setUp()
     self.addCleanup(mock.patch.stopall)
     self.project_id = 'project_id'
+    self.location = 'us-central1'
+    self.service_account_key_file = '/tmp/service_account_key.json'
+    self.mock_build_service_client = mock.patch.object(
+        cloud_auth, 'build_service_client', autospec=True).start()
+    self.mock_client = mock.Mock()
+    self.mock_build_service_client.return_value = self.mock_client
+    self.fake_appengine_http_target = cloud_scheduler.AppEngineTarget(
+        http_method='GET',
+        relative_uri='/test',
+        service='test')
+    self.scheduler = cloud_scheduler.CloudSchedulerUtils(
+        project_id=self.project_id,
+        location=self.location,
+        service_account_key_file=self.service_account_key_file)
 
   @mock.patch.object(cloud_auth, 'build_impersonated_client', autospec=True)
   def test_client_initializes_with_impersonated_service_account(
@@ -48,6 +62,52 @@ class CloudSchedulerTest(parameterized.TestCase):
   def test_client_initializes_value_error(self):
     with self.assertRaises(ValueError):
       cloud_scheduler.CloudSchedulerUtils(project_id=self.project_id)
+
+  def test_create_appengine_http_job(self):
+    expected_job_name = 'created_job_name'
+    mock_create_job = (self.mock_client.projects.return_value.locations
+                       .return_value.jobs.return_value.create)
+    mock_create_job.return_value.execute.return_value.name = expected_job_name
+
+    job_name = self.scheduler.create_appengine_http_job(
+        name='my_job',
+        description='unit test job',
+        schedule='0 * * * *',
+        target=self.fake_appengine_http_target)
+
+    mock_create_job.assert_called_once_with(
+        parent=f'projects/{self.project_id}/locations/{self.location}',
+        body={
+            'name': 'my_job',
+            'description': 'unit test job',
+            'schedule': '0 * * * *',
+            'timeZone': 'GMT',
+            'appEngineHttpTarget': {
+                'httpMethod': 'GET',
+                'appEngineRouting': {
+                    'service': 'test'
+                },
+                'relativeUri': '/test'
+            }
+        })
+    self.assertEqual(job_name, expected_job_name)
+
+  def test_broken_create_appengine_job(self):
+    with self.assertRaisesWithLiteralMatch(
+        cloud_scheduler.Error,
+        'Error occurred while creating job: <HttpError 500 "custom message">'):
+
+      mock_http_response = mock.Mock(status=500, reason='custom message')
+      mock_create_job = (self.mock_client.projects.return_value.locations
+                         .return_value.jobs.return_value.create)
+
+      mock_create_job.side_effect = errors.HttpError(mock_http_response, b'')
+
+      self.scheduler.create_appengine_http_job(
+          name='my job',
+          description='my description',
+          schedule='0 * * * * ',
+          target=self.fake_appengine_http_target)
 
 if __name__ == '__main__':
   unittest.main()
