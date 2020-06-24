@@ -366,7 +366,9 @@ def impersonate_service_account(
 def build_impersonated_client(
     service_name: str,
     service_account_name: str,
-    version: str = 'v1') -> discovery.Resource:
+    version: str = 'v1',
+    target_scopes: Sequence[str] = None
+) -> discovery.Resource:
   """Constructs a Resource for interacting with GCP service APIs.
 
   This method impersonates a service account and builds client to interact with
@@ -379,11 +381,14 @@ def build_impersonated_client(
     service_account_name: Name of the service account to be impersonated.
       E.g. 'my-svc-account@project-id.iam.gserviceaccount.com'.
     version: The version of the service. It defaults to 'v1'.
+    target_scopes: Scopes to request during the authorization grant.
 
   Returns:
     client: A client with methods for interacting with the service APIs.
   """
-  credentials_info = impersonate_service_account(service_account_name)
+  credentials_info = impersonate_service_account(
+      service_account_name,
+      target_scopes)
   return discovery.build(
       service_name,
       version,

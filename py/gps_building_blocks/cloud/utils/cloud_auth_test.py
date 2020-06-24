@@ -302,11 +302,15 @@ class AuthTest(unittest.TestCase):
   def test_build_impersonated_client(self, mock_impersonate_service_account):
     service_name = 'service_name'
     version = 'v2'
+    target_scopes = ['https://www.googleapis.com/auth/devstorage.read_only']
     mock_credentials = mock.Mock(spec=service_account.Credentials)
     mock_impersonate_service_account.return_value = mock_credentials
 
     cloud_auth.build_impersonated_client(
-        service_name, self.service_account_name, version=version)
+        service_name,
+        self.service_account_name,
+        version=version,
+        target_scopes=target_scopes)
 
     self.mock_client.assert_called_once_with(
         service_name,
