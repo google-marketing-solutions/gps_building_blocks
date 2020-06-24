@@ -85,7 +85,8 @@ def get_credentials(
 
 def build_service_client(
     service_name: str,
-    service_account_key_file: str = None) -> discovery.Resource:
+    service_account_key_file: str = None,
+    version: str = 'v1',) -> discovery.Resource:
   """Construct a Resource for interacting with GCP service APIs.
 
   Note: Use `build_impersonated_client` method to build client without providing
@@ -95,13 +96,17 @@ def build_service_client(
     service_name: Name of the service for which the client is created.
     service_account_key_file: Optional. File containing service account key. If
       not passed the default credential will be used.
+    version: The version of the service. It defaults to 'v1'.
 
   Returns:
     client: A client with methods for interacting with the service APIs.
   """
   credentials_info = get_credentials(service_account_key_file)
   return discovery.build(
-      service_name, 'v1', credentials=credentials_info, cache_discovery=False)
+      service_name,
+      version,
+      credentials=credentials_info,
+      cache_discovery=False)
 
 
 def _get_resource_manager_client() -> discovery.Resource:
