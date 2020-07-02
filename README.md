@@ -1,3 +1,5 @@
+**This is not an official Google product.**
+
 # gPS Solutions - Core Libraries Repository
 
 **This is not an official Google product.**
