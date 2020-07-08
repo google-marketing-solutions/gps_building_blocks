@@ -1,4 +1,16 @@
-# Function Flow: Building workflows on Cloud Functions.
+# Function Flow
+A low cost, lightweight workflow orchestration framework based on Cloud Functions.
+
+## Background
+In many data and machine learning projects, we need to have an infrastructure that can manage our “workflows” or “data pipelines”. For example, consider a workflow like this:
+
+```ingest data from GCS -> generate features with user data -> call AutoML to get predictions -> send results to Google Ads```
+
+The workflows are usually in the form of a DAG, where each task can depend on a few other tasks. A task can be run only if all of its dependencies are successful.
+
+One option is to use [Cloud Composer](https://cloud.google.com/composer) to orchestrate the tasks, which can manage task dependencies automatically. Unfortunately Cloud Composer needs an always-on cluster(>= 3 compute engines) to run and costs a few hundred USD/month (even if not running anything) which is not acceptable by developers who only run the workflow a few times per month.
+
+This solution builds workflows on top of Cloud Functions, offers similar task dependency management ability to Cloud Composer, and is much cheaper and more lightweight.
 
 ## Example
 Here is a simple example of using function flow.
