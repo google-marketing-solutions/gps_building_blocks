@@ -14,10 +14,10 @@
 # limitations under the License.
 
 """Manage operations on Cloud Scheduler."""
-from typing import Optional
+import logging
+from typing import Any, Dict, Optional, Tuple
 
 import dataclasses
-import logging
 from googleapiclient import errors
 
 from gps_building_blocks.cloud.utils import cloud_auth
@@ -31,9 +31,27 @@ _TIMEZONE = 'GMT'
 
 @dataclasses.dataclass
 class AppEngineTarget:
+  """A simple class representing the AppEngineTarget of the job."""
   http_method: str
   relative_uri: str
   service: str
+
+
+@dataclasses.dataclass
+class HttpTarget:
+  """A simple class representing the HttpTarget of the job."""
+  http_method: str
+  uri: str
+  body: str
+  headers: Dict[str, str]
+
+  # A tuple containing the serviceAccountEmail and the scope if
+  # authorization_header_type is equal to 'oauthToken', or audience if the
+  # authorization_header_type is equal to 'oidcToken'
+  authorization_header: Optional[Tuple[str, str]] = None
+
+  # One of: 'oauthToken', 'oidcToken'
+  authorization_header_type: Optional[str] = ''
 
 
 class Error(Exception):
@@ -92,7 +110,7 @@ class CloudSchedulerUtils:
 
     if service_account_key_file:
       self._client = cloud_auth.build_service_client(_CLIENT_NAME,
-                                                    service_account_key_file)
+                                                     service_account_key_file)
     else:
       self._client = cloud_auth.build_impersonated_client(
           _CLIENT_NAME, service_account_name, version)
@@ -133,6 +151,67 @@ class CloudSchedulerUtils:
         }
     }
 
+    return self._create_job(request_body)
+
+  def create_http_job(self,
+                      name: str,
+                      description: str,
+                      schedule: str,
+                      target: HttpTarget,
+                      timezone: Optional[str] = _TIMEZONE) -> str:
+    """Creates a new HTTP job.
+
+    Args:
+      name: The name of the job.
+      description: The description of the job.
+      schedule: A cron-style schedule string.
+      target: An HttpTarget instance containing the job target information.
+      timezone: The timezone where of the job.
+
+    Returns:
+      The job name.
+
+    Raises:
+      Error: If the request was not processed successfully.
+    """
+    request_body = {
+        'name': name,
+        'description': description,
+        'schedule': schedule,
+        'timeZone': timezone,
+        'httpTarget': {
+            'uri': target.uri,
+            'httpMethod': target.http_method,
+            'headers': target.headers,
+            'body': target.body
+        }
+    }
+
+    if target.authorization_header_type == 'oauthToken':
+      request_body['httpTarget'][target.authorization_header_type] = {
+          'serviceAccountEmail': target.authorization_header[0],
+          'scope': target.authorization_header[1]
+      }
+    elif target.authorization_header_type == 'oidcToken':
+      request_body['httpTarget'][target.authorization_header_type] = {
+          'serviceAccountEmail': target.authorization_header[0],
+          'audience': target.authorization_header[1]
+      }
+
+    return self._create_job(request_body)
+
+  def _create_job(self, request_body: Dict[str, Any]) -> str:
+    """Creates a new Cloud Scheduler job.
+
+    Args:
+      request_body: A dictionary representing a Job instance.
+
+    Returns:
+      The job name.
+
+    Raises:
+      Error: If the request was not processed successfully.
+    """
     try:
       job = self._client.projects().locations().jobs().create(
           parent=self._parent,
@@ -142,5 +221,3 @@ class CloudSchedulerUtils:
     except errors.HttpError as error:
       logging.exception('Error occurred while creating job: %s', error)
       raise Error(f'Error occurred while creating job: {error}')
-
-

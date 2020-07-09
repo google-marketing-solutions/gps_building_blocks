@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for google3.third_party.gps_building_blocks.cloud.utils.cloud_scheduler."""
 import unittest
 from unittest import mock
@@ -38,9 +37,13 @@ class CloudSchedulerTest(parameterized.TestCase):
     self.mock_client = mock.Mock()
     self.mock_build_service_client.return_value = self.mock_client
     self.fake_appengine_http_target = cloud_scheduler.AppEngineTarget(
-        http_method='GET',
-        relative_uri='/test',
-        service='test')
+        http_method='GET', relative_uri='/test', service='test')
+    self.fake_http_target = cloud_scheduler.HttpTarget(
+        http_method='POST',
+        uri='https://www.google.com/',
+        body='{}',
+        headers={'Content-Type': 'application/json'},
+        authorization_header=('my-fake-account@google.com', 'my-fake-scope'))
     self.scheduler = cloud_scheduler.CloudSchedulerUtils(
         project_id=self.project_id,
         location=self.location,
@@ -52,8 +55,7 @@ class CloudSchedulerTest(parameterized.TestCase):
     service_account_name = 'my-svc-account@project-id.iam.gserviceaccount.com'
 
     cloud_scheduler.CloudSchedulerUtils(
-        project_id=self.project_id,
-        service_account_name=service_account_name)
+        project_id=self.project_id, service_account_name=service_account_name)
 
     mock_impersonated_client.assert_called_once_with('cloudscheduler',
                                                      service_account_name,
@@ -65,8 +67,9 @@ class CloudSchedulerTest(parameterized.TestCase):
 
   def test_create_appengine_http_job(self):
     expected_job_name = 'created_job_name'
-    mock_create_job = (self.mock_client.projects.return_value.locations
-                       .return_value.jobs.return_value.create)
+    mock_create_job = (
+        self.mock_client.projects.return_value.locations.return_value.jobs
+        .return_value.create)
     mock_create_job.return_value.execute.return_value.name = expected_job_name
 
     job_name = self.scheduler.create_appengine_http_job(
@@ -98,8 +101,9 @@ class CloudSchedulerTest(parameterized.TestCase):
         'Error occurred while creating job: <HttpError 500 "custom message">'):
 
       mock_http_response = mock.Mock(status=500, reason='custom message')
-      mock_create_job = (self.mock_client.projects.return_value.locations
-                         .return_value.jobs.return_value.create)
+      mock_create_job = (
+          self.mock_client.projects.return_value.locations.return_value.jobs
+          .return_value.create)
 
       mock_create_job.side_effect = errors.HttpError(mock_http_response, b'')
 
@@ -108,6 +112,47 @@ class CloudSchedulerTest(parameterized.TestCase):
           description='my description',
           schedule='0 * * * * ',
           target=self.fake_appengine_http_target)
+
+  @parameterized.parameters(('oauthToken', {
+      'serviceAccountEmail': 'my-fake-account@google.com',
+      'scope': 'my-fake-scope'
+  }), ('oidcToken', {
+      'serviceAccountEmail': 'my-fake-account@google.com',
+      'audience': 'my-fake-scope'
+  }))
+  def test_create_http_job(self, auth_type, expected_auth_header):
+    expected_job_name = 'created_job_name'
+    mock_create_job = (
+        self.mock_client.projects.return_value.locations.return_value.jobs
+        .return_value.create)
+    mock_create_job.return_value.execute.return_value.name = expected_job_name
+
+    self.fake_http_target.authorization_header_type = auth_type
+    job_name = self.scheduler.create_http_job(
+        name='my_job',
+        description='unit test job',
+        schedule='0 * * * *',
+        target=self.fake_http_target)
+
+    mock_create_job.assert_called_once_with(
+        parent=f'projects/{self.project_id}/locations/{self.location}',
+        body={
+            'name': 'my_job',
+            'description': 'unit test job',
+            'schedule': '0 * * * *',
+            'timeZone': 'GMT',
+            'httpTarget': {
+                'httpMethod': 'POST',
+                'uri': 'https://www.google.com/',
+                'headers': {
+                    'Content-Type': 'application/json'
+                },
+                'body': '{}',
+                auth_type: expected_auth_header
+            }
+        })
+    self.assertEqual(job_name, expected_job_name)
+
 
 if __name__ == '__main__':
   unittest.main()
