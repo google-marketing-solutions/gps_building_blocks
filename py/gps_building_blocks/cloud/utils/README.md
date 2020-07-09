@@ -13,7 +13,8 @@ solution developers. It offers utility modules to automate common tasks in GCP.
     -   [1. Cloud Auth](#1-cloud-auth)
     -   [2. Cloud API](#2-cloud-api)
     -   [3. Cloud Composer](#3-cloud-composer)
-    -   [4. Cloud Storage](#4-cloud-storage)
+    -   [4. Cloud Scheduler](#4-cloud-scheduler)
+    -   [5. Cloud Storage](#5-cloud-storage)
 
 ## Key Features
 
@@ -335,12 +336,86 @@ cloud_composer_utils = cloud_composer.CloudComposerUtils(
 cloud_composer_utils.delete_environment(ENVIRONMENT_NAME)
 ```
 
-### 4. Cloud Storage
+### 4. Cloud Scheduler
+
+The Cloud Scheduler module provides utility functions to manage jobs in Cloud
+Scheduler.
+
+#### 4.1 Create an AppEngine HTTP Job
+
+When creaeting an AppEngine HTTP Job, the following parameters can be
+configured.
+
+* Project id where the job will be creeated.
+* Location under where the job will be created.
+* Service Account Name.
+* Name of the job.
+* Description of the job.
+* Schedule of the job in the CRON format.
+* Target of the job.
+* Timezone which the job should run.
+
+```python
+from gps_building_blocks.cloud.utils import cloud_scheduler
+
+PROJECT_ID = 'project-id'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
+
+job_target = cloud_scheduler.AppEngineTarget(
+    http_method='GET',
+    relative_uri='/my_relative_uri',
+    service='my_service')
+cloud_scheduler_utils = cloud_scheduler.CloudSchedulerUtils(
+    PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
+job_name = cloud_scueduler_utils.create_appengine_http_job(
+    name='my_job',
+    description='Description of my job.',
+    schedule='0 * * * *',
+    target=job_target,
+    timezone='US/Pacific')
+```
+
+#### 4.2 Create an HTTP Job
+
+When creaeting an HTTP Job, the following parameters can be configured.
+
+* Project id where the job will be creeated.
+* Location under where the job will be created.
+* Service Account Name.
+* Name of the job.
+* Description of the job.
+* Schedule of the job in the CRON format.
+* Target of the job.
+* Timezone which the job should run.
+
+```python
+from gps_building_blocks.cloud.utils import cloud_scheduler
+
+PROJECT_ID = 'project-id'
+SERVICE_ACCOUNT_NAME = 'my-svc-account@project-id.iam.gserviceaccount.com'
+
+job_target = cloud_scheduler.HttpTarget(
+    http_method='POST',
+    uri='https://my-domain.com/',
+    body='{}',
+    headers={'Content-Type': 'application/json'},
+    authorization_header=('my-fake-account@google.com', 'my-fake-scope'))
+cloud_scheduler_utils = cloud_scheduler.CloudSchedulerUtils(
+    PROJECT_ID, service_account_name=SERVICE_ACCOUNT_NAME)
+job_name = cloud_scueduler_utils.create_appengine_http_job(
+    name='my_job',
+    description='Description of my job.',
+    schedule='0 * * * *',
+    target=job_target,
+    timezone='US/Pacific')
+```
+
+### 5. Cloud Storage
 
 The Cloud Storage module provides utility functions to manage files/blobs in
 Cloud Storage.
 
-#### 4.1. Upload files
+#### 5.1. Upload files
 
 Files from local file system can be uploaded to Cloud Storage using one of the
 following ways.
@@ -388,7 +463,7 @@ cloud_storage_utils.upload_file(SOURCE_FILE_PATH,
                                 DESTINATION_FILE_PATH)
 ```
 
-#### 4.2. Upload directory
+#### 5.2. Upload directory
 
 Directory from local file system can be uploaded to Cloud Storage using one of
 the following ways.
