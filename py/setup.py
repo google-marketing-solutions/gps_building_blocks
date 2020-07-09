@@ -26,7 +26,7 @@ with open("../README.md", "r") as fh:
 
 setuptools.setup(
     name="gps-building-blocks",
-    version="0.1.5",
+    version="0.1.12",
     author="gPS Team",
     author_email="no-reply@google.com",
     description="Modules and tools useful for use with advanced data solutions on Google Ads, Google Marketing Platform and Google Cloud.",
@@ -35,6 +35,15 @@ setuptools.setup(
     url="https://github.com/google/gps_building_blocks",
     license="Apache Software License",
     packages=setuptools.find_packages(),
+    install_requires=[
+        "absl-py==0.9.0",
+        "google-api-core==1.17.0",
+        "google-api-python-client==1.9.1",
+        "google-auth==1.16.0",
+        "google-cloud-storage==1.28.1",
+        "requests==2.23.0",
+        "dataclasses; python_version<'3.7'"
+    ],
     classifiers=[
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Python Modules",
