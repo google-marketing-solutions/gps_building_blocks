@@ -16,29 +16,65 @@
 
 """Task scheduler for Function Flow.
 """
+import datetime
+import enum
+from typing import Any, Callable, List, Optional
+import uuid
 
-from typing import Any, Callable, List
 import google.auth
+from google.cloud import firestore
 
 
-class TaskStatus:
+class _AutoName(enum.Enum):
+  """Automatically generate enum values as strings."""
+
+  def _generate_next_value_(name, start, count, last_values):
+    """Automatically generate enum values as strings.
+
+      Ref: https://docs.python.org/3/library/enum.html#using-automatic-values
+
+    Args:
+      start: start
+      count: count
+      last_values: last generated values
+
+    Returns:
+      The same name as enum variable name
+    """
+    return name
+
+
+class TaskStatus(str, _AutoName):
   """Represents the status of a single task.
   """
   # ready to be scheduled
-  READY = 'READY'
+  READY = enum.auto()
   # running
-  RUNNING = 'RUNNING'
+  RUNNING = enum.auto()
   # failed by raising errors
-  FAILED = 'FAILED'
+  FAILED = enum.auto()
   # finished
-  FINISHED = 'FINISHED'
+  FINISHED = enum.auto()
+
+
+class JobStatus(str, _AutoName):
+  """Represents the status of a job(aka workflow)."""
+  # running
+  RUNNING = enum.auto()
+  # A job fails if any of the tasks in the job fails
+  FAILED = enum.auto()
+  # finished
+  FINISHED = enum.auto()
 
 
 class Task:
-  """Class representing a task.
+  """A work unit that gets executed by a cloud function.
 
-    A task is a work unit and will be executed during a single invocation of a
-      cloud function.
+    Attributes:
+      id: The task id. Unique within the same job.
+      deps: The list of task ids that this task depends on.
+      func: The function to be executed for this task.
+      status: The task status. See class doc of `TaskStatus` for details.
   """
 
   def __init__(self,
@@ -67,7 +103,7 @@ class Job:
     Tasks belonging to the same job are grouped together to manage their
       execution order, statuses and results.
 
-    Users first create a job instance, then defines tasks like this:
+    Users first create a job instance, then define tasks like this:
     ```python
       job = Job(name=..., max_parallel_tasks=...)
 
@@ -78,13 +114,24 @@ class Job:
     ```
   """
 
+  # The database collection to store job and task status
+  JOB_STATUS_COLLECTION = 'JobStatus'
+
+  # db FIELDS
+  FIELD_NAME = 'name'
+  FIELD_STATUS = 'status'
+  FIELD_TASKS = 'tasks'
+
   def __init__(self,
                name: str = None,
+               db: firestore.Client = None,
                project: str = None):
-    """Constructor.
+    """Initializes the job instance.
 
     Args:
       name: Job name. Will also be the prefix for the id of job instance.
+      db: The firestore client which stores/loads job status information to/from
+        database.
       project: The cloud project id. Will be determined from current envrioment
         automatically(for example the project of the cloud function) if not
         specified.
@@ -93,10 +140,32 @@ class Job:
     if not project:
       _, project = google.auth.default()
     self.project = project
+    self.id = None
+
+    self.db = db or firestore.Client(project=project)
+
     self.tasks = []
 
+  def _load(self, job_id: str):
+    """Loads status of job with `job_id` from database.
+
+    Args:
+      job_id: The id of the job instance.
+    """
+    job_ref = self._get_job_ref()
+    job = job_ref.get().to_dict()
+    self.name = job[self.FIELD_NAME]
+    self.id = job_id
+
+    # Loads current task status from db
+    tasks_ref = self.db.collection(self.JOB_STATUS_COLLECTION, job_id,
+                                   self.FIELD_TASKS)
+    tasks = {task.id: task.to_dict() for task in tasks_ref.stream()}
+    for task in self.tasks:
+      task.status = tasks[task.id][self.FIELD_STATUS]
+
   def _get_runnable_tasks(self) -> List[Task]:
-    """Get all runnable tasks in the job.
+    """Gets all runnable tasks in the job.
 
       A task is runnable if:
         1. It's in the READY state.
@@ -133,6 +202,10 @@ class Job:
 
     return runnable_tasks
 
+  def _get_job_ref(self) -> 'firestore.DocumentReference':
+    """Gets job reference from database."""
+    return self.db.collection(self.JOB_STATUS_COLLECTION).document(self.id)
+
   def task(self,
            task_id: str,
            deps: List[str] = None) -> Callable[..., Any]:
@@ -146,7 +219,50 @@ class Job:
       A wrapped task function.
     """
     def wrapper(task_func):
-      task = Task(task_id=task_id, deps=deps, func=task_func)
+      task = Task(task_id=task_id, deps=deps or [], func=task_func)
       self.tasks.append(task)
 
     return wrapper
+
+  def start(self, argv: Optional[List[str]] = None):
+    """Starts a job.
+
+    Args:
+      argv: The start arguments.
+
+      Creates an entry in the `JOB_STATUS_COLLECTION` storing the job and task
+        status, set job status to RUNNING, and all tasks in the job to READY so
+        that they can be scheduled.
+    """
+    # save to db
+    datestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
+    rand_id = uuid.uuid4().hex[:4]
+    self.id = f'{self.name}-{datestamp}-{rand_id}'
+
+    job_ref = self._get_job_ref()
+    job_ref.set({
+        'name': self.name,
+        'start_time': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S'),
+        'status': JobStatus.RUNNING,
+        'argv': argv or []
+    })
+
+    tasks_ref = self.db.collection(self.JOB_STATUS_COLLECTION, self.id,
+                                   self.FIELD_TASKS)
+    for task in self.tasks:
+      task_ref = tasks_ref.document(task.id)
+      task_ref.set({
+          'id': task.id,
+          'deps': task.deps,
+          'status': TaskStatus.READY,
+      })
+
+  def get_arguments(self):
+    """Get start arguments of this job.
+
+    Returns:
+      argv paremeter of start()
+    """
+    job_ref = self._get_job_ref()
+    job = job_ref.get().to_dict()
+    return job['argv']
