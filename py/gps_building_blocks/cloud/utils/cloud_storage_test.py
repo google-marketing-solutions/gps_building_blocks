@@ -53,9 +53,13 @@ class CloudStorageTest(parameterized.TestCase):
         os.path, 'isdir', autospec=True).start()
     self.mock_bucket = mock.Mock(storage.Bucket, autospec=True)
     self.mock_blob = mock.Mock(storage.Blob, autospec=True)
+    self.mock_blob_name = 'blob_name'
+    self.mock_blob.name = self.mock_blob_name
     self.mock_client.return_value.get_bucket.return_value = self.mock_bucket
     self.mock_bucket.blob.return_value = self.mock_blob
-    self.file_content = 'Content of the file.'
+    self.mock_bucket.get_blob.return_value = self.mock_blob
+    self.file_content = b'Content of the file.'
+    self.mock_blob.download_as_string.return_value = self.file_content
     self.cloud_storage_obj = cloud_storage.CloudStorageUtils(self.project_id)
 
   @mock.patch.object(cloud_auth, 'impersonate_service_account', autospec=True)
@@ -246,6 +250,44 @@ class CloudStorageTest(parameterized.TestCase):
 
     self.assertEqual(2, self.mock_blob.upload_from_string.call_count)
 
+  def test_fetch_file_returns_file_when_using_bucket_name(self):
+    file = self.cloud_storage_obj.fetch_file(
+        bucket_name=self.bucket_name,
+        file_name=self.mock_blob_name)
+
+    self.assertEqual(file, self.mock_blob)
+
+  def test_fetch_file_raises_an_exception_when_bucket_is_not_found(self):
+    self.mock_client.return_value.get_bucket.side_effect = exceptions.NotFound(
+        'Cloud Storage Bucket not found.')
+
+    with self.assertRaises(exceptions.NotFound):
+      self.cloud_storage_obj.fetch_file(
+          bucket_name=self.bucket_name,
+          file_name=self.mock_blob_name)
+
+  def test_fetch_file_returns_none_if_file_does_not_exist(self):
+    self.mock_bucket.get_blob.return_value = None
+    file = self.cloud_storage_obj.fetch_file(
+        bucket_name=self.bucket_name,
+        file_name=self.mock_blob_name)
+
+    self.assertIsNone(file)
+
+  def test_fetch_file_contents(self):
+    file_contents = self.cloud_storage_obj.fetch_file_contents(
+        bucket_name=self.bucket_name,
+        file_name=self.mock_blob_name)
+
+    self.assertEqual(file_contents, self.file_content)
+
+  def test_fetch_file_contents_return_none_if_blob_not_found(self):
+    self.mock_bucket.get_blob.return_value = None
+    file_contents = self.cloud_storage_obj.fetch_file_contents(
+        bucket_name=self.bucket_name,
+        file_name=self.mock_blob_name)
+
+    self.assertIsNone(file_contents)
 
 if __name__ == '__main__':
   unittest.main()

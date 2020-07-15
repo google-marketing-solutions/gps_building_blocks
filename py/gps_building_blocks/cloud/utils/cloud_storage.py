@@ -291,3 +291,46 @@ class CloudStorageUtils(object):
     destination_blob.upload_from_string(file_content)
     logging.info('Successfully wrote data to "gs://%s/%s"', bucket_name,
                  destination_file_path)
+
+  def fetch_file(self,
+                 bucket_name: str,
+                 file_name: str
+                 ) -> storage.Blob:
+    """Retrieves file from provided bucket.
+
+    Args:
+      bucket_name: Name of bucket containing the target file.
+      file_name: The name of the target file.
+
+    Returns:
+      google.cloud.storage.blob.Blob: The Blob object or None if file doesn't
+      exist.
+
+    Raises:
+      exceptions.NotFound if bucket does not exist.
+    """
+    try:
+      source_bucket = self.client.get_bucket(bucket_name)
+    except exceptions.NotFound:
+      bucket_name = bucket_name if isinstance(
+          bucket_name, str) else bucket_name.name
+      logging.error('Cloud Storage bucket "%s" not found.', bucket_name)
+      raise
+
+    return source_bucket.get_blob(file_name)
+
+  def fetch_file_contents(self,
+                          bucket_name: str,
+                          file_name: str) -> Optional[bytes]:
+    """Returns file content as byte string.
+
+    Args:
+      bucket_name: The name of bucket containing the target file.
+      file_name: The name of the taget file.
+
+    Returns:
+      bytes: Contents of file or None if the file cannot be found.
+    """
+    blob = self.fetch_file(bucket_name, file_name)
+    return blob.download_as_string() if blob else None
+
