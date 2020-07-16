@@ -16,6 +16,8 @@
 
 """Tests for google3.third_party.gps_building_blocks.py.cloud.workflows.tasks."""
 
+import base64
+import json
 import unittest
 from unittest import mock
 from google.cloud import firestore
@@ -31,29 +33,40 @@ class TasksTest(unittest.TestCase):
     self.mock_db = mock.patch.object(
         firestore, 'Client', autospec=True).start()
 
-  def test_can_create_job(self):
-    job = tasks.Job(name='test_job', project='test_project', db=self.mock_db)
-    self.assertEqual(job.name, 'test_job')
-    self.assertEqual(job.project, 'test_project')
+  def _define_job(self) -> tasks.Job:
+    return tasks.Job(name='test_job',
+                     project='test_project',
+                     db=self.mock_db)
 
-  def test_can_create_tasks(self):
-    job = tasks.Job(name='test_job', project='test_project', db=self.mock_db)
+  def _define_job_with_two_dependent_tasks(self) -> tasks.Job:
+    job = self._define_job()
 
 , unused-variable
     @job.task(task_id='task1')
     def task1(job, task):
       return 'result1'
 
-    @job.task(task_id='task2')
+    @job.task(task_id='task2', deps=['task1'])
     def task2(job, task):
       return 'result2'
 , unused-variable
+
+    return job
+
+  def test_can_create_job(self):
+    job = self._define_job()
+
+    self.assertEqual(job.name, 'test_job')
+    self.assertEqual(job.project, 'test_project')
+
+  def test_can_create_tasks(self):
+    job = self._define_job_with_two_dependent_tasks()
 
     task_ids = sorted([task.id for task in job.tasks])
     self.assertListEqual(task_ids, ['task1', 'task2'])
 
   def test_task_dependency(self):
-    job = tasks.Job(name='test_job', project='test_project', db=self.mock_db)
+    job = self._define_job()
 
 , unused-variable
     @job.task(task_id='task1')
@@ -108,19 +121,7 @@ class TasksTest(unittest.TestCase):
     self.assertListEqual(runnable_tasks, ['task4'])
 
   def test_start_job_should_create_db_entries(self):
-    job = tasks.Job(name='test_job',
-                    project='test_project',
-                    db=self.mock_db)
-
-, unused-variable
-    @job.task(task_id='task1')
-    def task1(job, task):
-      return 'result1'
-
-    @job.task(task_id='task2', deps=['task1'])
-    def task2(job, task):
-      return 'result2'
-, unused-variable
+    job = self._define_job_with_two_dependent_tasks()
 
     job.start()
     self.mock_db.collection.assert_any_call(tasks.Job.JOB_STATUS_COLLECTION)
@@ -148,19 +149,7 @@ class TasksTest(unittest.TestCase):
     self.assertEqual(set_task2['status'], tasks.TaskStatus.READY)
 
   def test_load_job(self):
-    job = tasks.Job(name='test_job',
-                    project='test_project',
-                    db=self.mock_db)
-
-, unused-variable
-    @job.task(task_id='task1')
-    def task1(job, task):
-      return 'result1'
-
-    @job.task(task_id='task2', deps=['task1'])
-    def task2(job, task):
-      return 'result2'
-, unused-variable
+    job = self._define_job_with_two_dependent_tasks()
 
     for task in job.tasks:
       if task.id == 'task1':
@@ -193,6 +182,73 @@ class TasksTest(unittest.TestCase):
       if task.id == 'task2':
         self.assertEqual(task.status, tasks.TaskStatus.RUNNING)
 
+  def test_schedule_successful_tasks(self):
+    job = self._define_job()
+
+    results = []
+
+, unused-variable
+    @job.task(task_id='task1')
+    def task1(job, task):
+      result = 'result1'
+      results.append(result)
+      return result
+
+    @job.task(task_id='task2', deps=['task1'])
+    def task2(job, task):
+      result = 'result2'
+      results.append(result)
+      return result
+, unused-variable
+
+    self.mock_db.collection().document().get().to_dict.return_value = {
+        'name': 'test_job'
+    }
+    task1 = mock.Mock()
+    task1.id = 'task1'
+    task1.to_dict.return_value = {
+        'id': 'task1',
+        'status': tasks.TaskStatus.READY
+    }
+    task2 = mock.Mock()
+    task2.id = 'task2'
+    task2.to_dict.return_value = {
+        'id': 'task2',
+        'status': tasks.TaskStatus.READY
+    }
+    self.mock_db.collection().stream.return_value = [task1, task2]
+    self.mock_db.collection().document().get().get.return_value = 'READY'
+
+    scheduler = job.make_scheduler()
+    event = {'data': base64.b64encode(
+        json.dumps({'id': 'test_job_10001'}).encode('utf-8'))}
+    scheduler(event, {})
+    self.assertListEqual(results, ['result1'])
+
+    task1.to_dict.return_value = {
+        'id': 'task1',
+        'status': tasks.TaskStatus.FINISHED
+    }
+    self.mock_db.collection().stream.return_value = [task1, task2]
+    scheduler(event, {})
+    self.assertListEqual(results, ['result1', 'result2'])
+
+  def test_schedule_failed_tasks_should_raise_error(self):
+    job = self._define_job()
+
+    class MyTaskError(Exception):
+      pass
+
+, unused-variable
+    @job.task(task_id='task1')
+    def task1(job, task):
+      raise MyTaskError()
+, unused-variable
+
+    self.mock_db.collection().document().get().get.return_value = 'READY'
+
+    with self.assertRaises(MyTaskError):
+      job._schedule()
 
 if __name__ == '__main__':
   unittest.main()

@@ -16,9 +16,14 @@
 
 """Task scheduler for Function Flow.
 """
+import base64
 import datetime
 import enum
-from typing import Any, Callable, List, Optional
+import json
+import logging
+import random
+import traceback
+from typing import Any, Callable, Dict, List, Optional
 import uuid
 
 import google.auth
@@ -158,8 +163,7 @@ class Job:
     self.id = job_id
 
     # Loads current task status from db
-    tasks_ref = self.db.collection(self.JOB_STATUS_COLLECTION, job_id,
-                                   self.FIELD_TASKS)
+    tasks_ref = self._get_tasks_ref()
     tasks = {task.id: task.to_dict() for task in tasks_ref.stream()}
     for task in self.tasks:
       task.status = tasks[task.id][self.FIELD_STATUS]
@@ -187,7 +191,7 @@ class Job:
       else:
         can_run = True
         for dep_task_id in task.deps:
-          # Get the task with a matching id, there should be only one such task.
+          # Gets the (unique)task with a matching id
           dep_task = None
           for t in self.tasks:
             if t.id == dep_task_id:
@@ -202,9 +206,122 @@ class Job:
 
     return runnable_tasks
 
-  def _get_job_ref(self) -> 'firestore.DocumentReference':
+  def _get_job_ref(self) -> firestore.DocumentReference:
     """Gets job reference from database."""
     return self.db.collection(self.JOB_STATUS_COLLECTION).document(self.id)
+
+  def _get_tasks_ref(self) -> firestore.CollectionReference:
+    """Gets tasks reference of current job from database."""
+    return self.db.collection(self.JOB_STATUS_COLLECTION,
+                              self.id, self.FIELD_TASKS)
+
+  def _transition_task_state(
+      self,
+      task_ref: firestore.DocumentReference,
+      from_state: TaskStatus,
+      to_state: str,
+      updates: Dict[Any, Any] = None) -> bool:
+    """Transitions task states.
+
+      If the task is in `from_state`, this method transitions it to
+        `to_state`, writes additional updates to the task document and returns
+        True. Otherwise this just returns False without doing anything else.
+
+    Args:
+      task_ref: ref to task object in the database.
+      from_state: The state before transition.
+      to_state: The state after transition.
+      updates: Dictionary containing other updates to be written.
+    Returns:
+      True if the transition happened, False otherwise.
+    """
+    transaction = self.db.transaction()
+
+    @firestore.transactional
+    def transition_task(transaction):
+      """The transaction to transition the task state."""
+      snapshot = task_ref.get(transaction=transaction)
+      if snapshot.get('status') == from_state:
+        transaction.update(task_ref, dict(status=to_state, **(updates or {})))
+        return True
+      return False
+
+    return transition_task(transaction)
+
+  def _start_task(
+      self,
+      task_ref: firestore.DocumentReference) -> bool:
+    """Marks a task as running in the database, if it's not started yet.
+
+    Args:
+      task_ref: ref to task object in the database.
+    Returns:
+      True if the task changes from READY to RUNNING state, otherwise False.
+    """
+    return self._transition_task_state(task_ref,
+                                       from_state=TaskStatus.READY,
+                                       to_state=TaskStatus.RUNNING)
+
+  def _finish_task(
+      self,
+      task_ref: firestore.DocumentReference,
+      result: Any = None) -> bool:
+    """Marks a running task as finished in the database.
+
+    Args:
+      task_ref: The ref to task object in the database.
+      result: The result of the task, to be written in the task entry.
+    Returns:
+      True if the task changes from RUNNING to FINISHED state, otherwise False.
+    """
+    return self._transition_task_state(
+        task_ref,
+        from_state=TaskStatus.RUNNING,
+        to_state=TaskStatus.FINISHED,
+        updates={'result': result})
+
+  def _fail_task(
+      self,
+      task_ref: firestore.DocumentReference,
+      error: Any) -> bool:
+    """Marks a running task as failed in the database.
+
+    Args:
+      task_ref: The ref to task object in the database.
+      error: The error message of the task, to be written in the task entry.
+    Returns:
+      True if the task changes from RUNNING to FAILED state, otherwise False.
+    """
+    return self._transition_task_state(task_ref,
+                                       from_state=TaskStatus.RUNNING,
+                                       to_state=TaskStatus.FAILED,
+                                       updates={'error': error})
+
+  def _schedule(self):
+    """Schedules one task from the runnable tasks to run.
+    """
+    tasks = self._get_runnable_tasks()
+    if not tasks:
+      return
+
+    task = random.choice(tasks)
+    tasks_ref = self._get_tasks_ref()
+    task_ref = tasks_ref.document(task.id)
+    if self._start_task(task_ref):
+      try:
+        result = task.func(task, self)
+        self._finish_task(task_ref, result)
+      except:
+        # Intentionally catches all exceptions during the execution of the task,
+        # so that errors can be saved in the task status.
+        logging.exception('Error encountered in task')
+        err_msg = traceback.format_exc()
+        # updates job status to FAILED
+        job_ref = self._get_job_ref()
+        job_ref.update({'status': JobStatus.FAILED, 'error': err_msg})
+        # marks task as failed
+        self._fail_task(task_ref, err_msg)
+        raise
 
   def task(self,
            task_id: str,
@@ -231,10 +348,10 @@ class Job:
       argv: The start arguments.
 
       Creates an entry in the `JOB_STATUS_COLLECTION` storing the job and task
-        status, set job status to RUNNING, and all tasks in the job to READY so
+        status, sets job status to RUNNING, and all tasks in the job to READY so
         that they can be scheduled.
     """
-    # save to db
+    # creates a job document and saves it to db
     datestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
     rand_id = uuid.uuid4().hex[:4]
     self.id = f'{self.name}-{datestamp}-{rand_id}'
@@ -247,8 +364,8 @@ class Job:
         'argv': argv or []
     })
 
-    tasks_ref = self.db.collection(self.JOB_STATUS_COLLECTION, self.id,
-                                   self.FIELD_TASKS)
+    # creates task entries in the job document
+    tasks_ref = self._get_tasks_ref()
     for task in self.tasks:
       task_ref = tasks_ref.document(task.id)
       task_ref.set({
@@ -257,8 +374,10 @@ class Job:
           'status': TaskStatus.READY,
       })
 
+    self._schedule()
+
   def get_arguments(self):
-    """Get start arguments of this job.
+    """Gets start arguments of this job.
 
     Returns:
       argv paremeter of start()
@@ -266,3 +385,16 @@ class Job:
     job_ref = self._get_job_ref()
     job = job_ref.get().to_dict()
     return job['argv']
+
+  def make_scheduler(self):
+    """Creates a job scheduler function which can be called as a cloud function.
+
+    Returns:
+      The scheduler function.
+    """
+    def scheduler(event, unused_context):
+      message = base64.b64decode(event['data']).decode('utf-8')
+      args = json.loads(message)
+      self._load(job_id=args['id'])
+      self._schedule()
+    return scheduler
