@@ -1,20 +1,18 @@
-# gPS Solutions - Core Libraries Repository
+# gPS Solutions - Python Library Repository
 
-go/gPS-BB-doc
+**This is not an official Google product.**
 
-**Note:** This is the internal documentation for the gps_building_blocks
-repository and should be used for any content that we do not want to publicize.
-The external documentation can be found [here](EXTERNAL_README.md)
-and should only contain external-friendly information pertaining to the
-repository contents.
+This repository contains modules and tools useful for use with advanced data
+solutions on Google Ads, Google Marketing Platform and Google Cloud. It is
+maintained by a team of Customer Solutions Engineers (CSE) and Data Scientists
+(DS) working within Google's Technical Solutions (gTech) Professional Services
+organization (gPS).
 
-## Pypi Package Release Pipeline
-
-The gPS Building Blocks python package is hosted on the Python Package Index
-([PyPI](https://pypi.org/project/gps-building-blocks/)), with pacakage updates
-controlled through a [Travis CI pipeline](../.travis.yml).
+Contributions are highly encouraged; see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Installation
+
+### For Consumers
 
 Install via pip:
 
@@ -22,28 +20,17 @@ Install via pip:
 pip install gps-building-blocks
 ```
 
-## Package Dependency
+### For Contributors
 
-[```setup.py```](setup.py) and [```requirements.txt```](requirements.txt) both
-contain a list of dependencies. Both of these list serve a similar purpose, but
-differ in a fundamental way. Basically, `setup.py` is used for dependency
-management during deployment, and `requirements.txt` is used for development.
+The following assumes you have successfully created and started a clean
+virtual environment. For more information, see the documentation for
+[`venv`](https://docs.python.org/3/library/venv.html).
 
-- `setup.py`: When the user executes `pip install gps-building-blocks`,
-  this package and all packages listed in setuptools.install_requires()` will
-  be installed. This list should not include any libraries needed for
-  development, and version requirements should generally be as generic as
-  possible to reduce the chance that the end user is installing multiple
-  versions of the same libraries.
-- `requirements.txt`: When the user executes `pip install -r requirements.txt`,
-  all packages listed in the file will be installed. This command is generally
-  used when the user has cloned the project and is planning to modify it.
-  Therefore, `requirements.txt` should include all packages that are necessary
-  to develop and test your code. Version requirements can be as strict as
-  necessary.
+Install dependencies via pip:
 
-TLDR: If your code imports a new package, please add it to both
-[```setup.py```](setup.py) and [```requirements.txt```](requirements.txt).
+```sh
+(in gps_building_blocks root folder, clean virtualenv)
 
-
-
+cd py
+pip install -r requirements.txt
+```
