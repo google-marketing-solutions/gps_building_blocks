@@ -23,6 +23,14 @@ install:
 # .travis.yml to run tests.”) and fails the build."
 
 script: nosetests gps_building_blocks
+
+notifications:
+  email:
+    recipients:
+      secure: "vJgOm8jcIG+aKNDbFxqyewuTg5Y2hnz2e8ZGcrJezjAE/33UHtlnTFZ0zD+2jcLX53EI0QnpbThcWcux+3l4onmtfLMNu2W2G1Q9CG1pxSJZ/jwAulbofalYGp0VZ75/1rW6uWzpKlHkmBvo9R1fL7axlx/0aln0TMGrx9Ti20AzmEyoZhYdv6h7FZuMX8jJBlcUdxnr+w/r/6wbadsJ/iZwCx4DIpJbK7QoQ1Twrf3cc0YGBS9ZU8LsPUxmHZWyiKGkAd7AxgCsM7M7g/F1J2uNzPR7unRQwKpFg8ChPq3Iw2L7q1vJ1qQRLNrFjjB56mbwU5hWOZJ9ptTfSdjk363WkZTuGO1t06hVTtEOvzjzRO4sHgcY83jy3VsxBBR63xv4jCzrmnf50QGuzoge9mn8GowhS4Ep3O75GbC6ETMBy+jYiT0uyabvQXZWRpffrLNAVw+NSnMWvg8nIUaf+eU052QWVymrc7zAaMRCk6P1LrVKn3+iMWWz2garEkfZmLlS65tt9qYQrKSZxmnF84AYnPKi2zW91sORqAs84K3xYMLkV+duQzHx3lnc+7eXGe/nSBJgf6pi58Dqi/XSkW+TdmsDoH/xpiASQEhFYAASzfWC5phx9v+bRfUmZr+XHnHPaPfAlCWRcZao/SbQ5vdFysTcl2l8VTBipw1yTlI="
+    on_success: never
+    on_failure: always
+
 deploy:
   provider: pypi
   username: __token__
