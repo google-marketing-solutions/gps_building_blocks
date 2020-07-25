@@ -157,10 +157,10 @@ class Job:
     Args:
       job_id: The id of the job instance.
     """
+    self.id = job_id
     job_ref = self._get_job_ref()
     job = job_ref.get().to_dict()
     self.name = job[self.FIELD_NAME]
-    self.id = job_id
 
     # Loads current task status from db
     tasks_ref = self._get_tasks_ref()

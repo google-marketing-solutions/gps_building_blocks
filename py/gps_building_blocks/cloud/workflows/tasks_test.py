@@ -19,9 +19,8 @@
 import base64
 import json
 import unittest
-from unittest import mock
-from google.cloud import firestore
 
+from gps_building_blocks.cloud.firestore import fake_firestore
 from gps_building_blocks.cloud.workflows import tasks
 
 
@@ -29,14 +28,12 @@ class TasksTest(unittest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.addCleanup(mock.patch.stopall)
-    self.mock_db = mock.patch.object(
-        firestore, 'Client', autospec=True).start()
+    self.db = fake_firestore.FakeFirestore()
 
   def _define_job(self) -> tasks.Job:
     return tasks.Job(name='test_job',
                      project='test_project',
-                     db=self.mock_db)
+                     db=self.db)
 
   def _define_job_with_two_dependent_tasks(self) -> tasks.Job:
     job = self._define_job()
@@ -124,114 +121,45 @@ class TasksTest(unittest.TestCase):
     job = self._define_job_with_two_dependent_tasks()
 
     job.start()
-    self.mock_db.collection.assert_any_call(tasks.Job.JOB_STATUS_COLLECTION)
-    self.mock_db.collection.assert_any_call(tasks.Job.JOB_STATUS_COLLECTION,
-                                            mock.ANY, tasks.Job.FIELD_TASKS)
+    job_ref = (
+        self.db.collection(tasks.Job.JOB_STATUS_COLLECTION).document(job.id))
+    self.assertIsNotNone(job_ref)
+    tasks_ref = job_ref.collection(tasks.Job.FIELD_TASKS)
+    self.assertIsNotNone(tasks_ref)
+    task1_ref = tasks_ref.document('task1')
+    self.assertIsNotNone(task1_ref)
 
-    # check job & task entries are properly set
+  def test_load_job_should_get_job_content_from_db(self):
+    job_to_load = self._define_job_with_two_dependent_tasks()
+    job_to_load.start()
 
-    args_list_doc = self.mock_db.collection().document.call_args_list
-    self.assertIn('test_job', args_list_doc[0][0][0])
-    self.assertEqual('task1', args_list_doc[1][0][0])
-    self.assertEqual('task2', args_list_doc[2][0][0])
-
-    args_list_set = self.mock_db.collection().document().set.call_args_list
-    set_job = args_list_set[0][0][0]
-    self.assertEqual(set_job['name'], 'test_job')
-    self.assertEqual(set_job['status'], tasks.JobStatus.RUNNING)
-    set_task1 = args_list_set[1][0][0]
-    self.assertEqual(set_task1['id'], 'task1')
-    self.assertListEqual(set_task1['deps'], [])
-    self.assertEqual(set_task1['status'], tasks.TaskStatus.READY)
-    set_task2 = args_list_set[2][0][0]
-    self.assertEqual(set_task2['id'], 'task2')
-    self.assertListEqual(set_task2['deps'], ['task1'])
-    self.assertEqual(set_task2['status'], tasks.TaskStatus.READY)
-
-  def test_load_job(self):
     job = self._define_job_with_two_dependent_tasks()
+    job._load(job_to_load.id)
+    self.assertEqual(job.id, job_to_load.id)
+    self.assertEqual(len(job.tasks), 2)
 
-    for task in job.tasks:
-      if task.id == 'task1':
-        self.assertEqual(task.status, tasks.TaskStatus.READY)
-      if task.id == 'task2':
-        self.assertEqual(task.status, tasks.TaskStatus.READY)
-
-    self.mock_db.collection().document().get().to_dict.return_value = {
-        'name': 'test_job'
-    }
-    task1 = mock.Mock()
-    task1.id = 'task1'
-    task1.to_dict.return_value = {
-        'id': 'task1',
-        'status': tasks.TaskStatus.FINISHED
-    }
-    task2 = mock.Mock()
-    task2.id = 'task2'
-    task2.to_dict.return_value = {
-        'id': 'task2',
-        'status': tasks.TaskStatus.RUNNING
-    }
-    self.mock_db.collection().stream.return_value = [task1, task2]
-
-    job._load('test_job_1001')
-    self.assertEqual(job.id, 'test_job_1001')
-    for task in job.tasks:
-      if task.id == 'task1':
-        self.assertEqual(task.status, tasks.TaskStatus.FINISHED)
-      if task.id == 'task2':
-        self.assertEqual(task.status, tasks.TaskStatus.RUNNING)
-
-  def test_schedule_successful_tasks(self):
-    job = self._define_job()
-
-    results = []
-
-, unused-variable
-    @job.task(task_id='task1')
-    def task1(job, task):
-      result = 'result1'
-      results.append(result)
-      return result
-
-    @job.task(task_id='task2', deps=['task1'])
-    def task2(job, task):
-      result = 'result2'
-      results.append(result)
-      return result
-, unused-variable
-
-    self.mock_db.collection().document().get().to_dict.return_value = {
-        'name': 'test_job'
-    }
-    task1 = mock.Mock()
-    task1.id = 'task1'
-    task1.to_dict.return_value = {
-        'id': 'task1',
-        'status': tasks.TaskStatus.READY
-    }
-    task2 = mock.Mock()
-    task2.id = 'task2'
-    task2.to_dict.return_value = {
-        'id': 'task2',
-        'status': tasks.TaskStatus.READY
-    }
-    self.mock_db.collection().stream.return_value = [task1, task2]
-    self.mock_db.collection().document().get().get.return_value = 'READY'
-
+  def test_schedule_successful_tasks_should_set_task_statuses(self):
+    job = self._define_job_with_two_dependent_tasks()
     scheduler = job.make_scheduler()
-    event = {'data': base64.b64encode(
-        json.dumps({'id': 'test_job_10001'}).encode('utf-8'))}
-    scheduler(event, {})
-    self.assertListEqual(results, ['result1'])
+    job.start()
 
-    task1.to_dict.return_value = {
-        'id': 'task1',
-        'status': tasks.TaskStatus.FINISHED
-    }
-    self.mock_db.collection().stream.return_value = [task1, task2]
+    # when job starts, the first task will be scheduled to run and returns
+    # 'result1'
+    tasks_ref = job._get_tasks_ref()
+    task1 = tasks_ref.document('task1').get().to_dict()
+    self.assertEqual(task1['status'], tasks.TaskStatus.FINISHED)
+    self.assertEqual(task1['result'], 'result1')
+    task2 = tasks_ref.document('task2').get().to_dict()
+    self.assertEqual(task2['status'], tasks.TaskStatus.READY)
+
+    # when scheduler is called again, task2 should be finished with result
+    # 'result2'
+    event = {'data': base64.b64encode(
+        json.dumps({'id': job.id}).encode('utf-8'))}
     scheduler(event, {})
-    self.assertListEqual(results, ['result1', 'result2'])
+    task2 = tasks_ref.document('task2').get().to_dict()
+    self.assertEqual(task2['status'], tasks.TaskStatus.FINISHED)
+    self.assertEqual(task2['result'], 'result2')
 
   def test_schedule_failed_tasks_should_raise_error(self):
     job = self._define_job()
@@ -245,10 +173,8 @@ class TasksTest(unittest.TestCase):
       raise MyTaskError()
 , unused-variable
 
-    self.mock_db.collection().document().get().get.return_value = 'READY'
-
     with self.assertRaises(MyTaskError):
-      job._schedule()
+      job.start()
 
 if __name__ == '__main__':
   unittest.main()
