@@ -17,8 +17,10 @@
 """Tests for google3.third_party.gps_building_blocks.py.cloud.workflows.tasks."""
 
 import base64
+import datetime
 import json
 import unittest
+from unittest import mock
 
 from gps_building_blocks.cloud.firestore import fake_firestore
 from gps_building_blocks.cloud.workflows import tasks
@@ -30,10 +32,17 @@ class TasksTest(unittest.TestCase):
     super().setUp()
     self.db = fake_firestore.FakeFirestore()
 
+    self.topic_path = 'MockTopicPath'
+    self.max_parallel_tasks = 3
+    self.mock_pubsub = mock.Mock()
+    self.mock_pubsub.topic_path.return_value = self.topic_path
+
   def _define_job(self) -> tasks.Job:
     return tasks.Job(name='test_job',
                      project='test_project',
-                     db=self.db)
+                     db=self.db,
+                     pubsub=self.mock_pubsub,
+                     max_parallel_tasks=self.max_parallel_tasks)
 
   def _define_job_with_two_dependent_tasks(self) -> tasks.Job:
     job = self._define_job()
@@ -138,6 +147,17 @@ class TasksTest(unittest.TestCase):
     self.assertEqual(job.id, job_to_load.id)
     self.assertEqual(len(job.tasks), 2)
 
+  def test_schedule_successful_task_should_send_pubsub_message(self):
+    job = self._define_job_with_two_dependent_tasks()
+    job.start()
+
+    # When task1 finishes, there should be #{max_parallel_tasks} pubsub messages
+    # sent to pubsub to trigger subsequent tasks.
+    message = json.dumps({'id': job.id}).encode('utf-8')
+    calls = [mock.call(self.topic_path, data=message)
+            ] * self.max_parallel_tasks
+    self.mock_pubsub.publish.assert_has_calls(calls)
+
   def test_schedule_successful_tasks_should_set_task_statuses(self):
     job = self._define_job_with_two_dependent_tasks()
     scheduler = job.make_scheduler()
@@ -175,6 +195,7 @@ class TasksTest(unittest.TestCase):
 
     with self.assertRaises(MyTaskError):
       job.start()
+
 
 if __name__ == '__main__':
   unittest.main()

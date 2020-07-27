@@ -26,8 +26,13 @@ import traceback
 from typing import Any, Callable, Dict, List, Optional
 import uuid
 
+from google.api_core import exceptions
 import google.auth
 from google.cloud import firestore
+from google.cloud import pubsub_v1
+
+
+_ALREADY_EXISTS_CODE = 6
 
 
 class _AutoName(enum.Enum):
@@ -128,8 +133,11 @@ class Job:
   FIELD_TASKS = 'tasks'
 
   def __init__(self,
-               name: str = None,
-               db: firestore.Client = None,
+               name: str,
+               db: Optional[firestore.Client] = None,
+               pubsub: Optional[pubsub_v1.PublisherClient] = None,
+               schedule_topic: str = 'SCHEDULE',
+               max_parallel_tasks: int = 5,
                project: str = None):
     """Initializes the job instance.
 
@@ -137,6 +145,9 @@ class Job:
       name: Job name. Will also be the prefix for the id of job instance.
       db: The firestore client which stores/loads job status information to/from
         database.
+      pubsub: The pubsub client.
+      schedule_topic: The topic which triggers the scheduler function.
+      max_parallel_tasks: Maximum tasks running in parallel.
       project: The cloud project id. Will be determined from current envrioment
         automatically(for example the project of the cloud function) if not
         specified.
@@ -148,6 +159,15 @@ class Job:
     self.id = None
 
     self.db = db or firestore.Client(project=project)
+    self.max_parallel_tasks = max_parallel_tasks
+    self.pubsub = pubsub or pubsub_v1.PublisherClient()
+    self.topic_path = self.pubsub.topic_path(project, schedule_topic)
+    # create the topic for scheduling messages if not exist
+    try:
+      self.pubsub.create_topic(self.topic_path)
+    except exceptions.GoogleAPICallError as e:
+      if e.grpc_status_code != _ALREADY_EXISTS_CODE:
+        raise
 
     self.tasks = []
 
@@ -297,6 +317,21 @@ class Job:
                                        to_state=TaskStatus.FAILED,
                                        updates={'error': error})
 
+  def _publish_schedule_message(self,
+                                count: int = 1):
+    """Publish scheduling messages to initiate following tasks.
+
+    Args:
+      count: The number of messages to publish. A count of more than 1 allows
+             multiple tasks to be scheduled.
+    """
+    if count <= 0:
+      return
+    message = {'id': self.id}
+    data = json.dumps(message).encode('utf-8')
+    for _ in range(count):
+      self.pubsub.publish(self.topic_path, data=data)
+
   def _schedule(self):
     """Schedules one task from the runnable tasks to run.
     """
@@ -311,6 +346,10 @@ class Job:
       try:
         result = task.func(task, self)
         self._finish_task(task_ref, result)
+        num_running_tasks = len([
+            t.status == TaskStatus.RUNNING for t in self.tasks])
+        self._publish_schedule_message(self.max_parallel_tasks -
+                                       num_running_tasks)
       except:
         # Intentionally catches all exceptions during the execution of the task,
         # so that errors can be saved in the task status.
