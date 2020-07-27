@@ -40,6 +40,7 @@ setuptools.setup(
         "google-api-core==1.17.0",
         "google-api-python-client==1.9.1",
         "google-auth==1.16.0",
+        "google-cloud-bigquery==1.26.0",
         "google-cloud-storage==1.28.1",
         "requests==2.23.0",
         "dataclasses; python_version<'3.7'"
