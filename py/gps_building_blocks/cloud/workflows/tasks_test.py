@@ -196,6 +196,30 @@ class TasksTest(unittest.TestCase):
     with self.assertRaises(MyTaskError):
       job.start()
 
+  def test_cleanup_should_delete_expired_jobs(self):
+    jobs_ref = self.db.collection(tasks.Job.JOB_STATUS_COLLECTION)
+    now = datetime.datetime.now()
+    time1 = now - datetime.timedelta(days=29)
+    fmt = '%Y-%m-%d-%H:%M:%S'
+    jobs_ref.document('job1').set({
+        'name': 'job1',
+        'start_time': time1.strftime(fmt)
+    })
+
+    time2 = now - datetime.timedelta(days=31)
+    fmt = '%Y-%m-%d-%H:%M:%S'
+    jobs_ref.document('job2').set({
+        'name': 'job2',
+        'start_time': time2.strftime(fmt)
+    })
+
+    self.assertIn('job1', jobs_ref._data)
+    self.assertIn('job2', jobs_ref._data)
+
+    tasks.cleanup_expired_jobs(db=self.db, max_expire_days=30)
+    self.assertIn('job1', jobs_ref._data)
+    self.assertNotIn('job2', jobs_ref._data)
+
 
 if __name__ == '__main__':
   unittest.main()

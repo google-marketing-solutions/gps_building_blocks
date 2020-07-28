@@ -61,16 +61,19 @@ class FakeTransaction:
 class FakeDocumentSnapshot:
   """Fake document snapshot."""
 
-  def __init__(self, doc_id: str, data: Any,
+  def __init__(self,
+               doc_ref: 'FakeDocumentReference', doc_id: str, data: Any,
                transaction: Optional[FakeTransaction] = None):
     """Initializes document snapshot.
 
     Args:
+      doc_ref: The document reference.
       doc_id: Document id.
-      data: Document data
-      transaction: Optional transaction
+      data: Document data.
+      transaction: Optional transaction.
     """
     self._id = doc_id
+    self._reference = doc_ref
     self._data = copy.deepcopy(data)
     self._transaction = transaction
 
@@ -78,6 +81,11 @@ class FakeDocumentSnapshot:
   def id(self) -> str:
     """Returns document id."""
     return self._id
+
+  @property
+  def reference(self) -> 'FakeDocumentReference':
+    """Returns document reference."""
+    return self._reference
 
   def get(self, field_name: str) -> Any:
     """Returns field value in the data.
@@ -101,13 +109,16 @@ class FakeDocumentSnapshot:
 class FakeDocumentReference:
   """Fake document reference."""
 
-  def __init__(self, doc_id: str, data: Dict[str, Any]):
+  def __init__(self, parent: Any,
+               doc_id: str, data: Dict[str, Any]):
     """Initializes document.
 
     Args:
+      parent: Parent.
       doc_id: Document id.
       data: Fake data for the document.
     """
+    self._parent = parent
     self._data = data
     self._id = doc_id
 
@@ -127,7 +138,8 @@ class FakeDocumentReference:
     """
     if collection_id not in self._data:
       self._data[collection_id] = {}
-    return FakeCollectionReference(self._data[collection_id])
+    return FakeCollectionReference(self, collection_id,
+                                   self._data[collection_id])
 
   def set(self, new_value: Any):
     """Sets new value to document.
@@ -156,18 +168,34 @@ class FakeDocumentReference:
     Returns:
       Document snapshot.
     """
-    return FakeDocumentSnapshot(self._id, self._data, transaction)
+    return FakeDocumentSnapshot(self, self._id, self._data, transaction)
+
+  def delete(self):
+    """Deletes this document."""
+    self._parent.delete_child(self.id)
+
+  def delete_child(self, child_id: str):
+    """Delete child from this document.
+
+    Args:
+      child_id: Child id.
+    """
+    del self._data[child_id]
 
 
 class FakeCollectionReference:
   """Fake collection reference."""
 
-  def __init__(self, data):
+  def __init__(self, parent: Any, name: str, data: Any):
     """Initializes fake collection reference.
 
     Args:
+      parent: Parent.
+      name: Collection name.
       data: Fake data.
     """
+    self._parent = parent
+    self._name = name
     self._data = data
 
   def document(self, doc_id) -> FakeDocumentReference:
@@ -180,7 +208,7 @@ class FakeCollectionReference:
     """
     if doc_id not in self._data:
       self._data[doc_id] = {}
-    return FakeDocumentReference(doc_id, self._data[doc_id])
+    return FakeDocumentReference(self, doc_id, self._data[doc_id])
 
   def stream(self):
     """Streams document from collection.
@@ -189,7 +217,20 @@ class FakeCollectionReference:
       document stream.
     """
     for doc_id in sorted(self._data.keys()):
-      yield FakeDocumentSnapshot(doc_id, self._data[doc_id])
+      doc = FakeDocumentReference(self, doc_id, self._data[doc_id])
+      yield FakeDocumentSnapshot(doc, doc_id, self._data[doc_id])
+
+  def delete(self):
+    """Deletes this collection."""
+    self._parent.delete_child(self._name)
+
+  def delete_child(self, child_id: str):
+    """Deletes child from this collection.
+
+    Args:
+      child_id: Child id.
+    """
+    del self._data[child_id]
 
 
 class FakeFirestore:
@@ -209,7 +250,7 @@ class FakeFirestore:
     """
     if name not in self._data:
       self._data[name] = {}
-    return FakeCollectionReference(self._data[name])
+    return FakeCollectionReference(self, name, self._data[name])
 
   def collection(self, *path: str) -> FakeCollectionReference:
     """Gets a collection object with paths.
@@ -239,3 +280,11 @@ class FakeFirestore:
       Fake transaction object.
     """
     return FakeTransaction(self)
+
+  def delete_child(self, child_id: str):
+    """Deletes child from this collection.
+
+    Args:
+      child_id: Child id.
+    """
+    del self._data[child_id]

@@ -437,3 +437,38 @@ class Job:
       self._load(job_id=args['id'])
       self._schedule()
     return scheduler
+
+
+def cleanup_expired_jobs(db=None, project=None, max_expire_days=30):
+  """Clean up database entries for expired job statuses.
+
+  Args:
+    db: Firestore db instance.
+    project: GCP project id.
+    max_expire_days: Maximum expire days for a job.
+  """
+  if not db:
+    db = firestore.Client(project=project)
+
+  jobs_ref = db.collection(Job.JOB_STATUS_COLLECTION)
+  now = datetime.datetime.now()
+  expired_job_ids = []
+  # Find all expired jobs
+  for job_ref in jobs_ref.stream():
+    job = job_ref.to_dict()
+    start_time = datetime.datetime.strptime(job['start_time'],
+                                            '%Y-%m-%d-%H:%M:%S')
+    if (now - start_time).days >= max_expire_days:
+      expired_job_ids.append(job_ref.id)
+
+  logging.info('%d jobs to delete', len(expired_job_ids))
+  # For each expired job, first delete all tasks inside the job,
+  # then delete the job itself.
+  for job_id in expired_job_ids:
+    job_ref = jobs_ref.document(job_id)
+    tasks_ref = db.collection(Job.JOB_STATUS_COLLECTION,
+                              job_id, Job.FIELD_TASKS)
+    for task_ref in tasks_ref.stream():
+      task_ref.reference.delete()
+    job_ref.delete()
+    logging.info('Deleted expired job status: %s', job_id)

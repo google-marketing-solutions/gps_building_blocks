@@ -92,6 +92,24 @@ class FakeFirestoreTest(unittest.TestCase):
     self.assertDictEqual(doc, {'foo': 'bar'},
                          'transaction should not update data')
 
+  def test_delete_document(self):
+    client = fake_firestore.FakeFirestore()
+    col_ref = client.collection('test_collection')
+    doc_ref = col_ref.document('test_doc')
+    doc_ref.set({'foo': 'bar'})
+
+    self.assertIn('test_doc', col_ref._data)
+    doc_ref.delete()
+    self.assertNotIn('test_doc', col_ref._data)
+
+  def test_delete_collection(self):
+    client = fake_firestore.FakeFirestore()
+    col_ref = client.collection('test_collection')
+
+    self.assertIn('test_collection', client._data)
+    col_ref.delete()
+    self.assertNotIn('test_collection', client._data)
+
 
 if __name__ == '__main__':
   unittest.main()
