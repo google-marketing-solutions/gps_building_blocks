@@ -23,6 +23,7 @@ import unittest
 from unittest import mock
 
 from gps_building_blocks.cloud.firestore import fake_firestore
+from gps_building_blocks.cloud.workflows import futures
 from gps_building_blocks.cloud.workflows import tasks
 
 
@@ -195,6 +196,52 @@ class TasksTest(unittest.TestCase):
 
     with self.assertRaises(MyTaskError):
       job.start()
+
+  def test_schedule_async_jobs(self):
+    job = self._define_job()
+
+, unused-variable
+    @job.task(task_id='task1')
+    def task1(job, task):
+      return futures.BigQueryFuture(trigger_id='test-bq-job-id')
+, unused-variable
+
+    job.start()
+    external_event_listener = job.make_external_event_listener()
+
+    # When an asynchronous task finishes, a trigger object is created in db.
+    triggers_ref = self.db.collection(tasks.Job.EVENT_TRIGGERS_COLLECTION)
+    trigger = triggers_ref.document('test-bq-job-id').get().to_dict()
+    self.assertEqual(trigger['task_id'], 'task1')
+    self.assertEqual(trigger['job_id'], job.id)
+
+    # Manually trigger a bq job finish log message
+    bq_finish_event = {
+        'protoPayload': {
+            'status': {},
+            'serviceData': {
+                'jobCompletedEvent': {
+                    'job': {
+                        'jobName': {
+                            'projectId': 'test-project',
+                            'jobId': 'test-bq-job-id',
+                        }
+                    }
+                }
+            }
+        },
+        'resource': {
+            'type': 'bigquery_resource'
+        }
+    }
+    bq_finish_event_encoded = base64.b64encode(
+        json.dumps(bq_finish_event).encode('utf-8'))
+
+    external_event_listener({'data': bq_finish_event_encoded}, None)
+    jobs_ref = self.db.collection(tasks.Job.JOB_STATUS_COLLECTION)
+    task1 = jobs_ref.document(job.id).collection(
+        tasks.Job.FIELD_TASKS).document('task1').get().to_dict()
+    self.assertEqual(task1['status'], tasks.TaskStatus.FINISHED)
 
   def test_cleanup_should_delete_expired_jobs(self):
     jobs_ref = self.db.collection(tasks.Job.JOB_STATUS_COLLECTION)

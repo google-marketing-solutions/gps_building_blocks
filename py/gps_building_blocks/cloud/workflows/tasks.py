@@ -31,6 +31,8 @@ import google.auth
 from google.cloud import firestore
 from google.cloud import pubsub_v1
 
+from gps_building_blocks.cloud.workflows import futures
+
 
 _ALREADY_EXISTS_CODE = 6
 
@@ -126,6 +128,9 @@ class Job:
 
   # The database collection to store job and task status
   JOB_STATUS_COLLECTION = 'JobStatus'
+
+  # The database collection to store external event triggers
+  EVENT_TRIGGERS_COLLECTION = 'EventTriggers'
 
   # db FIELDS
   FIELD_NAME = 'name'
@@ -235,12 +240,22 @@ class Job:
     return self.db.collection(self.JOB_STATUS_COLLECTION,
                               self.id, self.FIELD_TASKS)
 
-  def _transition_task_state(
-      self,
-      task_ref: firestore.DocumentReference,
-      from_state: TaskStatus,
-      to_state: str,
-      updates: Dict[Any, Any] = None) -> bool:
+  def _get_trigger_ref(self, trigger_id: str) -> firestore.DocumentReference:
+    """Gets a trigger reference from database.
+
+    Args:
+      trigger_id: The trigger id.
+    Returns:
+      Trigger reference.
+    """
+    return self.db.collection(
+        self.EVENT_TRIGGERS_COLLECTION).document(trigger_id)
+
+  def _transition_task_state(self,
+                             task_ref: firestore.DocumentReference,
+                             from_state: TaskStatus,
+                             to_state: str,
+                             updates: Optional[Dict[Any, Any]] = None) -> bool:
     """Transitions task states.
 
       If the task is in `from_state`, this method transitions it to
@@ -298,7 +313,7 @@ class Job:
         task_ref,
         from_state=TaskStatus.RUNNING,
         to_state=TaskStatus.FINISHED,
-        updates={'result': result})
+        updates={'result': result} if result else None)
 
   def _fail_task(
       self,
@@ -312,6 +327,10 @@ class Job:
     Returns:
       True if the task changes from RUNNING to FAILED state, otherwise False.
     """
+    # updates job status to FAILED
+    job_ref = self._get_job_ref()
+    job_ref.update({'status': JobStatus.FAILED, 'error': error})
+
     return self._transition_task_state(task_ref,
                                        from_state=TaskStatus.RUNNING,
                                        to_state=TaskStatus.FAILED,
@@ -345,22 +364,71 @@ class Job:
     if self._start_task(task_ref):
       try:
         result = task.func(task, self)
-        self._finish_task(task_ref, result)
-        num_running_tasks = len([
-            t.status == TaskStatus.RUNNING for t in self.tasks])
-        self._publish_schedule_message(self.max_parallel_tasks -
-                                       num_running_tasks)
+        if isinstance(result, futures.Future):
+          # async task
+          self._register_async_task_trigger(task.id, result.trigger_id)
+          task_ref.update({'trigger_id': result.trigger_id})
+        else:
+          # set task as finished
+          self._finish_task(task_ref, result)
+          num_running_tasks = len(
+              [t for t in self.tasks if t.status == TaskStatus.RUNNING])
+          self._publish_schedule_message(self.max_parallel_tasks -
+                                         num_running_tasks)
       except:
         # Intentionally catches all exceptions during the execution of the task,
         # so that errors can be saved in the task status.
         logging.exception('Error encountered in task')
         err_msg = traceback.format_exc()
-        # updates job status to FAILED
-        job_ref = self._get_job_ref()
-        job_ref.update({'status': JobStatus.FAILED, 'error': err_msg})
         # marks task as failed
         self._fail_task(task_ref, err_msg)
         raise
+
+  def _register_async_task_trigger(self, task_id: str, trigger_id: str):
+    """Registers a trigger for an async task.
+
+      The trigger is used to match the async task(e.g. the BigQuery job you run
+      asynchronously) with the function flow job and task.
+
+    Args:
+      task_id: The task id.
+      trigger_id: The trigger id.
+    """
+    trigger_ref = self._get_trigger_ref(trigger_id)
+    trigger_ref.set({
+        'job_id': self.id,
+        'task_id': task_id
+    })
+
+  def _handle_event(self, message: Dict[str, Any]):
+    """Handles external events (e.g. finish event of big query jobs).
+
+    Args:
+      message: Event message.
+    """
+    for future_cls in futures.Future.all_futures:
+      result = future_cls.handle_message(message)
+
+      if not result:
+        # The message is not matched by current future class, ignore
+        continue
+
+      trigger_id = result.trigger_id
+      trigger_ref = self._get_trigger_ref(trigger_id)
+      trigger = trigger_ref.get().to_dict()
+
+      if trigger:
+        job_id = trigger['job_id']
+        task_id = trigger['task_id']
+        self._load(job_id)
+        tasks_ref = self._get_tasks_ref()
+        task_ref = tasks_ref.document(task_id)
+
+        if result.is_success:
+          self._finish_task(task_ref, result=result.result)
+          self._schedule()
+        else:
+          self._fail_task(task_ref, error=result.error)
 
   def task(self,
            task_id: str,
@@ -437,6 +505,24 @@ class Job:
       self._load(job_id=args['id'])
       self._schedule()
     return scheduler
+
+  def make_external_event_listener(self):
+    """Creates a function to receive external events (e.g. bq job finish).
+
+    Returns:
+      The event listener function.
+    """
+    def listener(event, context):
+      del context  # unused context
+      message = base64.b64decode(event['data']).decode('utf-8')
+      try:
+        message = json.loads(message)
+        self._handle_event(message)
+      except json.JSONDecodeError:
+        # Intentionally ignore unwanted messages
+        pass
+
+    return listener
 
 
 def cleanup_expired_jobs(db=None, project=None, max_expire_days=30):
