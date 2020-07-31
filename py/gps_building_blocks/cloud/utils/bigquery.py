@@ -30,6 +30,7 @@ class BigQueryUtils:
              'project_id',
              'us-west1',
              'my-svc-account@project-id.iam.gserviceaccount.com')
+       >>> bigquery.run_query('SELECT * FROM `my_project.my_dataset.my_table`')
   """
 
   def __init__(self,
@@ -57,3 +58,14 @@ class BigQueryUtils:
                      'was provided. So using default credentials.')
       credentials = cloud_auth.get_credentials(service_account_key_file)
     self.client = bigquery.Client(project=project_id, credentials=credentials)
+
+  def run_query(self, query: str) -> bigquery.QueryJob:
+    """Performs a SQL query.
+
+    Args:
+      query: The SQL query statement.
+
+    Returns:
+      google.cloud.bigquery.QueryJob: The query object.
+    """
+    return self.client.query(query)

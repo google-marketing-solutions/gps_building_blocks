@@ -29,25 +29,35 @@ class BigQueryTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.addCleanup(mock.patch.stopall)
-    # Mock for google.cloud.storage.Client object
     self.project_id = 'project-id'
+    # Mock for google.cloud.bigquery.Client object
     self.mock_client = mock.patch.object(
         bigquery, 'Client', autospec=True).start()
+    self.mock_get_credentials = mock.patch.object(
+        cloud_auth, 'get_credentials', autospec=True).start()
     self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
+    self.mock_get_credentials.return_value = self.mock_credentials
+    self.service_account_name = (
+        'my-svc-account@project-id.iam.gserviceaccount.com')
+    self.bigquery_client = bigquery_utils.BigQueryUtils(self.project_id)
 
   @mock.patch.object(cloud_auth, 'impersonate_service_account', autospec=True)
   def test_client_initializes_with_impersonated_service_account(
       self, mock_impersonated_account):
-    service_account_name = 'my-svc-account@project-id.iam.gserviceaccount.com'
     mock_impersonated_account.return_value = self.mock_credentials
 
     bigquery_utils.BigQueryUtils(
         project_id=self.project_id,
-        service_account_name=service_account_name)
+        service_account_name=self.service_account_name)
 
-    mock_impersonated_account.assert_called_once_with(service_account_name)
+    mock_impersonated_account.assert_called_once_with(self.service_account_name)
     self.mock_client.assert_called_with(
         project=self.project_id, credentials=self.mock_credentials)
+
+  def test_run_query(self):
+    sql_statement = 'SELECT * FROM `my_project.my_dataset.my_table`'
+    self.bigquery_client.run_query(sql_statement)
+    self.mock_client.return_value.query.assert_called_once_with(sql_statement)
 
 if __name__ == '__main__':
   unittest.main()
