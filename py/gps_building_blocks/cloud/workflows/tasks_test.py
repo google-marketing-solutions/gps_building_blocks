@@ -48,17 +48,24 @@ class TasksTest(unittest.TestCase):
   def _define_job_with_two_dependent_tasks(self) -> tasks.Job:
     job = self._define_job()
 
-, unused-variable
     @job.task(task_id='task1')
     def task1(job, task):
+      mark_unused(job, task)
       return 'result1'
 
     @job.task(task_id='task2', deps=['task1'])
     def task2(job, task):
+      mark_unused(job, task)
       return 'result2'
-, unused-variable
+
+    mark_unused(task1, task2)
 
     return job
+
+  def _call_job_scheduler(self, job, scheduler):
+    event = {'data': base64.b64encode(
+        json.dumps({'id': job.id}).encode('utf-8'))}
+    scheduler(event, {})
 
   def test_can_create_job(self):
     job = self._define_job()
@@ -75,23 +82,27 @@ class TasksTest(unittest.TestCase):
   def test_task_dependency(self):
     job = self._define_job()
 
-, unused-variable
     @job.task(task_id='task1')
     def task1(job, task):
+      mark_unused(job, task)
       return 'result1'
 
     @job.task(task_id='task2', deps=['task1'])
     def task2(job, task):
+      mark_unused(job, task)
       return 'result2'
 
     @job.task(task_id='task3', deps=['task1'])
     def task3(job, task):
+      mark_unused(job, task)
       return 'result3'
 
     @job.task(task_id='task4', deps=['task2', 'task3'])
     def task4(job, task):
+      mark_unused(job, task)
       return 'result4'
-, unused-variable
+
+    mark_unused(task1, task2, task3, task4)
 
     # The task dependency is set up as follows:
     # task1 --> task2 --> task4
@@ -150,20 +161,30 @@ class TasksTest(unittest.TestCase):
 
   def test_schedule_successful_task_should_send_pubsub_message(self):
     job = self._define_job_with_two_dependent_tasks()
+    scheduler = job.make_scheduler()
     job.start()
 
-    # When task1 finishes, there should be #{max_parallel_tasks} pubsub messages
-    # sent to pubsub to trigger subsequent tasks.
     message = json.dumps({'id': job.id}).encode('utf-8')
-    calls = [mock.call(self.topic_path, data=message)
-            ] * self.max_parallel_tasks
-    self.mock_pubsub.publish.assert_has_calls(calls)
+    call = [mock.call(self.topic_path, data=message)]
+    # When start() is called, there should be #{max_parallel_tasks} pubsub
+    # messages sent to pubsub.
+    self.mock_pubsub.publish.assert_has_calls(call * self.max_parallel_tasks)
+    self.assertEqual(self.mock_pubsub.publish.call_count,
+                     self.max_parallel_tasks)
+    self._call_job_scheduler(job, scheduler)
+    # When task1 finishes, there should be another #{max_parallel_tasks} pubsub
+    # messages sent to pubsub to trigger subsequent tasks.
+    self.mock_pubsub.publish.assert_has_calls(
+        call * (self.max_parallel_tasks*2))
+    self.assertEqual(self.mock_pubsub.publish.call_count,
+                     self.max_parallel_tasks * 2)
 
   def test_schedule_successful_tasks_should_set_task_statuses(self):
     job = self._define_job_with_two_dependent_tasks()
     scheduler = job.make_scheduler()
     job.start()
 
+    self._call_job_scheduler(job, scheduler)
     # when job starts, the first task will be scheduled to run and returns
     # 'result1'
     tasks_ref = job._get_tasks_ref()
@@ -175,39 +196,39 @@ class TasksTest(unittest.TestCase):
 
     # when scheduler is called again, task2 should be finished with result
     # 'result2'
-    event = {'data': base64.b64encode(
-        json.dumps({'id': job.id}).encode('utf-8'))}
-    scheduler(event, {})
+    self._call_job_scheduler(job, scheduler)
     task2 = tasks_ref.document('task2').get().to_dict()
     self.assertEqual(task2['status'], tasks.TaskStatus.FINISHED)
     self.assertEqual(task2['result'], 'result2')
 
   def test_schedule_failed_tasks_should_raise_error(self):
     job = self._define_job()
+    scheduler = job.make_scheduler()
 
     class MyTaskError(Exception):
       pass
 
-, unused-variable
     @job.task(task_id='task1')
     def task1(job, task):
+      mark_unused(job, task)
       raise MyTaskError()
-, unused-variable
 
     with self.assertRaises(MyTaskError):
       job.start()
+      self._call_job_scheduler(job, scheduler)
 
   def test_schedule_async_jobs(self):
     job = self._define_job()
+    scheduler = job.make_scheduler()
+    external_event_listener = job.make_external_event_listener()
 
-, unused-variable
     @job.task(task_id='task1')
     def task1(job, task):
+      mark_unused(job, task)
       return futures.BigQueryFuture(trigger_id='test-bq-job-id')
-, unused-variable
 
     job.start()
-    external_event_listener = job.make_external_event_listener()
+    self._call_job_scheduler(job, scheduler)
 
     # When an asynchronous task finishes, a trigger object is created in db.
     triggers_ref = self.db.collection(tasks.Job.EVENT_TRIGGERS_COLLECTION)
@@ -266,6 +287,11 @@ class TasksTest(unittest.TestCase):
     tasks.cleanup_expired_jobs(db=self.db, max_expire_days=30)
     self.assertIn('job1', jobs_ref._data)
     self.assertNotIn('job2', jobs_ref._data)
+
+
+def mark_unused(*args):
+  """Marks arguments as unused to avoid pylint warnings."""
+  del args
 
 
 if __name__ == '__main__':

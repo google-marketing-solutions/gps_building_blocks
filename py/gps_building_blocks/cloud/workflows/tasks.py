@@ -171,7 +171,7 @@ class Job:
     try:
       self.pubsub.create_topic(self.topic_path)
     except exceptions.GoogleAPICallError as e:
-      if e.grpc_status_code != _ALREADY_EXISTS_CODE:
+      if e.grpc_status_code.value[0] != _ALREADY_EXISTS_CODE:
         raise
 
     self.tasks = []
@@ -309,6 +309,10 @@ class Job:
     Returns:
       True if the task changes from RUNNING to FINISHED state, otherwise False.
     """
+    for task in self.tasks:
+      if task.id == task_ref.id:
+        task.status = TaskStatus.FINISHED
+
     return self._transition_task_state(
         task_ref,
         from_state=TaskStatus.RUNNING,
@@ -354,8 +358,24 @@ class Job:
   def _schedule(self):
     """Schedules one task from the runnable tasks to run.
     """
+
+    all_finished = True
+    for task in self.tasks:
+      logging.info('job: %s task: %s status: %s', self.id, task.id, task.status)
+      if task.status != TaskStatus.FINISHED:
+        all_finished = False
+        break
+    if all_finished:
+      job_ref = self._get_job_ref()
+      job_ref.update({
+          'status': JobStatus.FINISHED,
+          'finish_time': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+      })
+      return
+
     tasks = self._get_runnable_tasks()
     if not tasks:
+      logging.info('No tasks ready to run, return')
       return
 
     task = random.choice(tasks)
@@ -406,6 +426,8 @@ class Job:
     Args:
       message: Event message.
     """
+    logging.info('handle message: %s', message)
+
     for future_cls in futures.Future.all_futures:
       result = future_cls.handle_message(message)
 
@@ -448,7 +470,7 @@ class Job:
 
     return wrapper
 
-  def start(self, argv: Optional[List[str]] = None):
+  def start(self, argv: Optional[Dict[str, Any]] = None):
     """Starts a job.
 
     Args:
@@ -468,7 +490,7 @@ class Job:
         'name': self.name,
         'start_time': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S'),
         'status': JobStatus.RUNNING,
-        'argv': argv or []
+        'argv': argv or {}
     })
 
     # creates task entries in the job document
@@ -481,7 +503,7 @@ class Job:
           'status': TaskStatus.READY,
       })
 
-    self._schedule()
+    self._publish_schedule_message(self.max_parallel_tasks)
 
   def get_arguments(self):
     """Gets start arguments of this job.
@@ -492,6 +514,19 @@ class Job:
     job_ref = self._get_job_ref()
     job = job_ref.get().to_dict()
     return job['argv']
+
+  def get_task_result(self, task_id: str):
+    """Gets task result from this job.
+
+    Args:
+      task_id: Task Id.
+
+    Returns:
+      Result returned by task and saved into database.
+    """
+    tasks_ref = self._get_tasks_ref()
+    task = tasks_ref.document(task_id).get().to_dict()
+    return task['result']
 
   def make_scheduler(self):
     """Creates a job scheduler function which can be called as a cloud function.
