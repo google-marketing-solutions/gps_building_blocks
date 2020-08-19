@@ -26,7 +26,7 @@ with open("../README.md", "r") as fh:
 
 setuptools.setup(
     name="gps-building-blocks",
-    version="1.0.0",
+    version="1.1.0",
     author="gPS Team",
     author_email="no-reply@google.com",
     description="Modules and tools useful for use with advanced data solutions on Google Ads, Google Marketing Platform and Google Cloud.",
