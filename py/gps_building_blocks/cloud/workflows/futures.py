@@ -17,7 +17,12 @@
 """Future: the return type for async tasks.
 """
 
-from typing import Any, Dict, Optional
+import time
+from typing import Any, Mapping, Optional
+
+from googleapiclient import discovery
+
+import google.auth
 
 
 class Result:
@@ -65,7 +70,7 @@ class Future:
     self.trigger_id = trigger_id
 
   @classmethod
-  def handle_message(cls, message: Dict[str, Any]) -> Optional[Result]:
+  def handle_message(cls, message: Mapping[str, Any]) -> Optional[Result]:
     """Handles the external message(event).
 
       This method needs to be overwritten by subclasses.
@@ -83,7 +88,7 @@ class BigQueryFuture(Future):
   """Return type for async big query task."""
 
   @classmethod
-  def handle_message(cls, message: Dict[str, Any]) -> Optional[Result]:
+  def handle_message(cls, message: Mapping[str, Any]) -> Optional[Result]:
     """Handles bigquery task finish messages.
 
       If the message is a bigquery message, then parse it and return its status,
@@ -93,7 +98,7 @@ class BigQueryFuture(Future):
       message: The message JSON dictionary.
 
     Returns:
-      Parsed task result from the message.
+      Parsed task result from the message or None.
     """
     if _get_value(message, 'resource.type') == 'bigquery_resource':
       bq_job_id = _get_value(
@@ -109,9 +114,92 @@ class BigQueryFuture(Future):
         return Result(trigger_id=bq_job_id, is_success=False, error=error)
       else:
         return Result(trigger_id=bq_job_id, is_success=True)
+    else:
+      return None
 
 
-def _get_value(obj: Dict[str, Any], keypath: str):
+class DataFlowFuture(Future):
+  r"""Return type for async DataFlow task.
+
+    To use this future, you need to set up a log router that routes DataFlow job
+      complete logs into your PubSub topic for external messages. for example:
+
+    ```
+    gcloud logging sinks create dataflow_complete_sink
+    pubsub.googleapis.com/projects/$PROJECT_ID/topics/$TOPIC_EXTERNAL \
+      --log-filter='resource.type="dataflow_step" AND textPayload="Worker pool
+      stopped."'
+
+    sink_service_account=$(gcloud logging sinks describe dataflow_complete_sink
+    |grep writerIdentity| sed 's/writerIdentity: //')
+
+    gcloud pubsub topics add-iam-policy-binding $TOPIC_EXTERNAL \
+      --member $sink_service_account --role roles/pubsub.publisher
+    ```
+
+    Upon calling, future class extracts the DataFlow job id from the
+    "Worker pool stopped." logs and checks the job status using the Google Cloud
+    APIs.
+  """
+
+  STATUS_CHECK_RETRY_TIMES = 10
+  STATUS_CHECK_SLEEP_SECS = 10
+
+  @classmethod
+  def handle_message(cls, message: Mapping[str, Any]) -> Optional[Result]:
+    """Handles DataFlow task finish messages.
+
+      If the message is a DataFlow message, then parse it and return its status,
+        otherwise just return None.
+
+    Args:
+      message: The message JSON dictionary.
+
+    Returns:
+      Parsed task result from the message or None.
+    """
+    if _get_value(message, 'resource.type') == 'dataflow_step':
+      labels = _get_value(message, 'resource.labels')
+      job_id = labels['job_id']
+      region = labels['region']
+      job_name = labels['job_name']
+
+      _, project = google.auth.default()
+
+      dataflow = discovery.build('dataflow', 'v1b3')
+      request = dataflow.projects().locations().jobs().get(
+          jobId=job_id,
+          location=region,
+          projectId=project)
+
+      retry = cls.STATUS_CHECK_RETRY_TIMES
+      while retry > 0:
+        retry -= 1
+        response = request.execute()
+        if response['currentState'] == 'JOB_STATE_DONE':
+          return Result(trigger_id=job_id, is_success=True)
+        elif response['currentState'] == 'JOB_STATE_RUNNING':
+          time.sleep(cls.STATUS_CHECK_SLEEP_SECS)
+        else:
+          error = {
+              'job_id': job_id,
+              'job_name': job_name,
+              'state': response['currentState']
+          }
+          return Result(trigger_id=job_id, is_success=False, error=error)
+
+      # Returns timeout error if running out of retries
+      error = {
+          'job_id': job_id,
+          'job_name': job_name,
+          'state': 'TIMEOUT CHECKING'
+      }
+      return Result(trigger_id=job_id, is_success=False, error=error)
+    else:
+      return None
+
+
+def _get_value(obj: Mapping[str, Any], keypath: str):
   """Gets a value from a dictionary using dot-separated keys.
 
   Args:
