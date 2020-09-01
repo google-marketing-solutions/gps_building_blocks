@@ -90,6 +90,10 @@ There are two ways to construct a client.
 
 ##### a. Using service account impersonation (Recommended)
 
+**NOTE:** This method impersonates a service account. The caller must have
+"Service Account Token Creator" IAM role explicitly added. This is
+required even for users who have "Owner" IAM role.
+
 ```python
 from gps_building_blocks.cloud.utils import cloud_auth
 
