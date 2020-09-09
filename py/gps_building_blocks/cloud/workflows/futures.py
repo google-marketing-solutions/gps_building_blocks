@@ -104,6 +104,9 @@ class BigQueryFuture(Future):
       bq_job_id = _get_value(
           message,
           'protoPayload.serviceData.jobCompletedEvent.job.jobName.jobId')
+      location = _get_value(
+          message,
+          'protoPayload.serviceData.jobCompletedEvent.job.jobName.location')
       code = _get_value(message, 'protoPayload.status.code')
 
       if code:
@@ -113,7 +116,8 @@ class BigQueryFuture(Future):
         error = _get_value(message, 'protoPayload.status.message')
         return Result(trigger_id=bq_job_id, is_success=False, error=error)
       else:
-        return Result(trigger_id=bq_job_id, is_success=True)
+        result = {'job_id': bq_job_id, 'location': location}
+        return Result(result=result, trigger_id=bq_job_id, is_success=True)
     else:
       return None
 
