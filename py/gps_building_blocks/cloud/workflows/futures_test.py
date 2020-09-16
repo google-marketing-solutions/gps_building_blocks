@@ -18,10 +18,12 @@
 
 import unittest
 from unittest import mock
+import urllib
 
 from googleapiclient import discovery
-import google.auth
 
+import google.auth
+from gps_building_blocks.cloud.firestore import fake_firestore
 from gps_building_blocks.cloud.workflows import futures
 
 
@@ -40,6 +42,8 @@ class TasksTest(unittest.TestCase):
     mock_discovery = mock.patch.object(
         discovery, 'build', autospec=True).start()
     mock_discovery.return_value = self.mock_api
+
+    self.db = fake_firestore.FakeFirestore()
 
   def test_bq_future_should_parse_bq_success_logs(self):
     # a fake bq message for job complete
@@ -136,6 +140,23 @@ class TasksTest(unittest.TestCase):
     result = futures.DataFlowFuture.handle_message(message)
     self.assertFalse(result.is_success)
     self.assertEqual(result.trigger_id, 'df_job_id')
+
+  def test_gcs_future_should_parse_gcs_messages(self):
+    message = {
+        'function_flow_event_type': 'gcs_path_create',
+        'path_prefix': 'gs://test-bucket/test-path'
+    }
+
+    result = futures.GCSFuture.handle_message(message)
+    self.assertEqual(result.result, 'gs://test-bucket/test-path')
+
+  def test_gcs_poller_should_register_deregister_paths(self):
+    path = 'gs://test-bucket/test-path'
+    futures.GCSPoller.register_path_prefix(path, self.db)
+    quoted_path = urllib.parse.quote(path, safe='')
+    self.assertIn(quoted_path, self.db._data['GCSWatches'])
+    futures.GCSPoller.deregister_path_prefix(path, self.db)
+    self.assertNotIn(quoted_path, self.db._data['GCSWatches'])
 
 
 if __name__ == '__main__':

@@ -17,12 +17,18 @@
 """Future: the return type for async tasks.
 """
 
+import datetime
+import json
 import time
 from typing import Any, Mapping, Optional
+import urllib
 
 from googleapiclient import discovery
 
 import google.auth
+from google.cloud import firestore
+from google.cloud import pubsub_v1
+from google.cloud import storage
 
 
 class Result:
@@ -201,6 +207,130 @@ class DataFlowFuture(Future):
       return Result(trigger_id=job_id, is_success=False, error=error)
     else:
       return None
+
+
+class GCSFuture(Future):
+  """A future type fullfilled by creation of a GCS path prefix."""
+
+  # The internal event type to match against the pubsub message
+  GCS_EVENT_TYPE = 'gcs_path_create'
+
+  def __init__(self, path_prefix: str):
+    """Initializes the object.
+
+    Args:
+      path_prefix: The path prefix to watch.
+    """
+    trigger_id = urllib.parse.quote(path_prefix, safe='')
+    super().__init__(trigger_id)
+    GCSPoller.register_path_prefix(path_prefix)
+
+  @classmethod
+  def handle_message(cls, message: Mapping[str, Any]) -> Optional[Result]:
+    """Handles GCS path creation messages.
+
+    Args:
+      message: The message JSON dictionary.
+
+    Returns:
+      Parsed task result from the message or None.
+    """
+    if _get_value(message, 'function_flow_event_type') == cls.GCS_EVENT_TYPE:
+      path_prefix = _get_value(message, 'path_prefix')
+      trigger_id = urllib.parse.quote(path_prefix, safe='')
+      return Result(result=path_prefix, trigger_id=trigger_id, is_success=True)
+    else:
+      return None
+
+
+class GCSPoller:
+  """Polls GCS for existence of path prefixes."""
+
+  # Collection storing GCS path prefixes to watch.
+  GCS_WATCH_COLLECTION = 'GCSWatches'
+
+  def __init__(self,
+               event_topic: str,
+               db: Optional[firestore.Client] = None,
+               pubsub: Optional[pubsub_v1.PublisherClient] = None,
+               project: str = None):
+    """Initializes the object.
+
+    Args:
+      event_topic: The PubSub topic for external event.
+      db: The Firestore database client.
+      pubsub: The Cloud PubSub client.
+      project: The GCP project ID.
+    """
+    self.db = db or firestore.Client()
+    self.pubsub = pubsub or pubsub_v1.PublisherClient()
+    if not project:
+      _, project = google.auth.default()
+    self.topic_path = self.pubsub.topic_path(project, event_topic)
+
+  def poll(self):
+    """Polls GCS for existence of stored path prefixes.
+
+    When a watched path exists, sends out a PubSub event which in turn triggers
+      the corresponding GCSFuture to be fullfilled.
+    """
+    gcs_watches = self.db.collection(self.GCS_WATCH_COLLECTION)
+
+    for watch in gcs_watches.stream():
+      path_prefix = urllib.parse.unquote(watch.id)
+
+      parse_result = urllib.parse.urlparse(path_prefix)
+      bucket_name = parse_result.netloc
+      prefix = parse_result.path[1:]
+
+      storage_client = storage.Client()
+      blobs = storage_client.list_blobs(
+          bucket_name, prefix=prefix, delimiter=None
+      )
+
+      path_exist = False
+      for _ in blobs:
+        path_exist = True
+        break
+
+      if path_exist:
+        # Constructs an event and sends it to pubsub
+        message = {
+            'function_flow_event_type': GCSFuture.GCS_EVENT_TYPE,
+            'path_prefix': path_prefix
+        }
+        data = json.dumps(message).encode('utf-8')
+        self.pubsub.publish(self.topic_path, data=data)
+        self.deregister_path_prefix(path_prefix, db=self.db)
+
+  @classmethod
+  def register_path_prefix(cls, path_prefix: str, db=None):
+    """Regsiters a GCS path prefix to be watched.
+
+    Args:
+      path_prefix: The GCS path prefix.
+      db: The Firestore database client.
+    """
+    db = db or firestore.Client()
+    gcs_watches = db.collection(cls.GCS_WATCH_COLLECTION)
+    # Firestore can not have '/' in document ID, so it's neccessary to quote it.
+    path_prefix_escaped = urllib.parse.quote(path_prefix, safe='')
+    gcs_watches.document(path_prefix_escaped).set({
+        'created': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+    })
+
+  @classmethod
+  def deregister_path_prefix(cls, path_prefix: str, db=None):
+    """Deregsiters a GCS path prefix so that is no longer watched.
+
+    Args:
+      path_prefix: The GCS path prefix.
+      db: The Firestore database client.
+    """
+    db = db or firestore.Client()
+    gcs_watches = db.collection(cls.GCS_WATCH_COLLECTION)
+    path_prefix_escaped = urllib.parse.quote(path_prefix, safe='')
+    gcs_watches.document(path_prefix_escaped).delete()
 
 
 def _get_value(obj: Mapping[str, Any], keypath: str):

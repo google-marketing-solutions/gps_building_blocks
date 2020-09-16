@@ -142,6 +142,7 @@ class Job:
                db: Optional[firestore.Client] = None,
                pubsub: Optional[pubsub_v1.PublisherClient] = None,
                schedule_topic: str = 'SCHEDULE',
+               external_event_topic: str = 'SCHEDULE_EXTERNAL_EVENTS',
                max_parallel_tasks: int = 5,
                project: str = None):
     """Initializes the job instance.
@@ -152,6 +153,8 @@ class Job:
         database.
       pubsub: The pubsub client.
       schedule_topic: The topic which triggers the scheduler function.
+      external_event_topic: The topic for external events, e.g. completion log
+        for BigQuery jobs, etc.
       max_parallel_tasks: Maximum tasks running in parallel.
       project: The cloud project id. Will be determined from current envrioment
         automatically(for example the project of the cloud function) if not
@@ -166,6 +169,7 @@ class Job:
     self.db = db or firestore.Client(project=project)
     self.max_parallel_tasks = max_parallel_tasks
     self.pubsub = pubsub or pubsub_v1.PublisherClient()
+    self.external_event_topic = external_event_topic
     self.topic_path = self.pubsub.topic_path(project, schedule_topic)
     # create the topic for scheduling messages if not exist
     try:
@@ -558,6 +562,25 @@ class Job:
         pass
 
     return listener
+
+  def make_poller(self):
+    """Creates a function to poll external events.
+
+    This is useful when there is an external service we call asynchronously, and
+      polls the status to check its completion status(as an example, use AutoML
+      output path to decide when the prediction is finished).
+
+    Returns:
+      A function which can be used as a cloud function, triggered by Cloud
+      Ccheduler.
+    """
+    gcs_poller = futures.GCSPoller(self.external_event_topic)
+
+    def poll_fn(*args, **kwargs):
+      del args, kwargs  # unused
+      gcs_poller.poll()
+
+    return poll_fn
 
 
 def cleanup_expired_jobs(db=None, project=None, max_expire_days=30):
