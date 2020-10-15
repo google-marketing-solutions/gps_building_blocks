@@ -45,6 +45,7 @@ setuptools.setup(
         "google-cloud-storage==1.28.1",
         "google-cloud-pubsub==1.3.1",
         "requests==2.23.0",
+        "six==1.15.0",
         "dataclasses; python_version<'3.7'"
     ],
     classifiers=[

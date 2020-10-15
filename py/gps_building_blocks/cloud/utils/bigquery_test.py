@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for google3.third_party.gps_building_blocks.cloud.utils.bigquery."""
 import unittest
 from unittest import mock
@@ -58,6 +57,27 @@ class BigQueryTest(parameterized.TestCase):
     sql_statement = 'SELECT * FROM `my_project.my_dataset.my_table`'
     self.bigquery_client.run_query(sql_statement)
     self.mock_client.return_value.query.assert_called_once_with(sql_statement)
+
+  def test_insert_rows_valid_parameters(self):
+    table_name = 'my_project.my_dataset.my_table'
+    rows = [{'name': 'Foo', 'age': 10}, {'name': 'Bar', 'age': 15}]
+    self.bigquery_client.insert_rows(table_name, rows)
+    self.mock_client.return_value.insert_rows.assert_called_once_with(
+        table_name, rows)
+
+  @parameterized.parameters(
+      'my_project.my-data-set.my-table',
+      'my_project.mydataset01.mytable01',
+      'my_project.my$data!set.my&*table',
+      'my_project.my-dataset.my$-table01')
+  def test_insert_rows_invalid_table_name(self, table_name):
+    with self.assertRaises(ValueError):
+      self.bigquery_client.insert_rows(table_name, [{'name': 'Foo'}])
+
+  def test_insert_rows_empty_row(self):
+    with self.assertRaises(ValueError):
+      table_name = 'project.dataset.table'
+      self.bigquery_client.insert_rows(table_name, [])
 
 if __name__ == '__main__':
   unittest.main()

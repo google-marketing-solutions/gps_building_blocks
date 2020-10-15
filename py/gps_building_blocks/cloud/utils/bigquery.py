@@ -14,7 +14,8 @@
 # limitations under the License.
 """Manage operations on BigQuery."""
 import logging
-from typing import Optional
+import re
+from typing import Any, Optional, Sequence
 
 from google.cloud import bigquery
 from gps_building_blocks.cloud.utils import cloud_auth
@@ -45,9 +46,9 @@ class BigQueryUtils:
       service_account_key_file: File containing service account key. If both
         service_account_name and service_account_key_file are not passed the
         default credential will be used.There are following ways to create
-        service accounts -
-          1) Use `build_service_client` method from `cloud_auth` module.
-          2) Use `gcloud` command line utility as documented here -
+        service accounts - 1) Use `build_service_client` method from
+        `cloud_auth` module. 2) Use `gcloud` command line utility as documented
+        here -
                https://cloud.google.com/iam/docs/creating-managing-service-account-keys
     """
     if service_account_name:
@@ -69,3 +70,27 @@ class BigQueryUtils:
       google.cloud.bigquery.QueryJob: The query object.
     """
     return self.client.query(query)
+
+  def insert_rows(self, table: str, rows: Sequence[Any]) -> Sequence[Any]:
+    """Inserts rows into a table.
+
+    Args:
+      table: The full table name.
+      rows: Sequence of rows that must be inserted.
+
+    Returns:
+      One mapping per row with insert errors: the “index” key identifies the
+      row, and the “errors” key contains a list of the mappings describing one
+      or more problems with the row. If the sequence is empty, it means all rows
+      were inserted successfully.
+
+    Raises:
+      ValueError: If the table name is invalid or rows are empty.
+    """
+    if re.search(r'[\d\-]|[^\w.]', table):
+      raise ValueError('Invalid table name')
+
+    if not rows:
+      raise ValueError('There are no rows to be inserted.')
+
+    return self.client.insert_rows(table, rows)
