@@ -34,7 +34,7 @@ if [ $? -ne 0 ]; then
   echo "Detected failed tests. Exiting with error code."
   exit $?
 else
-  if ["$1" == "release" ]; then
+  if [ "$1" = "release" ]; then
     # Run release script
     ./kokoro/release.sh
   fi
