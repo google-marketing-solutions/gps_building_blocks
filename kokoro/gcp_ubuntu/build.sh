@@ -27,6 +27,6 @@ set -e
 set -x
 
 # Code under depot is checked out to ${KOKORO_ARTIFACTS_DIR}/piper.
-cd ${KOKORO_ARTIFACTS_DIR}/piper/google3/third_party/gps_building_blocks
+cd ${KOKORO_ARTIFACTS_DIR}/github/gps_building_blocks
 
 ./kokoro/common.sh
