@@ -29,7 +29,8 @@ python3 -m pip install -r "${ROOT}/py/setuptools/requirements.txt"
 pip install nose
 
 # Execute tests
-echo $(nosetests py/cloud)
+nosetests py/gps_building_blocks/py/cloud
+
 if [ $? -ne 0 ]; then
   echo "Detected failed tests. Exiting with error code."
   exit $?
