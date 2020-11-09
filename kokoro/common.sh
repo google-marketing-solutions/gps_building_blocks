@@ -25,7 +25,7 @@ source "${ROOT}/venv/bin/activate"
 
 # Install necessary dependencies
 python3 -m pip install --upgrade pip
-python3 -m pip install -r "${ROOT}/py/setuptools/requirements.txt"
+python3 -m pip install -r "${ROOT}/py/requirements.txt"
 pip install nose
 
 # Execute tests
