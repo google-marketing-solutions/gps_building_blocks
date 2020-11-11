@@ -14,26 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Install virtualenv
-sudo apt-get install virtualenv -qq
-
 # Prepare the local Python virtualenv
-PYTHON3=$(which python3);
+sudo apt-get install python3-venv
+pyenv global 3.7.2
+
 ROOT=$PWD
-virtualenv --python=${PYTHON3} venv
-source "${ROOT}/venv/bin/activate"
+python -m venv venv
+source venv/bin/activate
 
 # Install necessary dependencies
-python3 -m pip install --upgrade pip
-python3 -m pip install -r "${ROOT}/py/requirements.txt"
-pip install nose
+python -m pip install --upgrade pip
+python -m pip install -r "${ROOT}/py/requirements.txt"
+python -m pip install nose
 
 # Execute tests
 nosetests py/gps_building_blocks/cloud
-
-if [ $? -ne 0 ]; then
-  echo "Detected failed tests. Exiting with error code."
-  exit $?
+NOSE_EXIT_CODE=$?
+if [ $NOSE_EXIT_CODE -ne 0 ]; then
+  echo "Detected failed tests. Exiting with code $NOSE_EXIT_CODE."
+  exit $NOSE_EXIT_CODE
 else
   if [ "$1" = "release" ]; then
     # Run release script
