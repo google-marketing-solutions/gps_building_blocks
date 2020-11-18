@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for google3.third_party.gps_building_blocks.py.cloud.workflows.futures."""
+"""Tests for gps_building_blocks.cloud.workflows.futures."""
 
 import unittest
 from unittest import mock

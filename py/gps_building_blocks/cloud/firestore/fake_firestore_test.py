@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for google3.third_party.gps_building_blocks.py.cloud.firestore.fake_firestore."""
+"""Tests for gps_building_blocks.cloud.firestore.fake_firestore."""
 
 import unittest
 

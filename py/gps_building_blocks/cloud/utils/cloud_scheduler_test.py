@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for google3.third_party.gps_building_blocks.cloud.utils.cloud_scheduler."""
+"""Tests for gps_building_blocks.cloud.utils.cloud_scheduler."""
 import unittest
 from unittest import mock
 
