@@ -1,7 +1,7 @@
 # Machine learning (ML) modules and libraries
 
 This folder contains modules and libraries that help to develop, manage and
-maintain ML lifecycle. They include (but not limited to) modules on:
+maintain ML lifecycle. They include (but are not limited to) modules on:
 
 - data preprocessing
 - data validation
