@@ -1,3 +1,6 @@
+
+
+
 # Preprocessing
 
 **Disclaimer: This is not an official Google product.**
@@ -7,7 +10,8 @@ learning data.
 
 ## Table of Contents
 
--   [1. Variance Inflation Factors (VIF)]
+- [How to use?](#how-to-use)
+  * [1. Variance Inflation Factors (VIF)](#1-variance-inflation-factors-vif)
 
 ## How to use?
 
