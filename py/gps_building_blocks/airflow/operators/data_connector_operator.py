@@ -41,7 +41,7 @@ class DataConnectorOperator(models.BaseOperator):
 
     Retrieves all blobs with from input_hook and sends them to output_hook.
 
-    TODO(saraid): Returned reports about sending blob info is now sent as an
+    TODO(): Returned reports about sending blob info is now sent as an
     ordered list, making it hard to identify which blob the report belongs to.
     Thus for blobs with no events an empty tuple is appended to the reports
     list. Find a better format for returning blob related reports.

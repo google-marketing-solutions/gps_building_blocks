@@ -1,6 +1,6 @@
 # Licensed under the Apache License, Version 2.0
 
-# TODO(b/174216529) ensure tests run on github repo.
+# TODO() ensure tests run on github repo.
 """Tests for gps_building_blocks.py.ml.diagnostics.bootstrap."""
 
 import numpy as np

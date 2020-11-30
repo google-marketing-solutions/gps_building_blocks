@@ -22,7 +22,7 @@ consistent use across the component.
 Current implementation uses this retry library:
 https://github.com/jd/tenacity/tree/master/tenacity
 
-TODO(saraid): Find a better way to represent retriable and non-retraiable http
+TODO(): Find a better way to represent retriable and non-retraiable http
 status codes.
 
 Example usage:

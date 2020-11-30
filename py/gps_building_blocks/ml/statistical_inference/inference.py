@@ -106,7 +106,7 @@ class InferenceData():
   Controlling for External Factors
     * fixed_effect
 
-  # TODO(b/174228077): Add list of current available methods for each part.
+  # TODO(): Add list of current available methods for each part.
 
   Typical usage example:
 
@@ -296,10 +296,10 @@ class InferenceData():
 
   def _check_low_variance(self, raise_on_error: bool = True) -> None:
     """Verifies if low variances variables has been addressed in the data."""
-    # TODO(b/173768759): Check low-variance and constants.
+    # TODO(): Check low-variance and constants.
     pass
 
   def _check_collinearity(self, raise_on_error: bool = True) -> None:
     """Verifies if collinearity has been addressed in the data."""
-    # TODO(b/173768760): Check for collinearity.
+    # TODO(): Check for collinearity.
     pass
