@@ -37,7 +37,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "absl-py==0.9.0",
-        "google-api-core==1.17.0",
+        "google-api-core==1.19.0",
         "google-api-python-client==1.9.1",
         "google-auth==1.16.0",
         "google-cloud-bigquery==1.22.0",
