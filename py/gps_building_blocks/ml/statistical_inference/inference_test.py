@@ -23,10 +23,10 @@ import unittest
 
 class InferenceTest(googletest.TestCase):
   _missing_data = pd.DataFrame(
-      data=[[np.nan, 0.0184],
-            [0.5415, 0.0531],
-            [0.4161, 1.9822],
-            [0.2231, 9.5019]],
+      data=[[np.nan, 0.0000],
+            [0.6000, 0.0000],
+            [0.4000, 3.0000],
+            [0.2000, np.nan]],
       columns=['first', 'second'])
 
   def test_missing_value_emits_warning_twice(self):
@@ -46,6 +46,40 @@ class InferenceTest(googletest.TestCase):
       inference.InferenceData(
           initial_data=self._missing_data,
           target_column='non_ci_sono')
+
+  def test_impute_missing_values_replaced_with_mean(self):
+    inference_data = inference.InferenceData(self._missing_data)
+    expected_result = pd.DataFrame(
+        data=[[0.4000, 0.0000],
+              [0.6000, 0.0000],
+              [0.4000, 3.0000],
+              [0.2000, 1.0000]],
+        columns=['first', 'second'])
+
+    result = inference_data.impute_missing_values(strategy='mean')
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_fixed_effect_demeaning_subtract_mean_in_groups(self):
+    data = pd.DataFrame(
+        data=[['0', 0.0, 1, 3.0],
+              ['1', 0.0, 2, 2.0],
+              ['1', 1.0, 3, 2.0],
+              ['1', 1.0, 4, 1.0]],
+        columns=['control_1', 'control_2', 'variable_1', 'variable_2'],
+        index=['group1', 'group2', 'group3', 'group3'])
+    expected_result = pd.DataFrame(
+        data=[['0', 0.0, 0.0, 0.0],
+              ['1', 0.0, 0.0, 0.0],
+              ['1', 1.0, -0.5, 0.5],
+              ['1', 1.0, 0.5, -0.5]],
+        columns=data.columns,
+        index=data.index)
+
+    inference_data = inference.InferenceData(data)
+    result = inference_data.fixed_effect(['control_1', 'control_2'])
+
+    pd.testing.assert_frame_equal(result, expected_result)
 
 
 if __name__ == '__main__':

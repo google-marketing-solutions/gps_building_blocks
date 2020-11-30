@@ -14,7 +14,9 @@
 
 """Module containing the InferenceData and InferenceModel classes."""
 
-from typing import Optional
+import functools
+import operator
+from typing import Iterable, Optional
 import warnings
 
 import pandas as pd
@@ -101,6 +103,9 @@ class InferenceData():
   Missing Values
     * impute_missing_value
 
+  Controlling for External Factors
+    * fixed_effect
+
   # TODO(b/174228077): Add list of current available methods for each part.
 
   Typical usage example:
@@ -116,6 +121,8 @@ class InferenceData():
     data = inference.InferenceData(
         initial_data=some_data,
         target_column='outcome')
+
+    data.fixed_effect(['control'], strategy='quick')
 
     data.check_data(raise_on_error=True)
 
@@ -147,6 +154,7 @@ class InferenceData():
     self.initial_data = initial_data
     self.data = initial_data.copy()
     self.target_column = target_column
+    self._has_control_factors = False
 
     if target_column and target_column not in initial_data:
       raise KeyError('Target "{target_column}" not in data.')
@@ -171,6 +179,8 @@ class InferenceData():
     Raises:
       MissingValueError: If the latest transformation of the data has columns
         with missing values.
+      ControlVariableError: If the latest transformation of the data hasn't gone
+        thorugh a method to control for external factors.
     """
     self._check_missing_values(raise_on_error)
     self._check_control(raise_on_error)
@@ -215,9 +225,74 @@ class InferenceData():
     return self.data
 
   def _check_control(self, raise_on_error: bool = True)  -> None:
-    """Verifies if data is controlling for external factors."""
-    # TODO(b/174229011): Check data is controlling for external factors.
-    pass
+    """Verifies if data is controlling for external variables."""
+    if not self._has_control_factors:
+      message = ('The data is not controlling for external factors. Consider '
+                 'using `fixed_effect` indicating the columns to use as control'
+                 'for external factors.')
+
+      if raise_on_error:
+        raise ControlVariableError(message)
+      else:
+        warnings.warn(ControlVariableWarning(message))
+
+  def fixed_effect(
+      self,
+      control_columns: Iterable[str],
+      strategy: str = 'quick') -> pd.DataFrame:
+    """Fixed effect with the strategy using the control columns.
+
+    Fixed effects mitigate the confounding factors and help restore the
+    underlying signal. Fixed Effects is widely used to estimate causal effects
+    using observational data. It is designed to control for differences across
+    individuals and/or time which could confound estimation of the variable of
+    interest on an outcome variable.
+
+    Originally, Fixed Effect model are implemented using Least Squares Dummy
+    Variable model (LSDV), which essentially uses a dummy variable for each
+    fixed effect. This option is available setting `strategy = 'dummy'`. When
+    the number of fixed effects is large it is easy to incur in memory issues
+    and some model may struggle to handle a very highly dimensional space. We
+    can transform the data de-meaning each fixed effect, subtracting the fixed
+    effect group mean and adding back the overall mean. Mundlak (1978)[1] has
+    shown that this efficient fixed effects implementation is equivalent to a
+    LSDV approach. You can use this efficient transformation setting the
+    parameter `strategy = 'quick'`.
+
+    [1]
+    https://econpapers.repec.org/article/ecmemetrp/v_3a46_3ay_3a1978_3ai_3a1_3ap_3a69-85.htm
+
+    Args:
+      control_columns: List of columns you want to use as control for you
+        experiment.
+      strategy: Options between 'quick' or 'dummy' strategy to apply fixed
+        effect transformation to your data.
+
+    Returns:
+      Latest version of the data after fixed effect has been applied.
+
+    Raises:
+      NotImplementedError: Currently, only the 'quick' strategy is available.
+      Setting `strategy` to any other value will raise this exception.
+    """
+    if strategy != 'quick':
+      raise NotImplementedError(
+          "Only 'quick' fixed effect is currently implemented.")
+
+    self._control_columns = control_columns
+    self._fixed_effect_group_id = functools.reduce(
+        operator.add, self.data[control_columns].astype(str).values.T)
+
+    demean_columns = [
+        column for column in self.data if column not in control_columns]
+    self._demean_group_mean = self.data[demean_columns].groupby(
+        self._fixed_effect_group_id).transform('mean')
+    self.data[demean_columns] -= self._demean_group_mean
+    self.data[demean_columns] += self.data[demean_columns].mean()
+
+    self._has_control_factors = True
+
+    return self.data
 
   def _check_low_variance(self, raise_on_error: bool = True) -> None:
     """Verifies if low variances variables has been addressed in the data."""
