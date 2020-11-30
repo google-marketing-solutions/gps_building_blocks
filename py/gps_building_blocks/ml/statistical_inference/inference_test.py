@@ -77,7 +77,10 @@ class InferenceTest(googletest.TestCase):
         index=data.index)
 
     inference_data = inference.InferenceData(data)
-    result = inference_data.fixed_effect(['control_1', 'control_2'])
+    result = inference_data.fixed_effect(
+        strategy='quick',
+        control_columns=['control_1', 'control_2'],
+        min_frequency=1)
 
     pd.testing.assert_frame_equal(result, expected_result)
 

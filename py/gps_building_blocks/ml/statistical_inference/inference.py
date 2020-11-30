@@ -122,7 +122,7 @@ class InferenceData():
         initial_data=some_data,
         target_column='outcome')
 
-    data.fixed_effect(['control'], strategy='quick')
+    data.fixed_effect(['control'], strategy='quick', min_frequency=2)
 
     data.check_data(raise_on_error=True)
 
@@ -239,7 +239,9 @@ class InferenceData():
   def fixed_effect(
       self,
       control_columns: Iterable[str],
-      strategy: str = 'quick') -> pd.DataFrame:
+      strategy: str = 'quick',
+      min_frequency: int = 2
+      ) -> pd.DataFrame:
     """Fixed effect with the strategy using the control columns.
 
     Fixed effects mitigate the confounding factors and help restore the
@@ -259,6 +261,12 @@ class InferenceData():
     LSDV approach. You can use this efficient transformation setting the
     parameter `strategy = 'quick'`.
 
+    To avoid overfitting and recover the underlying signals, rare or infrequent
+    fixed effect group should be removed from the study. You can choose the
+    minimum frequency a fixed effect group should have using the `min_frequency`
+    argument. Default value is set to `2`, meaning groups with only one
+    occurrence will be removed.
+
     [1]
     https://econpapers.repec.org/article/ecmemetrp/v_3a46_3ay_3a1978_3ai_3a1_3ap_3a69-85.htm
 
@@ -267,6 +275,9 @@ class InferenceData():
         experiment.
       strategy: Options between 'quick' or 'dummy' strategy to apply fixed
         effect transformation to your data.
+      min_frequency: Minimum frequency for a fixed effect group to be retain in
+        the data. If `min_frequency=2`, every fixed effect group with only one
+        observation will be removed from the data.
 
     Returns:
       Latest version of the data after fixed effect has been applied.
@@ -282,6 +293,13 @@ class InferenceData():
     self._control_columns = control_columns
     self._fixed_effect_group_id = functools.reduce(
         operator.add, self.data[control_columns].astype(str).values.T)
+
+    frequency_mask = pd.Series(self._fixed_effect_group_id)
+    frequency_mask = frequency_mask.groupby(
+        self._fixed_effect_group_id).transform('size').values
+    frequency_mask = frequency_mask >= min_frequency
+    self.data = self.data.loc[frequency_mask]
+    self._fixed_effect_group_id = self._fixed_effect_group_id[frequency_mask]
 
     demean_columns = [
         column for column in self.data if column not in control_columns]
