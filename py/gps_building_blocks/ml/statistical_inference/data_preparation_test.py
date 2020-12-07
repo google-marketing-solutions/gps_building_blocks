@@ -17,7 +17,7 @@
 import numpy as np
 import pandas as pd
 
-from gps_building_blocks.ml.statistical_inference import inference
+from gps_building_blocks.ml.statistical_inference import data_preparation
 import unittest
 
 
@@ -30,25 +30,25 @@ class InferenceTest(googletest.TestCase):
       columns=['first', 'second'])
 
   def test_missing_value_emits_warning_twice(self):
-    with self.assertWarns(inference.MissingValueWarning):
-      inference.InferenceData(self._missing_data)
-    with self.assertWarns(inference.MissingValueWarning):
-      inference.InferenceData(self._missing_data)
+    with self.assertWarns(data_preparation.MissingValueWarning):
+      data_preparation.InferenceData(self._missing_data)
+    with self.assertWarns(data_preparation.MissingValueWarning):
+      data_preparation.InferenceData(self._missing_data)
 
   def test_check_data_raises_exception_on_missing_data(self):
-    inference_data = inference.InferenceData(self._missing_data)
+    inference_data = data_preparation.InferenceData(self._missing_data)
 
-    with self.assertRaises(inference.MissingValueError):
+    with self.assertRaises(data_preparation.MissingValueError):
       inference_data.data_check(raise_on_error=True)
 
   def test_invalid_target_column_raise_exception(self):
     with self.assertRaises(KeyError):
-      inference.InferenceData(
+      data_preparation.InferenceData(
           initial_data=self._missing_data,
           target_column='non_ci_sono')
 
   def test_impute_missing_values_replaced_with_mean(self):
-    inference_data = inference.InferenceData(self._missing_data)
+    inference_data = data_preparation.InferenceData(self._missing_data)
     expected_result = pd.DataFrame(
         data=[[0.4000, 0.0000],
               [0.6000, 0.0000],
@@ -76,7 +76,7 @@ class InferenceTest(googletest.TestCase):
         columns=data.columns,
         index=data.index)
 
-    inference_data = inference.InferenceData(data)
+    inference_data = data_preparation.InferenceData(data)
     result = inference_data.fixed_effect(
         strategy='quick',
         control_columns=['control_1', 'control_2'],

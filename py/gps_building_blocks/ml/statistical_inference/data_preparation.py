@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Module containing the InferenceData and InferenceModel classes."""
+"""Module containing the InferenceData class."""
 
 import functools
 import operator
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 import warnings
 
 import pandas as pd
@@ -280,7 +280,9 @@ class InferenceData():
         observation will be removed from the data.
 
     Returns:
-      Latest version of the data after fixed effect has been applied.
+      Latest version of the data after fixed effect has been applied. When
+      strategy is set to `quick`, the control columns will be appended to the
+      `data` index.
 
     Raises:
       NotImplementedError: Currently, only the 'quick' strategy is available.
@@ -308,7 +310,9 @@ class InferenceData():
     self.data[demean_columns] -= self._demean_group_mean
     self.data[demean_columns] += self.data[demean_columns].mean()
 
+    self.data.set_index(self._control_columns, append=True)
     self._has_control_factors = True
+    self._control_strategy = strategy
 
     return self.data
 
@@ -321,3 +325,9 @@ class InferenceData():
     """Verifies if collinearity has been addressed in the data."""
     # TODO(): Check for collinearity.
     pass
+
+  def get_data_and_target(self) -> Tuple[pd.DataFrame, pd.Series]:
+    """Returns the modelling data and the target."""
+    target = self.data[self.target_column]
+    data = self.data.drop(self.target_column, axis=1)
+    return data, target
