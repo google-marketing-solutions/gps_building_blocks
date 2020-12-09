@@ -69,10 +69,10 @@ class InferenceTest(googletest.TestCase):
         columns=['control_1', 'control_2', 'variable_1', 'variable_2'],
         index=['group1', 'group2', 'group3', 'group3'])
     expected_result = pd.DataFrame(
-        data=[['0', 0.0, 0.0, 0.0],
-              ['1', 0.0, 0.0, 0.0],
-              ['1', 1.0, -0.5, 0.5],
-              ['1', 1.0, 0.5, -0.5]],
+        data=[['0', 0.0, 2.5, 2.0],
+              ['1', 0.0, 2.5, 2.0],
+              ['1', 1.0, 2.0, 2.5],
+              ['1', 1.0, 3.0, 1.5]],
         columns=data.columns,
         index=data.index)
 

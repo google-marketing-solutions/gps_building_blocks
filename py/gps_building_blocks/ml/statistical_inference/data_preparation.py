@@ -305,10 +305,11 @@ class InferenceData():
 
     demean_columns = [
         column for column in self.data if column not in control_columns]
+    self._demean_variable_mean = self.data[demean_columns].mean()
     self._demean_group_mean = self.data[demean_columns].groupby(
         self._fixed_effect_group_id).transform('mean')
     self.data[demean_columns] -= self._demean_group_mean
-    self.data[demean_columns] += self.data[demean_columns].mean()
+    self.data[demean_columns] += self._demean_variable_mean
 
     self.data.set_index(self._control_columns, append=True)
     self._has_control_factors = True
