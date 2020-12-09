@@ -22,7 +22,7 @@ from gps_building_blocks.ml.statistical_inference import models
 import unittest
 
 
-def _prepare_data_and_target():
+def _prepare_data_and_target(ready_for_modelling=True):
   # Prepare data
   data = np.array(
       [[0.496714150, -0.13826430, 0.647688540, 1.523029860, -0.23415337],
@@ -60,8 +60,12 @@ def _prepare_data_and_target():
 
   data = pd.DataFrame(data)
   data['target'] = target
+  inference_data = data_preparation.InferenceData(data, 'target')
 
-  return data_preparation.InferenceData(data, 'target')
+  if ready_for_modelling:
+    inference_data._has_control_factors = True
+
+  return inference_data
 
 
 class LinearModelTest(googletest.TestCase):
@@ -139,7 +143,7 @@ class LinearModelTest(googletest.TestCase):
             'significant_bootstrap', 'significant_permutation'],
         index=[1, 'Intercept', 0, 4, 3, 2])
 
-    model.permutation_test(n_permutations=5, verbose=False)
+    model.permutation_test(n_permutations=5, verbose=False, n_jobs=1)
     result = model.get_results()
 
     pd.testing.assert_frame_equal(
@@ -156,6 +160,19 @@ class LinearModelTest(googletest.TestCase):
     with self.assertRaises(RuntimeError):
       model.permutation_test(data)
 
+  def test_fit_with_data_not_ready_throw_error(self):
+    data = _prepare_data_and_target(ready_for_modelling=False)
+    model = models.InferenceElasticNet(random_state=18)
+
+    with self.assertRaises(data_preparation.InferenceDataError):
+      model.fit(data)
+
+  def test_fit_with_data_not_ready_emit_warning(self):
+    data = _prepare_data_and_target(ready_for_modelling=False)
+    model = models.InferenceElasticNet(random_state=18)
+
+    with self.assertWarns(data_preparation.InferenceDataWarning):
+      model.fit(data, raise_on_data_error=False)
 
 if __name__ == '__main__':
   googletest.main()

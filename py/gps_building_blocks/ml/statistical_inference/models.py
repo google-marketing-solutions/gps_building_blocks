@@ -149,13 +149,32 @@ class InferenceModel(metaclass=abc.ABCMeta):
 
     return results
 
-  def fit(self, data: data_preparation.InferenceData, **kwargs) -> None:
+  def fit(
+      self,
+      data: data_preparation.InferenceData,
+      raise_on_data_error: bool = True,
+      **kwargs) -> None:
     """Fits the model with the data and target provided.
 
     Args:
       data: InferenceData object with the data and target for you analysis.
+      raise_on_data_error: Weather to raise an exception if a problem if found
+        with any data `checks` on the provided InferenceData. If set to False,
+        the integrity checks may emit InferenceDataWarning warnings.
       **kwargs: Any additional parameter to sent to `underlying` model.
+
+    Raises:
+      MissingValueError: If the latest transformation of the data has columns
+        with missing values.
+      ControlVariableError: If the latest transformation of the data hasn't gone
+        through a method to control for external factors.
+      LowVarianceError: If the latest transformation of the data hasn't gone
+        through a method to address feature with low variance.
+      CollinearityError: If the latest transformation of the data hasn't gone
+        through a method to address collinearity.
     """
+    data.data_check(raise_on_data_error)
+
     modelling_data, target = data.get_data_and_target()
     self._fit(modelling_data, target, **kwargs)
     self._data = data
@@ -165,7 +184,8 @@ class InferenceModel(metaclass=abc.ABCMeta):
   def _fit(self, data: pd.DataFrame, target: pd.Series, **kwargs) -> None:
     """Wrapper around native fit methods to enables a single standard format."""
 
-  def predict(self, data: data_preparation.InferenceData, **kwargs) -> pd.Series:
+  def predict(
+      self, data: data_preparation.InferenceData, **kwargs) -> pd.Series:
     """Predicts target variable with the data provided.
 
     Args:
