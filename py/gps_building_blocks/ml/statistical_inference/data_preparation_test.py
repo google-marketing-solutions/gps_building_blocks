@@ -84,6 +84,26 @@ class InferenceTest(googletest.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result)
 
+  def test_address_low_variance_removes_column(self):
+    data = pd.DataFrame(
+        data=[[0.0, 1.0, 0.0, 10.0],
+              [0.0, 1.0, 0.0, 10.0],
+              [1.0, 1.0, 0.0, 5.00],
+              [1.0, 0.0, 0.0, 0.00]],
+        columns=['control', 'variable', 'variable_1', 'outcome'])
+    expected_result = pd.DataFrame(
+        data=[[0.0, 1.0, 10.0],
+              [0.0, 1.0, 10.0],
+              [1.0, 1.0, 5.00],
+              [1.0, 0.0, 0.00]],
+        columns=['control', 'variable', 'outcome'])
+
+    inference_data = data_preparation.InferenceData(
+        data, target_column='outcome')
+    result = inference_data.address_low_variance(drop=True)
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
 
 if __name__ == '__main__':
   googletest.main()

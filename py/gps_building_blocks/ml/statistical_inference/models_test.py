@@ -64,6 +64,7 @@ def _prepare_data_and_target(ready_for_modelling=True):
 
   if ready_for_modelling:
     inference_data._has_control_factors = True
+    inference_data._checked_low_variance = True
 
   return inference_data
 

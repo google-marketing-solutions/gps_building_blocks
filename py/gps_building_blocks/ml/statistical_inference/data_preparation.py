@@ -20,6 +20,7 @@ from typing import Iterable, Optional, Tuple
 import warnings
 
 import pandas as pd
+from sklearn import preprocessing
 
 
 class InferenceDataError(Exception):
@@ -106,6 +107,9 @@ class InferenceData():
   Controlling for External Factors
     * fixed_effect
 
+  Columns with Low Variance
+    * fix_low_variance
+
   # TODO(): Add list of current available methods for each part.
 
   Typical usage example:
@@ -124,7 +128,9 @@ class InferenceData():
 
     data.fixed_effect(['control'], strategy='quick', min_frequency=2)
 
-    data.check_data(raise_on_error=True)
+    data.address_low_variance()
+
+    data.data_check(raise_on_error=True)
 
   Attributes:
     initial_data: The initial DataFrame with control variables and features
@@ -155,6 +161,7 @@ class InferenceData():
     self.data = initial_data.copy()
     self.target_column = target_column
     self._has_control_factors = False
+    self._checked_low_variance = False
 
     if target_column and target_column not in initial_data:
       raise KeyError('Target "{target_column}" not in data.')
@@ -318,9 +325,50 @@ class InferenceData():
     return self.data
 
   def _check_low_variance(self, raise_on_error: bool = True) -> None:
-    """Verifies if low variances variables has been addressed in the data."""
-    # TODO(): Check low-variance and constants.
-    pass
+    """Verifies if data contains columns with low variance."""
+    if not self._checked_low_variance:
+      message = ('The data may contain columns with low variance. Consider '
+                 'using `address_low_variance` identifying the columns with low'
+                 'variance and whether to drop those.')
+
+      if raise_on_error:
+        raise LowVarianceError(message)
+      else:
+        warnings.warn(LowVarianceWarning(message))
+
+  def address_low_variance(self,
+                           threshold: float = 0,
+                           drop: bool = True) -> pd.DataFrame:
+    """Identifies low variances columns and option to drop it.
+
+    Args:
+      threshold: Threshold to use in VarianceThreshold where anything less than
+        this threshold is dropped or used for warning.
+      drop: Boolean to either drop columns with low variance or print message.
+        By default all columns with low variance is dropped.
+
+    Returns:
+      Latest version of the data after low variance check has been applied.
+    """
+    # TODO(): Address boolean and categorical columns
+    covariates = self.data.drop(columns=self.target_column)
+    covariates_normalized = pd.DataFrame(
+        preprocessing.scale(covariates), columns=covariates.columns)
+    column_var_bool = covariates_normalized.var() > threshold
+    columns_to_delete = column_var_bool[~column_var_bool].index.to_list()
+
+    if columns_to_delete:
+      if drop:
+        self.data = self.data.drop(columns=columns_to_delete)
+      else:
+        columns_to_delete = ' , '.join(columns_to_delete)
+        message = (f'Consider removing the following columns: '
+                   f'{columns_to_delete}')
+        warnings.warn(LowVarianceWarning(message))
+
+    self._checked_low_variance = True
+
+    return self.data
 
   def _check_collinearity(self, raise_on_error: bool = True) -> None:
     """Verifies if collinearity has been addressed in the data."""
