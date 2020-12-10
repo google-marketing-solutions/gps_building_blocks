@@ -31,7 +31,7 @@ setuptools.setup(
     author_email="no-reply@google.com",
     description="Modules and tools useful for use with advanced data solutions on Google Ads, Google Marketing Platform and Google Cloud.",
     long_description=long_description,
-    long_description_type="text/markdown",
+    long_description_content_type="text/markdown",
     url="https://github.com/google/gps_building_blocks",
     license="Apache Software License",
     packages=setuptools.find_packages(),
