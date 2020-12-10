@@ -318,7 +318,7 @@ class InferenceData():
     self.data[demean_columns] -= self._demean_group_mean
     self.data[demean_columns] += self._demean_variable_mean
 
-    self.data.set_index(self._control_columns, append=True)
+    self.data = self.data.set_index(self._control_columns, append=True)
     self._has_control_factors = True
     self._control_strategy = strategy
 

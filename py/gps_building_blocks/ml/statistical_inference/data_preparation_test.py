@@ -74,7 +74,7 @@ class InferenceTest(googletest.TestCase):
               ['1', 1.0, 2.0, 2.5],
               ['1', 1.0, 3.0, 1.5]],
         columns=data.columns,
-        index=data.index)
+        index=data.index).set_index(['control_1', 'control_2'], append=True)
 
     inference_data = data_preparation.InferenceData(data)
     result = inference_data.fixed_effect(
