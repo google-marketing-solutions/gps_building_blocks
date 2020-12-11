@@ -15,9 +15,12 @@
 """Functions to cluster words/phrase/sentences using embedding."""
 
 import os
-from typing import List, Text, Optional
+from typing import List, Optional, Text, Tuple
 
 import numpy as np
+from numpy import linalg
+import pandas as pd
+from sklearn import cluster
 import tensorflow as tf
 import tensorflow_hub as hub
 
@@ -29,12 +32,10 @@ DATA_PATH = os.path.join(CURR_PATH, "data")
 
 class KeywordClustering(object):
   """Class to cluster text using embeddings of word/phrase or sentences."""
-# TODO() Add clustering function
 
   def __init__(self,
                model: Optional[tf.keras.Model] = None,
-               stopwords: Optional[List[Text]] = None
-               ) -> None:
+               stopwords: Optional[List[Text]] = None) -> None:
     """Initialize embed model and list of stopwords.
 
     Args:
@@ -42,17 +43,23 @@ class KeywordClustering(object):
         All pre trained tf embeddings:
           https://tfhub.dev/s?module-type=text-embedding
       stopwords: Stopwords to remove from embedding.
+
+    Attributes:
+      k_means: cluster.KMeans object used to cluster keywords.
     """
     if model is None:
       self.model = hub.load("https://tfhub.dev/google/nnlm-en-dim50/2")
     else:
       self.model = model
+
     if stopwords is None:
       stopwords_default = resources.GetResource(
           os.path.join(DATA_PATH, "stopwords_eng.txt"), "r")
       self.stopwords_to_remove = stopwords_default.split("\n")[1:]
     else:
       self.stopwords_to_remove = stopwords
+
+    self.k_means = cluster.KMeans
 
   def extract_embedding(self, phrase: str) -> np.ndarray:
     """Extracts embedding of phrase using pretrained embedding model.
@@ -73,7 +80,7 @@ class KeywordClustering(object):
 
   def get_average_embedding(self,
                             phrase_embed: np.ndarray) -> np.ndarray:
-    """Calculates the avg embedding from embeddings of each word (phrase_embed).
+    """Calculates average embedding from embeddings of each word.
 
     Args:
       phrase_embed: Array of each word's embedding in phrase, output from
@@ -82,6 +89,50 @@ class KeywordClustering(object):
     Returns:
       Array mean of word (phrase).
     """
-    embed_phrase_avg = np.mean(phrase_embed, axis=0)
-    return embed_phrase_avg
+    return np.mean(phrase_embed, axis=0)
 
+  def cluster_keywords(
+      self,
+      data: pd.DataFrame = None,
+      colname_real: str = None,
+      colname_mean_embed: str = None,
+      n_clusters: int = None,
+      num_of_closest_words: int = 2) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Clusters words using K-Means into num_clusters clusters.
+
+    Args:
+      data: A pd.DataFrame with words and average embedding.
+      colname_real: Column name for column of original keywords.
+      colname_mean_embed: Column name for column of average text embeddings.
+      n_clusters: Number of clusters.
+      num_of_closest_words: Number of words selected for cluster description.
+
+    Returns:
+      Two dataframes
+      First dataframe is original data with cluster label column and distance
+        to center column.
+      Second dataframe contains cluster label and num_of_closest_words for each
+        cluster.
+    """
+    entityname_matrix = pd.DataFrame.from_records(data[colname_mean_embed])
+    k_means = self.k_means()
+    k_means.n_clusters = n_clusters
+    k_means = k_means.fit(entityname_matrix)
+    data["labels"] = k_means.labels_
+
+    # Calculate normalized distance of each point from its cluster center
+    data["center_diff"] = np.nan
+
+    for i in range(0, n_clusters):
+      dist_from_cluster_center = data[data["labels"] == i][
+          colname_mean_embed].apply(lambda x: x - k_means.cluster_centers_[i])
+      data.loc[data["labels"] == i, "center_diff"] = linalg.norm(
+          dist_from_cluster_center.to_list(), axis=1)
+
+    # pick out num_of_closest_words closest words to center to describe cluster
+    closest = data.groupby("labels")["center_diff"].nsmallest(
+        num_of_closest_words)
+    data_cluster_description = data.loc[closest.index.get_level_values(level=1)]
+    data_cluster_description = data_cluster_description.groupby(
+        ["labels"], as_index=False).agg({colname_real: ", ".join})
+    return data, data_cluster_description

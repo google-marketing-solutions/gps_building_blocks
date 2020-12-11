@@ -38,22 +38,24 @@ similar objects into single feature.
 
 All pretrained TF embedding models can be found in [TF hub] (https://tfhub.dev/s?module-type=text-embedding)
 
-WIP: Still to add clustering algorithm
-
 ```python
 import re
 import tensorflow_hub as hub
 
-from gps_building_blocks.py.ml.preprocessing import keyword_clustering
+from gps_building_blocks.py.ml.preprocessing.keyword_clustering import KeywordClustering
 
 embed = hub.load("https://tfhub.dev/google/nnlm-en-dim50/2")
-phrase = 'hello world the'
+kwrd_clustering = KeywordClustering()
 
 kw_clustering = keyword_clustering.KeywordClustering(model=embed)
 
-phrase_embed = KeywordClustering.extract_tf_embedding(phrase=phrase)
-phrase_embed_avg = KeywordClustering.get_average_embedding(
-    phrase_embed=phrase_embed
+tst_df = pd.DataFrame({'keyword':['car', 'engine', 'windshield wipers',
+                                  'door handle', 'wheel', 'basketball',
+                                  'football', 'soccer', 'baseball', 'hockey',
+                                  'goal post']})
+tst_df['phase_embed'] = tst_df.keyword.apply(kwrd_clustering.extract_embedding)
+tst_df['avg_embed'] = tst_df.phase_embed.apply(
+    kwrd_clustering.get_average_embedding
     )
-# WIP - Adding clustering
+tst_df_w_clusters, cluster_desc = kwrd_clustering.cluster_keywords(data=tst_df, colname_real='keyword', colname_mean_embed='avg_embed', n_clusters=2, num_of_closest_words=3)
 ```

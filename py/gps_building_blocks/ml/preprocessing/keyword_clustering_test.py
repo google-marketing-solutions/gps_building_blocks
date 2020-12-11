@@ -14,12 +14,19 @@
 # limitations under the License.
 """Tests for keyword_clustering."""
 
+import os
+
 import unittest
 from unittest import mock
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
+from google3.pyglib import resources
 from gps_building_blocks.ml.preprocessing import keyword_clustering
+
+CURR_PATH = os.path.dirname(__file__)
+DATA_PATH = os.path.join(CURR_PATH, "data")
 
 
 class KeywordClusteringTest(unittest.TestCase):
@@ -27,22 +34,49 @@ class KeywordClusteringTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(KeywordClusteringTest, cls).setUpClass()
-    cls.phrase = 'the hello world'
+    cls.phrase = "the hello world"
     cls.phrase_embedding = np.full((2, 50), 0.5)
     cls.phrase_embedding_avg = np.full(50, 0.5)
     cls.model = mock.MagicMock(
-        side_effect=lambda x: tf.constant(0.5, shape=(len(x), 50))
-        )
+        side_effect=lambda x: tf.constant(0.5, shape=(len(x), 50)))
+
+    cls.cluster_output_shape = (11, 5)
+    cls.cluster_description_output_shape = (2, 2)
+
+    cls.kw_clustering = keyword_clustering.KeywordClustering(
+        model=cls.model)
+
+    filename = resources.GetResourceFilename(
+        os.path.join(DATA_PATH, "example_cluster_df.txt"))
+    with open(filename, "r") as file:
+      for i, line in enumerate(file):
+        if i < 1:
+          continue
+        cls.test_df = pd.read_json(line)
 
   def test_extract_and_average_embedding(self):
-    kw_clustering = keyword_clustering.KeywordClustering(
-        model=self.model)
-    phrase_embed = kw_clustering.extract_embedding(
-        phrase=self.phrase
-        )
-    phrase_embed_avg = kw_clustering.get_average_embedding(phrase_embed)
+    phrase = self.phrase
+
+    phrase_embed = self.kw_clustering.extract_embedding(phrase=phrase)
+    phrase_embed_avg = self.kw_clustering.get_average_embedding(phrase_embed)
+
     np.testing.assert_array_equal(phrase_embed, self.phrase_embedding)
     np.testing.assert_array_equal(phrase_embed_avg, self.phrase_embedding_avg)
 
-if __name__ == '__main__':
+  def test_cluster_keywords_output_shape(self):
+    data = self.test_df
+
+    data_output, cluster_description = self.kw_clustering.cluster_keywords(
+        data=data,
+        colname_real="keyword",
+        colname_mean_embed="avg_embed",
+        n_clusters=2,
+        num_of_closest_words=3)
+
+    self.assertEqual(data_output.shape, self.cluster_output_shape)
+    self.assertEqual(cluster_description.shape,
+                     self.cluster_description_output_shape)
+
+
+if __name__ == "__main__":
   unittest.main()
