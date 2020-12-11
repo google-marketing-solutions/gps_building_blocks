@@ -21,6 +21,7 @@ import warnings
 
 import pandas as pd
 from sklearn import preprocessing
+from gps_building_blocks.ml.preprocessing import vif
 
 
 class InferenceDataError(Exception):
@@ -110,6 +111,8 @@ class InferenceData():
   Columns with Low Variance
     * fix_low_variance
 
+  Checking and addressing collinearity with VIF
+    * address_collinearity_with_vif
   # TODO(): Add list of current available methods for each part.
 
   Typical usage example:
@@ -129,6 +132,8 @@ class InferenceData():
     data.fixed_effect(['control'], strategy='quick', min_frequency=2)
 
     data.address_low_variance()
+
+    data.address_collinearity_with_vif()
 
     data.data_check(raise_on_error=True)
 
@@ -162,6 +167,7 @@ class InferenceData():
     self.target_column = target_column
     self._has_control_factors = False
     self._checked_low_variance = False
+    self._checked_collinearity = False
 
     if target_column and target_column not in initial_data:
       raise KeyError('Target "{target_column}" not in data.')
@@ -371,9 +377,53 @@ class InferenceData():
     return self.data
 
   def _check_collinearity(self, raise_on_error: bool = True) -> None:
-    """Verifies if collinearity has been addressed in the data."""
-    # TODO(): Check for collinearity.
-    pass
+    """Verifies if data has been checked for collinearity."""
+    if not self._checked_collinearity:
+      message = ('The data may contain collinearity between covariates. '
+                 'Consider using `address_collinearity_with_vif` to identify '
+                 'columns that are collinear and whether to drop them.')
+
+      if raise_on_error:
+        raise CollinearityError(message)
+      else:
+        warnings.warn(CollinearityWarning(message))
+
+  def address_collinearity_with_vif(self,
+                                    vif_threshold: int = 10,
+                                    drop: bool = True) -> pd.DataFrame:
+    """Uses VIF to identify columns that are collinear and option to drop them.
+
+    Args:
+      vif_threshold: Threshold to identify which columns have high collinearity
+        and anything higher than this threshold is dropped or used for warning.
+      drop: Boolean to either drop columns with high vif or print message,
+        default is set to True.
+
+    Returns:
+      Data after collinearity check with vif has been applied. When drop=True
+        columns with high collinearity will not be present in the returned data.
+    """
+    covariates = self.data.drop(columns=self.target_column)
+    columns_to_drop = []
+
+    while True:
+      tmp_data = covariates.drop(columns=columns_to_drop)
+      vif_data = vif.calculate_vif(tmp_data, sort=True).reset_index(drop=True)
+      if vif_data.VIF[0] < vif_threshold:
+        break
+      columns_to_drop.append(vif_data.features[0])
+
+    if drop:
+      self.data = self.data.drop(columns=columns_to_drop)
+    else:
+      message = (
+          f'Consider removing the following columns due to collinearity: '
+          f'{columns_to_drop}')
+      warnings.warn(CollinearityWarning(message))
+
+    self._checked_collinearity = True
+
+    return self.data
 
   def get_data_and_target(self) -> Tuple[pd.DataFrame, pd.Series]:
     """Returns the modelling data and the target."""

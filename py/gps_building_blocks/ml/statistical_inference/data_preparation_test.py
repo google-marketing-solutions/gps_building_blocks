@@ -16,6 +16,7 @@
 
 import numpy as np
 import pandas as pd
+from sklearn import datasets
 
 from gps_building_blocks.ml.statistical_inference import data_preparation
 import unittest
@@ -104,6 +105,18 @@ class InferenceTest(googletest.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result)
 
+  def test_address_collinearity_with_vif_removes_column(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'])
+    expected_result = iris_data.drop(columns='petal length (cm)')
+
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target')
+    result = inference_data.address_collinearity_with_vif(drop=True)
+
+    pd.testing.assert_frame_equal(result, expected_result)
 
 if __name__ == '__main__':
   googletest.main()
