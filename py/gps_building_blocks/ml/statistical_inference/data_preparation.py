@@ -64,10 +64,7 @@ class LowVarianceWarning(InferenceDataWarning):
   pass
 
 # Force custom Warnings to emitted all the time, not only once.
-warnings.simplefilter('always', MissingValueWarning)
-warnings.simplefilter('always', ControlVariableWarning)
-warnings.simplefilter('always', CollinearityWarning)
-warnings.simplefilter('always', LowVarianceWarning)
+warnings.simplefilter('always', InferenceDataWarning)
 
 
 class InferenceData():
