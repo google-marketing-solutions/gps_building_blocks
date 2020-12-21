@@ -98,13 +98,14 @@ class LinearModelTest(googletest.TestCase):
     data = _prepare_data_and_target()
     model = models.InferenceElasticNet(random_state=18)
     expected_result = pd.DataFrame(
-        data=[[-0.173, 0.4477, False],
-              [-0.135, 0.1287, True],
-              [0.0445, 0.1473, False],
-              [0.0357, 0.0883, False],
-              [0.0123, 0.0643, False],
-              [-0.010, 0.0541, False]],
-        columns=['effect', 'confidence_interval', 'significant_bootstrap'],
+        data=[[-0.173, 0.2715, 0.4477, False],
+              [-0.135, 0.0784, 0.1287, True],
+              [0.0445, 0.0893, 0.1473, False],
+              [0.0357, 0.0548, 0.0883, False],
+              [0.0123, 0.0384, 0.0643, False],
+              [-0.010, 0.0332, 0.0541, False]],
+        columns=['effect', 'bootstrap_std',
+                 'confidence_interval', 'significant_bootstrap'],
         index=['Intercept', 1, 0, 4, 2, 3])
     model.fit(data)
 
@@ -134,14 +135,14 @@ class LinearModelTest(googletest.TestCase):
     model = models.InferenceElasticNet(random_state=18)
     model.fit(data)
     expected_result = pd.DataFrame(
-        data=[[-0.20383230, np.nan, np.nan, True],
-              [-0.13463647, np.nan, np.nan, True],
-              [0.010821799, np.nan, np.nan, True],
-              [0.010061159, np.nan, np.nan, True],
-              [0.000000000, np.nan, np.nan, False],
-              [0.000000000, np.nan, np.nan, False]],
+        data=[[-0.20383230, np.nan, np.nan, np.nan, True],
+              [-0.13463647, np.nan, np.nan, np.nan, True],
+              [0.010821799, np.nan, np.nan, np.nan, True],
+              [0.010061159, np.nan, np.nan, np.nan, True],
+              [0.000000000, np.nan, np.nan, np.nan, False],
+              [0.000000000, np.nan, np.nan, np.nan, False]],
         columns=[
-            'effect', 'confidence_interval',
+            'effect', 'bootstrap_std', 'confidence_interval',
             'significant_bootstrap', 'significant_permutation'],
         index=[1, 'Intercept', 0, 4, 3, 2])
 

@@ -88,6 +88,14 @@ class InferenceModel(metaclass=abc.ABCMeta):
     else:
       return {}
 
+  def _extract_boostrap_std(
+      self) -> MutableMapping[Text, float]:
+    """Returns the bootstrap standard deviation for each feature."""
+    if isinstance(self._bootstrap_results, pd.DataFrame):
+      return self._bootstrap_results.std().to_dict()
+    else:
+      return {}
+
   def _calculate_permutation_test_results(
       self, effect: pd.Series, significance_level: float = 0.05
       ) -> MutableMapping[Text, float]:
@@ -131,6 +139,8 @@ class InferenceModel(metaclass=abc.ABCMeta):
     confidence_intervals = self._extract_confidence_intervals(confidence_level)
 
     results = pd.Series(effects).rename('effect').to_frame()
+    results['bootstrap_std'] = pd.Series(
+        self._extract_boostrap_std(), dtype='float64')
     results['confidence_interval'] = pd.Series(
         confidence_intervals, dtype='float64')
     results['significant_bootstrap'] = np.nan
