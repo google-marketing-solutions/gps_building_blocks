@@ -61,6 +61,22 @@ class InferenceTest(googletest.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result)
 
+  def test_fixed_effect_raise_exception_on_categorical_covariate(self):
+    data = pd.DataFrame(
+        data=[['0', 0.0, '1', 3.0],
+              ['1', 0.0, '2', 2.0],
+              ['1', 1.0, '3', 2.0],
+              ['1', 1.0, '4', 1.0]],
+        columns=['control_1', 'control_2', 'variable_1', 'variable_2'],
+        index=['group1', 'group2', 'group3', 'group3'])
+    inference_data = data_preparation.InferenceData(data)
+
+    with self.assertRaises(data_preparation.CategoricalCovariateError):
+      inference_data.fixed_effect(
+          strategy='quick',
+          control_columns=['control_1', 'control_2'],
+          min_frequency=1)
+
   def test_fixed_effect_demeaning_subtract_mean_in_groups(self):
     data = pd.DataFrame(
         data=[['0', 0.0, 1, 3.0],
@@ -115,6 +131,30 @@ class InferenceTest(googletest.TestCase):
     inference_data = data_preparation.InferenceData(
         iris_data, target_column='target')
     result = inference_data.address_collinearity_with_vif(drop=True)
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_encode_categorical_covariate_dummy_variable_2(self):
+    data = pd.DataFrame(
+        data=[[0.0, 1.0, 'a', 10.0],
+              [0.0, 1.0, 'b', 10.0],
+              [1.0, 1.0, 'c', 5.00],
+              [1.0, 0.0, 'a', 0.00]],
+        columns=['control', 'variable_1', 'variable_2', 'outcome'])
+    expected_result = pd.DataFrame(
+        data=[[0.0, 1.0, 10.0, 1, 0, 0],
+              [0.0, 1.0, 10.0, 0, 1, 0],
+              [1.0, 1.0, 5.00, 0, 0, 1],
+              [1.0, 0.0, 0.00, 1, 0, 0]],
+        columns=[
+            'control', 'variable_1', 'outcome', 'variable_2_a', 'variable_2_b',
+            'variable_2_c'
+        ])
+
+    inference_data = data_preparation.InferenceData(
+        data, target_column='outcome')
+    result = inference_data.encode_categorical_covariates(
+        columns=['variable_2'])
 
     pd.testing.assert_frame_equal(result, expected_result)
 

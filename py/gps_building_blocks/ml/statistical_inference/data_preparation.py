@@ -16,7 +16,7 @@
 
 import functools
 import operator
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, List, Optional, Text, Tuple
 import warnings
 
 import pandas as pd
@@ -37,6 +37,14 @@ class MissingValueError(InferenceDataError):
 
 
 class MissingValueWarning(InferenceDataWarning):
+  pass
+
+
+class CategoricalCovariateError(InferenceDataError):
+  pass
+
+
+class CategoricalCovariateWarning(InferenceDataWarning):
   pass
 
 
@@ -78,6 +86,10 @@ class InferenceData():
   * Missing Values
       Missing information should be addressed as most models will not work with
       missing values.
+  * Identify categorical variables and one-hot encode
+      Check if categorical columns exist in the data. If they are meant to be
+      covariates in the model, these columns should be one-hot encoded into
+      dummies.
   * Controlling for External Factors
       These are elements that are adding noise to the signal, for example when
       comparing two different ads performance, you want to control for the
@@ -116,15 +128,19 @@ class InferenceData():
 
     # Your experiment data
     some_data = pd.DataFrame(
-        data=[[0.0, 1.0, 10.0],
-              [0.0, 1.0, 10.0],
-              [1.0, 1.0, 5.00],
-              [1.0, 0.0, 0.00]],
-        columns=['control', 'variable', 'outcome'])
+        data=[[0.0, 1.0, 'a', 10.0],
+              [0.0, 1.0, 'b', 10.0],
+              [1.0, 1.0, 'c', 5.00],
+              [1.0, 0.0, 'd', 0.00]],
+        columns=['control', 'variable_1', 'variable_2', outcome'])
 
     data = inference.InferenceData(
         initial_data=some_data,
         target_column='outcome')
+
+    data.encode_categorical_covariates(
+      covariate_columns_to_encode=['variable_2']
+    )
 
     data.fixed_effect(['control'], strategy='quick', min_frequency=2)
 
@@ -234,6 +250,44 @@ class InferenceData():
 
     return self.data
 
+  def _check_categorical_covariates(self,
+                                    raise_on_error: bool = True) -> None:
+    """Checks if data have any categorical covariates."""
+    covariates = self.data.drop(columns=self._control_columns)
+    categorical_columns = covariates.select_dtypes(
+        include=['object', 'string']).columns.to_list()
+
+    if categorical_columns:
+      categorical_columns = ' , '.join(categorical_columns)
+      message = (f'These are the categorical covariate columns in the data: '
+                 f'[{categorical_columns}]. Use `encode_categorical_covariates`'
+                 ' to one-hot encode these columns before moving further.')
+
+      if raise_on_error:
+        raise CategoricalCovariateError(message)
+      else:
+        warnings.warn(CategoricalCovariateWarning(message))
+
+  def encode_categorical_covariates(
+      self, columns: List[Text]) -> pd.DataFrame:
+    """One-hot encode model covariates that are categorical.
+
+    The control columns can be categorical because it will only be used for
+    demeaning and removed before model function is applied to data. Covariates
+    and Target columns must be all numeric for model function to work properly.
+
+    Args:
+      columns: List of covariate column names that will be
+        transformed using one-hot encoding.
+
+    Returns:
+      Latest version of the data after one-hot encoding applied.
+    """
+    self.data = pd.get_dummies(
+        self.data, columns=columns, dtype=int)
+
+    return self.data
+
   def _check_control(self, raise_on_error: bool = True)  -> None:
     """Verifies if data is controlling for external variables."""
     if not self._has_control_factors:
@@ -303,6 +357,8 @@ class InferenceData():
           "Only 'quick' fixed effect is currently implemented.")
 
     self._control_columns = control_columns
+    self._check_categorical_covariates()
+
     self._fixed_effect_group_id = functools.reduce(
         operator.add, self.data[control_columns].astype(str).values.T)
 
