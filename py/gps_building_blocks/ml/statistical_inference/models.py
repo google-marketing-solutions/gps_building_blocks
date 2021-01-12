@@ -329,7 +329,8 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
 
     # Backup coefficients and intercept.
     coefficients = self.model.coef_.copy()
-    intercept = self.model.intercept_.copy()
+    if self.model.fit_intercept:
+      intercept = self.model.intercept_.copy()
 
     try:
       self._permutation_results = bootstrap.permutation_test(
@@ -342,7 +343,41 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
     finally:
       # Restore coefficients and intercept.
       self.model.coef_ = coefficients
-      self.model.intercept_ = intercept
+      if self.model.fit_intercept:
+        self.model.intercept_ = intercept
+
+
+class InferenceLinearRegression(InferenceLinearRegressionModel):
+  """Ordinary least squares Linear Regression.
+
+  You can customize the model passing any existing parameters of the original
+  LinearRegression in `Scikit-Learn` implementation. More information on the
+  whole set of parameters and user guide can be found in the scikit-learn
+  documentation at
+  https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html#sklearn.linear_model.LinearRegression
+  """
+
+  def __init__(self, **kwargs) -> None:
+    model = linear_model.LinearRegression(**kwargs)
+    super().__init__(model)
+
+
+class InferenceRidge(InferenceLinearRegressionModel):
+  """Linear least squares with l2 regularization.
+
+  This model solves a regression model where the loss function is the linear
+  least squares function and regularization is given by the l2-norm. Also known
+  as Ridge Regression or Tikhonov regularization.
+
+  You can customize the model passing any existing parameters of the original
+  Ridge in `Scikit-Learn` implementation. More information on the whole set of
+  parameters and user guide can be found in the scikit-learn documentation at
+  https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html#sklearn.linear_model.Ridge
+  """
+
+  def __init__(self, **kwargs) -> None:
+    model = linear_model.Ridge(**kwargs)
+    super().__init__(model)
 
 
 class InferenceElasticNet(InferenceLinearRegressionModel):
