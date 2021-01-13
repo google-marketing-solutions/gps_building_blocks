@@ -142,7 +142,7 @@ class InferenceData():
       covariate_columns_to_encode=['variable_2']
     )
 
-    data.fixed_effect(['control'], strategy='quick', min_frequency=2)
+    data.control_with_fixed_effect(['control'], strategy='quick', min_frequency=2)
 
     data.address_low_variance()
 
@@ -300,13 +300,13 @@ class InferenceData():
       else:
         warnings.warn(ControlVariableWarning(message))
 
-  def fixed_effect(
+  def control_with_fixed_effect(
       self,
       control_columns: Iterable[str],
       strategy: str = 'quick',
       min_frequency: int = 2
       ) -> pd.DataFrame:
-    """Fixed effect with the strategy using the control columns.
+    """Control external categorical variables with Fixed Effect methodology.
 
     Fixed effects mitigate the confounding factors and help restore the
     underlying signal. Fixed Effects is widely used to estimate causal effects
@@ -329,7 +329,8 @@ class InferenceData():
     fixed effect group should be removed from the study. You can choose the
     minimum frequency a fixed effect group should have using the `min_frequency`
     argument. Default value is set to `2`, meaning groups with only one
-    occurrence will be removed.
+    occurrence will be removed. Make sure your control variables are categorical
+    as any infrequent combination will be removed.
 
     [1]
     https://econpapers.repec.org/article/ecmemetrp/v_3a46_3ay_3a1978_3ai_3a1_3ap_3a69-85.htm

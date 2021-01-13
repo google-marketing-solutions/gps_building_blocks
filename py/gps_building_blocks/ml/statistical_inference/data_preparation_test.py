@@ -72,7 +72,7 @@ class InferenceTest(googletest.TestCase):
     inference_data = data_preparation.InferenceData(data)
 
     with self.assertRaises(data_preparation.CategoricalCovariateError):
-      inference_data.fixed_effect(
+      inference_data.control_with_fixed_effect(
           strategy='quick',
           control_columns=['control_1', 'control_2'],
           min_frequency=1)
@@ -94,7 +94,7 @@ class InferenceTest(googletest.TestCase):
         index=data.index).set_index(['control_1', 'control_2'], append=True)
 
     inference_data = data_preparation.InferenceData(data)
-    result = inference_data.fixed_effect(
+    result = inference_data.control_with_fixed_effect(
         strategy='quick',
         control_columns=['control_1', 'control_2'],
         min_frequency=1)

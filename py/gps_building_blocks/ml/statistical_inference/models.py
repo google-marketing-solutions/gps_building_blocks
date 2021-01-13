@@ -31,7 +31,7 @@ InferenceElasticNet is a wrapper of ElasticNet in `sklearn.linear_model`.
   data = inference.InferenceData(
       initial_data=some_data,
       target_column='outcome')
-  data.fixed_effect(['control'], strategy='quick', min_frequency=2)
+  data.control_with_fixed_effect(['control'], strategy='quick', min_frequency=2)
 
   model = InferenceElasticNet()
   model.fit(data)
