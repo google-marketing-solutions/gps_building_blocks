@@ -49,21 +49,17 @@ class CloudStorageUtils(object):
     Args:
       project_id: GCP project id.
       service_account_name: The service account name.
-      service_account_key_file: File containing service account key. If both
-        service_account_name and not service_account_key_file are not passed the
-        default credential will be used.There are following ways to create
-        service accounts -
-          1) Use `build_service_client` method from `cloud_auth` module.
-          2) Use `gcloud` command line utility as documented here -
-               https://cloud.google.com/iam/docs/creating-managing-service-account-keys
+      service_account_key_file: File containing service account key.
     """
     if service_account_name:
       credentials = cloud_auth.impersonate_service_account(service_account_name)
-    else:
-      if not service_account_key_file:
-        logging.info('Neither Service account key file nor servie account name '
-                     'was provided. So using default credentials.')
+    elif service_account_key_file:
       credentials = cloud_auth.get_credentials(service_account_key_file)
+    else:
+      logging.info('Neither Service account key file nor service account '
+                   'name was provided, so using default credentials.')
+      credentials = cloud_auth.get_default_credentials()
+
     self.client = storage.Client(project=project_id, credentials=credentials)
 
   def _parse_blob_url(self, url: str) -> Tuple[str, str]:

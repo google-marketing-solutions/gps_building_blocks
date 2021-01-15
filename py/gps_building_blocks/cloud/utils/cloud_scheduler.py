@@ -109,8 +109,8 @@ class CloudSchedulerUtils:
           'service account.')
 
     if service_account_key_file:
-      self._client = cloud_auth.build_service_client(_CLIENT_NAME,
-                                                     service_account_key_file)
+      credentials = cloud_auth.get_credentials(service_account_key_file)
+      self._client = cloud_auth.build_service_client(_CLIENT_NAME, credentials)
     else:
       self._client = cloud_auth.build_impersonated_client(
           _CLIENT_NAME, service_account_name, version)

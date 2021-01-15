@@ -20,15 +20,16 @@ import json
 import os
 import textwrap
 from typing import Any, Dict, Sequence
-from absl import logging
 
-from googleapiclient import discovery
-from googleapiclient import errors
+from absl import logging
 import google.auth
 from google.auth import credentials
 from google.auth import impersonated_credentials
 from google.auth.transport import requests
 from google.oauth2 import service_account
+from googleapiclient import discovery
+from googleapiclient import errors
+
 from gps_building_blocks.cloud.utils import utils
 
 # HTTP status code
@@ -43,49 +44,56 @@ class Error(Exception):
   pass
 
 
-def get_credentials(
-    service_account_key_file: str = None) -> credentials.Credentials:
+def get_credentials(service_account_key_file: str) -> credentials.Credentials:
   """Get credentials to authenticate while calling GCP APIs.
 
-  If the "service_account_key_file" is not provided then we return default
-  credentials. See
-  https://google-auth.readthedocs.io/en/latest/reference/google.auth.html
-  to understand how default credentials are obtained for the current
-  environment.
+  If the "service_account_key_file" is not provided then an error will be
+  raised.
 
   Args:
-    service_account_key_file: Optional. File containing service account key. If
-      not passed the default credential will be used.
+    service_account_key_file: File containing service account key.
 
   Returns:
     credential: Credential object to authenticate while calling GCP APIs.
 
   Raises:
     FileNotFoundError: If the provided file is not found.
-    Error: If no default credentials are found and service account key file is
-      not given.
+    Error: If the service account key file is not given.
   """
-  if service_account_key_file is None:
-    try:
-      default_credentials, _ = google.auth.default()
-      return default_credentials
-    except google.auth.exceptions.DefaultCredentialsError as error:
-      error_message = textwrap.dedent("""
-        No default credentials found. Please run
-        `gcloud auth application-default login` before continuing.
-        Error: {}""".format(error))
-      raise Error(error_message)
   if not os.path.isfile(service_account_key_file):
     raise FileNotFoundError(
-        'The service account private key file "{}" not found.'.format(
+        'The service account private key file "{}" was not found.'.format(
             service_account_key_file))
+
   return service_account.Credentials.from_service_account_file(
       service_account_key_file, scopes=[_SCOPE])
 
 
+def get_default_credentials() -> credentials.Credentials:
+  """Get the project default credentials.
+
+  See https://google-auth.readthedocs.io/en/latest/reference/google.auth.html
+  to understand how default credentials are obtained for the current
+  environment.
+
+  Returns:
+    default_credentials: Credentials object containing the project defaults.
+  """
+  try:
+    default_credentials, _ = google.auth.default()
+  except google.auth.exceptions.DefaultCredentialsError as error:
+    error_message = textwrap.dedent("""
+      No default credentials found. Please run
+      `gcloud auth application-default login` before continuing.
+      Error: {}""".format(error))
+    raise Error(error_message)
+
+  return default_credentials
+
+
 def build_service_client(
     service_name: str,
-    service_account_key_file: str = None,
+    service_account_credentials: credentials.Credentials,
     version: str = 'v1',) -> discovery.Resource:
   """Construct a Resource for interacting with GCP service APIs.
 
@@ -94,18 +102,16 @@ def build_service_client(
 
   Args:
     service_name: Name of the service for which the client is created.
-    service_account_key_file: Optional. File containing service account key. If
-      not passed the default credential will be used.
+    service_account_credentials: The service account credentials to use.
     version: The version of the service. It defaults to 'v1'.
 
   Returns:
     client: A client with methods for interacting with the service APIs.
   """
-  credentials_info = get_credentials(service_account_key_file)
   return discovery.build(
       service_name,
       version,
-      credentials=credentials_info,
+      credentials=service_account_credentials,
       cache_discovery=False)
 
 
@@ -115,7 +121,10 @@ def _get_resource_manager_client() -> discovery.Resource:
   Returns:
     client: The newly created resource manager client.
   """
-  return build_service_client('cloudresourcemanager')
+  default_credentials = get_default_credentials()
+
+  return build_service_client('cloudresourcemanager',
+                              service_account_credentials=default_credentials)
 
 
 def _get_iam_client() -> discovery.Resource:
@@ -124,7 +133,10 @@ def _get_iam_client() -> discovery.Resource:
   Returns:
     client: The newly created client.
   """
-  return build_service_client('iam')
+  default_credentials = get_default_credentials()
+
+  return build_service_client('iam',
+                              service_account_credentials=default_credentials)
 
 
 def _get_service_account_client() -> discovery.Resource:
@@ -227,8 +239,8 @@ def get_service_account(project_id: str,
   try:
     logging.info('Retrieving "%s" service account in "%s" project',
                  service_account_name, project_id)
-    name = 'projects/{}/serviceAccounts/{}@{}.iam.gserviceaccount.com'.format(
-        project_id, service_account_name, project_id)
+    name = 'projects/{p}/serviceAccounts/{s}@{p}.iam.gserviceaccount.com'.format(
+        p=project_id, s=service_account_name)
     service_account_details = _get_service_account_client().get(
         name=name).execute()
     return service_account_details
@@ -262,8 +274,8 @@ def _create_service_account_key(project_id: str, service_account_name: str,
     service_account_name: The service account name.
     file_object: The file object to which the private key will be written.
   """
-  name = 'projects/{}/serviceAccounts/{}@{}.iam.gserviceaccount.com'.format(
-      project_id, service_account_name, project_id)
+  name = 'projects/{p}/serviceAccounts/{s}@{p}.iam.gserviceaccount.com'.format(
+      p=project_id, s=service_account_name)
   logging.info(
       'Creating service account key for "%s" service account in "%s" project',
       service_account_name, project_id)
@@ -353,9 +365,7 @@ def impersonate_service_account(
                  )
     target_scopes = [_SCOPE]
 
-  # The google.auth.default returns a tuple holding default_credentials and
-  # project_id.
-  default_credentials, _ = google.auth.default()
+  default_credentials = get_default_credentials()
 
   return impersonated_credentials.Credentials(
       source_credentials=default_credentials,

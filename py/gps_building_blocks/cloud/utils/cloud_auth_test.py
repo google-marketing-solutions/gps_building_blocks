@@ -21,12 +21,12 @@ import os
 import unittest
 from unittest import mock
 
-from googleapiclient import discovery
-from googleapiclient import errors
-
 from google import auth
 from google.auth import impersonated_credentials
 from google.oauth2 import service_account
+from googleapiclient import discovery
+from googleapiclient import errors
+
 from gps_building_blocks.cloud.utils import cloud_auth
 
 
@@ -42,16 +42,22 @@ class AuthTest(unittest.TestCase):
     self.role_name = 'editor'
     self.mock_auth_default = mock.patch.object(
         auth, 'default', autospec=True).start()
-    self.mock_auth_default.return_value = (None, None)
     self.mock_client = mock.patch.object(
         discovery, 'build', autospec=True).start()
     self.mock_service_client = (
         self.mock_client.return_value.projects.return_value.serviceAccounts)
+    self.mock_credentials = mock.Mock(spec=service_account.Credentials)
+    self.mock_auth_default.return_value = (self.mock_credentials,
+                                           self.project_id)
 
   def test_build_service_client(self):
-    cloud_auth.build_service_client('service_name')
+    cloud_auth.build_service_client('service_name', self.mock_credentials)
 
-    self.mock_auth_default.assert_called_once()
+    self.mock_client.assert_called_once_with(
+        'service_name',
+        'v1',
+        credentials=self.mock_credentials,
+        cache_discovery=False)
 
   @mock.patch.object(os.path, 'isfile', autospec=True)
   @mock.patch.object(service_account.Credentials, 'from_service_account_file')
@@ -59,12 +65,11 @@ class AuthTest(unittest.TestCase):
                                                mock_from_service_account_file,
                                                mock_is_file):
     mock_is_file.return_value = True
-    mock_credentials = mock.Mock(spec=service_account.Credentials)
-    mock_from_service_account_file.return_value = mock_credentials
+    mock_from_service_account_file.return_value = self.mock_credentials
     credentials = cloud_auth.get_credentials('/tmp/key.json')
 
     self.mock_auth_default.assert_not_called()
-    self.assertEqual(mock_credentials, credentials)
+    self.assertEqual(self.mock_credentials, credentials)
 
   @mock.patch.object(os.path, 'isfile', autospec=True)
   def test_exception_is_raised_when_service_account_key_file_is_not_found(
@@ -74,32 +79,20 @@ class AuthTest(unittest.TestCase):
     with self.assertRaises(FileNotFoundError):
       cloud_auth.get_credentials('/tmp/invalid_file')
 
-  @mock.patch.object(service_account.Credentials, 'from_service_account_file')
-  def test_default_credentials_are_used_when_key_file_is_not_given(
-      self, mock_from_service_account_file):
-    cloud_auth.get_credentials()
-
-    self.mock_auth_default.assert_called_once()
-    mock_from_service_account_file.assert_not_called()
-
-  def test_get_credentials_throws_error_given_no_default_credentials(self):
-    self.mock_auth_default.side_effect = (
-        auth.exceptions.DefaultCredentialsError())
-
-    with self.assertRaises(cloud_auth.Error):
-      cloud_auth.get_credentials()
-
   @mock.patch.object(cloud_auth, 'build_service_client', autospec=True)
   def test_iam_client(self, mock_build_service_client):
     cloud_auth._get_iam_client()
 
-    mock_build_service_client.assert_called_once_with('iam')
+    mock_build_service_client.assert_called_once_with(
+        'iam', service_account_credentials=self.mock_credentials)
 
   @mock.patch.object(cloud_auth, 'build_service_client', autospec=True)
   def test_resource_manager_client(self, mock_build_service_client):
     cloud_auth._get_resource_manager_client()
 
-    mock_build_service_client.assert_called_once_with('cloudresourcemanager')
+    mock_build_service_client.assert_called_once_with(
+        'cloudresourcemanager',
+        service_account_credentials=self.mock_credentials)
 
   @mock.patch.object(cloud_auth, 'set_service_account_role', autospec=True)
   @mock.patch.object(cloud_auth, 'create_service_account_key', autospec=True)
@@ -267,15 +260,14 @@ class AuthTest(unittest.TestCase):
   @mock.patch.object(service_account.Credentials, 'from_service_account_file')
   def test_get_auth_session(self, mock_from_service_account_file, mock_is_file):
     mock_is_file.return_value = True
-    mock_credentials = mock.Mock(spec=service_account.Credentials)
-    mock_from_service_account_file.return_value = mock_credentials
+    mock_from_service_account_file.return_value = self.mock_credentials
 
     session = cloud_auth.get_auth_session('/tmp/valid_file')
-    self.assertEqual(mock_credentials, session.credentials)
+    self.assertEqual(self.mock_credentials, session.credentials)
 
   def test_impersonate_service_account(self):
-    mock_credentials = mock.Mock(spec=service_account.Credentials)
-    self.mock_auth_default.return_value = (mock_credentials, self.project_id)
+    self.mock_auth_default.return_value = (self.mock_credentials,
+                                           self.project_id)
 
     credentials = cloud_auth.impersonate_service_account(
         self.service_account_name)
@@ -286,15 +278,15 @@ class AuthTest(unittest.TestCase):
 
   @mock.patch.object(impersonated_credentials, 'Credentials', autospec=True)
   def test_impersonate_service_account_sets_target_scopes(
-      self, mock_credentials):
+      self, mock_impersonated_credentials):
     target_scopes = ['https://www.googleapis.com/auth/devstorage.read_only']
 
     cloud_auth.impersonate_service_account(self.service_account_name,
                                            target_scopes)
 
-    default_credentials, _ = self.mock_auth_default.return_value
-    mock_credentials.assert_called_once_with(
-        source_credentials=default_credentials,
+    self.mock_auth_default.assert_called_once()
+    mock_impersonated_credentials.assert_called_once_with(
+        source_credentials=self.mock_credentials,
         target_principal=self.service_account_name,
         target_scopes=target_scopes)
 
@@ -303,8 +295,7 @@ class AuthTest(unittest.TestCase):
     service_name = 'service_name'
     version = 'v2'
     target_scopes = ['https://www.googleapis.com/auth/devstorage.read_only']
-    mock_credentials = mock.Mock(spec=service_account.Credentials)
-    mock_impersonate_service_account.return_value = mock_credentials
+    mock_impersonate_service_account.return_value = self.mock_credentials
 
     cloud_auth.build_impersonated_client(
         service_name,
@@ -315,7 +306,7 @@ class AuthTest(unittest.TestCase):
     self.mock_client.assert_called_once_with(
         service_name,
         version,
-        credentials=mock_credentials,
+        credentials=self.mock_credentials,
         cache_discovery=False)
 
 

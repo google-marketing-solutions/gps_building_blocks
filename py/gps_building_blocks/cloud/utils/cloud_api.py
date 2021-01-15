@@ -56,15 +56,8 @@ class CloudApiUtils(object):
 
     Args:
       project_id: GCP project id.
-      service_account_name: The service account name. If provided, the service
-        account will be impersonated to acquire credentials.
+      service_account_name: The service account name.
       service_account_key_file: Optional. File containing service account key.
-        If both service_account_name and not service_account_key_file are not
-        passed the default credential will be used. There are following ways to
-        create service accounts:
-          1. Use `create_service_account_key` method from `cloud_auth` module.
-          2. Use `gcloud` command line utility as documented here -
-               https://cloud.google.com/iam/docs/creating-managing-service-account-keys
       version: The version of the service usage service. It defaults to
         'v1beta1'.
     """
@@ -72,11 +65,14 @@ class CloudApiUtils(object):
       self.client = cloud_auth.build_impersonated_client(
           'serviceusage', service_account_name, version)
     else:
-      if not service_account_key_file:
-        logging.info('Neither Service account key file nor servie account name '
-                     'was provided. So using default credentials.')
-      self.client = cloud_auth.build_service_client('serviceusage',
-                                                    service_account_key_file)
+      if service_account_key_file:
+        credentials = cloud_auth.get_credentials(service_account_key_file)
+      else:
+        logging.info('Neither service account key file nor service account '
+                     'name was provided, so using default credentials.')
+        credentials = cloud_auth.get_default_credentials()
+      self.client = cloud_auth.build_service_client('serviceusage', credentials)
+
     self.project_id = project_id
 
   def enable_apis(self, apis: List[str]) -> None:

@@ -34,8 +34,11 @@ class BigQueryTest(parameterized.TestCase):
         bigquery, 'Client', autospec=True).start()
     self.mock_get_credentials = mock.patch.object(
         cloud_auth, 'get_credentials', autospec=True).start()
+    self.mock_get_credentials = mock.patch.object(
+        cloud_auth, 'get_default_credentials', autospec=True).start()
     self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
     self.mock_get_credentials.return_value = self.mock_credentials
+    self.mock_get_default_credentials.return_value = self.mock_credentials
     self.service_account_name = (
         'my-svc-account@project-id.iam.gserviceaccount.com')
     self.bigquery_client = bigquery_utils.BigQueryUtils(self.project_id)

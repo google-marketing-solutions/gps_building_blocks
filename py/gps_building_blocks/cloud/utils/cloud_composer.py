@@ -68,24 +68,20 @@ class CloudComposerUtils(object):
         https://cloud.google.com/compute/docs/regions-zones/.
       service_account_name: The service account name.
       service_account_key_file: Optional. File containing service account key.
-        If both service_account_name and not service_account_key_file are not
-        passed the default credential will be used. There are following ways to
-        create service accounts:
-          1. Use `build_service_client` method from `cloud_auth` module.
-          2. Use `gcloud` command line utility as
-             documented here -
-               https://cloud.google.com/iam/docs/creating-managing-service-account-keys
       version: The version of the service. It defaults to 'v1beta1'.
     """
     if service_account_name:
       self.client = cloud_auth.build_impersonated_client(
           _CLIENT_NAME, service_account_name, version)
     else:
-      if not service_account_key_file:
-        logging.info('Neither Service account key file nor service account '
-                     'name was provided. So using default credentials.')
-      self.client = cloud_auth.build_service_client(_CLIENT_NAME,
-                                                    service_account_key_file)
+      if service_account_key_file:
+        credentials = cloud_auth.get_credentials(service_account_key_file)
+      else:
+        logging.info('Neither service account key file nor service account '
+                     'name was provided, so using default credentials.')
+        credentials = cloud_auth.get_default_credentials()
+      self.client = cloud_auth.build_service_client(_CLIENT_NAME, credentials)
+
     self.project_id = project_id
     self.location = location
 

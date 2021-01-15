@@ -53,11 +53,13 @@ class BigQueryUtils:
     """
     if service_account_name:
       credentials = cloud_auth.impersonate_service_account(service_account_name)
-    else:
-      if not service_account_key_file:
-        logging.info('Neither Service account key file nor servie account name '
-                     'was provided. So using default credentials.')
+    elif service_account_key_file:
       credentials = cloud_auth.get_credentials(service_account_key_file)
+    else:
+      logging.info('Neither Service account key file nor service account '
+                   'name was provided, so using default credentials.')
+      credentials = cloud_auth.get_default_credentials()
+
     self.client = bigquery.Client(project=project_id, credentials=credentials)
 
   def run_query(self, query: str) -> bigquery.QueryJob:
