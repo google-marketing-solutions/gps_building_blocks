@@ -18,6 +18,7 @@
 import unittest
 from unittest import mock
 
+from google.auth import credentials
 import requests
 
 from absl.testing import parameterized
@@ -39,9 +40,13 @@ class CloudApiTest(parameterized.TestCase):
     self.mock_client = mock.Mock()
     self.parent = f'projects/{self.project_id}'
     self.service_account_key_file = '/path/to/service/account/key'
+    self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
     # Mocks for building client.
+    mock_get_credentials = mock.patch.object(
+        cloud_auth, 'get_credentials', autospec=True).start()
     mock_build_service_client = mock.patch.object(
         cloud_auth, 'build_service_client', autospec=True).start()
+    mock_get_credentials.return_value = self.mock_credentials
     mock_build_service_client.return_value = self.mock_client
     # Mocks for operations.
     self.operation_client = mock.Mock()

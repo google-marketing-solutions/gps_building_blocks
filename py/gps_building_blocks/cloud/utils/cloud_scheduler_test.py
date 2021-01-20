@@ -16,6 +16,7 @@
 import unittest
 from unittest import mock
 
+from google.auth import credentials
 from googleapiclient import errors
 
 from absl.testing import parameterized
@@ -32,9 +33,13 @@ class CloudSchedulerTest(parameterized.TestCase):
     self.project_id = 'project_id'
     self.location = 'us-central1'
     self.service_account_key_file = '/tmp/service_account_key.json'
+    self.mock_get_credentials = mock.patch.object(
+        cloud_auth, 'get_credentials', autospec=True).start()
     self.mock_build_service_client = mock.patch.object(
         cloud_auth, 'build_service_client', autospec=True).start()
     self.mock_client = mock.Mock()
+    self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
+    self.mock_get_credentials.return_value = self.mock_credentials
     self.mock_build_service_client.return_value = self.mock_client
     self.fake_appengine_http_target = cloud_scheduler.AppEngineTarget(
         http_method='GET', relative_uri='/test', service='test')

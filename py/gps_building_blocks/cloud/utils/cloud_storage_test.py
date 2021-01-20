@@ -23,24 +23,28 @@ from unittest import mock
 from google.api_core import exceptions
 from google.auth import credentials
 from google.cloud import storage
-from absl.testing import parameterized
+
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import cloud_storage
 
 
-class CloudStorageTest(parameterized.TestCase):
+class CloudStorageTest(unittest.TestCase):
 
   def setUp(self):
     super(CloudStorageTest, self).setUp()
     self.addCleanup(mock.patch.stopall)
     # Mock for google.cloud.storage.Client object
     self.project_id = 'project-id'
+    self.service_account_key_file = '/tmp/service_account_key.json'
     self.mock_client = mock.patch.object(
         storage, 'Client', autospec=True).start()
     self.mock_get_credentials = mock.patch.object(
         cloud_auth, 'get_credentials', autospec=True).start()
+    self.mock_get_default_credentials = mock.patch.object(
+        cloud_auth, 'get_default_credentials', autospec=True).start()
     self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
     self.mock_get_credentials.return_value = self.mock_credentials
+    self.mock_get_default_credentials.return_value = self.mock_credentials
     self.source_file_path = '/tmp/file.txt'
     self.source_directory_path = '/tmp/dir1'
     self.destination_blob_path = 'dir1/dir2/blob'
@@ -115,16 +119,12 @@ class CloudStorageTest(parameterized.TestCase):
 
     self.assertEqual(2, self.mock_client.return_value.get_bucket.call_count)
 
-  @parameterized.named_parameters(
-      ('service_account_file', '/tmp/service_account_key.json'),
-      ('default', None),
-  )
   def test_credential_retrieval_logic_when_initializing_cloud_storage_utils(
-      self, service_account_key_file):
+      self):
     cloud_storage_obj = cloud_storage.CloudStorageUtils(
-        self.project_id, service_account_key_file=service_account_key_file)
+        self.project_id, service_account_key_file=self.service_account_key_file)
 
-    self.mock_get_credentials.assert_called_with(service_account_key_file)
+    self.mock_get_credentials.assert_called_with(self.service_account_key_file)
     self.mock_client.assert_called_with(
         project=self.project_id, credentials=self.mock_credentials)
     self.assertEqual(cloud_storage_obj.client, self.mock_client.return_value)

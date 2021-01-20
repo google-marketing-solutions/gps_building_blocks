@@ -17,6 +17,8 @@
 from typing import Dict
 import unittest
 from unittest import mock
+
+from google.auth import credentials
 from googleapiclient import errors
 from googleapiclient import http
 
@@ -35,6 +37,8 @@ class CloudComposerUtilsTest(unittest.TestCase):
     self.location = cloud_composer._LOCATION
     self.environment_name = 'environment_name'
     self.zone = 'a'
+    self.mock_get_credentials = mock.patch.object(
+        cloud_auth, 'get_credentials', autospec=True).start()
     self.mock_build_service_client = mock.patch.object(
         cloud_auth, 'build_service_client', autospec=True).start()
     self.mock_wait_for_operation = mock.patch.object(
@@ -42,7 +46,9 @@ class CloudComposerUtilsTest(unittest.TestCase):
     self.mock_execute_request = mock.patch.object(
         utils, 'execute_request', autospec=True).start()
     self.mock_client = mock.Mock()
+    self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
     self.mock_build_service_client.return_value = self.mock_client
+    self.mock_get_credentials.return_value = self.mock_credentials
 
     self.service_account_key_file = '/tmp/service_account_key.json'
     self.composer = cloud_composer.CloudComposerUtils(
@@ -116,7 +122,7 @@ class CloudComposerUtilsTest(unittest.TestCase):
     }
     mock_create_env.assert_called_once_with(parent=parent, body=request_body)
     self.mock_build_service_client.assert_called_once_with(
-        'composer', self.service_account_key_file)
+        'composer', self.mock_credentials)
     self.assertEqual(self.mock_client, self.composer.client)
     self.mock_wait_for_operation.assert_called_once_with(
         self.operation_client, self.operation)
@@ -294,7 +300,7 @@ class CloudComposerUtilsTest(unittest.TestCase):
 
     mock_delete_env.assert_called_once_with(name=fully_qualified_name)
     self.mock_build_service_client.assert_called_once_with(
-        'composer', self.service_account_key_file)
+        'composer', self.mock_credentials)
     self.assertEqual(self.mock_client, self.composer.client)
     self.mock_wait_for_operation.assert_called_once_with(
         self.operation_client, self.operation)
