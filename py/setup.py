@@ -15,13 +15,15 @@
 
 """Config file for distributing package via Pypi server."""
 
+import os
+
 import setuptools
 
+_README = "README.md"
+_EXT_README = "EXTERNAL_" + _README
+path = _EXT_README if os.path.isfile(_EXT_README) else _README
 
-# It is assumed that this file will moved to gps_building_block/py/setup.py,
-# while the README resides at gps_building_blocks/README.md.
-
-with open("../README.md", "r") as fh:
+with open(path, "r") as fh:
   long_description = fh.read()
 
 setuptools.setup(

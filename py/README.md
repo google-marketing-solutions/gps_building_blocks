@@ -29,7 +29,7 @@ virtual environment. For more information, see the documentation for
 Install dependencies via pip:
 
 ```sh
-(in gps_building_blocks root folder, clean virtualenv)
+#in gps_building_blocks root folder in the GitHub repo, clean virtualenv
 
 cd py
 pip install -r requirements.txt
