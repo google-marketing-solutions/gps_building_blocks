@@ -13,6 +13,7 @@ learning data.
 - [How to use?](#how-to-use)
   * [1. Variance Inflation Factors (VIF)](#1-variance-inflation-factors-vif)
   * [2. Keyword Clustering using TF Embedding](#2-kw-clustering-using-tf-embedding)
+  * [3. Cramer's V](#3-cramers-v)
 
 ## How to use?
 
@@ -58,4 +59,26 @@ tst_df['avg_embed'] = tst_df.phase_embed.apply(
     kwrd_clustering.get_average_embedding
     )
 tst_df_w_clusters, cluster_desc = kwrd_clustering.cluster_keywords(data=tst_df, colname_real='keyword', colname_mean_embed='avg_embed', n_clusters=2, num_of_closest_words=3)
+```
+
+### 3. Cramer's V
+
+Cramer's V measures the bivariate association between nominal or categorical
+variables. This should be done before your run your classifier. This is
+for instance used in AutoML to judge good features. It's very similar to
+correlation, good scores are close to 1 and bad ones are close to 0.
+
+You could save processing time when excluding bad/redundant features.
+
+See [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V)
+
+
+```python
+import numpy as np
+from gps_building_blocks.py.ml.preprocessing import cramer_v
+
+N = 200
+x1 = np.random.poisson(10, size=N)
+x2 = np.random.poisson(10, size=N)
+print(cramer_v.cramer_v(x1, x2))
 ```
