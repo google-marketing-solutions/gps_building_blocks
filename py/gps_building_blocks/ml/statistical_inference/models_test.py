@@ -70,7 +70,7 @@ def _prepare_data_and_target(ready_for_modelling=True):
   return inference_data
 
 
-class LinearModelTest(googletest.TestCase):
+class LinearModelTest(unittest.TestCase):
 
   def test_fit(self):
     data = _prepare_data_and_target()
@@ -178,4 +178,4 @@ class LinearModelTest(googletest.TestCase):
       model.fit(data, raise_on_data_error=False)
 
 if __name__ == '__main__':
-  googletest.main()
+  unittest.main()

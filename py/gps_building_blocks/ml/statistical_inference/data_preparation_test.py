@@ -22,7 +22,7 @@ from gps_building_blocks.ml.statistical_inference import data_preparation
 import unittest
 
 
-class InferenceTest(googletest.TestCase):
+class InferenceTest(unittest.TestCase):
   _missing_data = pd.DataFrame(
       data=[[np.nan, 0.0000],
             [0.6000, 0.0000],
@@ -159,4 +159,4 @@ class InferenceTest(googletest.TestCase):
     pd.testing.assert_frame_equal(result, expected_result)
 
 if __name__ == '__main__':
-  googletest.main()
+  unittest.main()

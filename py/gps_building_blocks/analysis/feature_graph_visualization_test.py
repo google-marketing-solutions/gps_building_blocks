@@ -24,7 +24,7 @@ from gps_building_blocks.analysis import feature_graph_visualization as fgv
 import unittest
 
 
-class FeatureGraphVisualizationTest(googletest.TestCase):
+class FeatureGraphVisualizationTest(unittest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -93,4 +93,4 @@ class FeatureGraphVisualizationTest(googletest.TestCase):
     pandas_testing.assert_frame_equal(similarity, expected_output)
 
 if __name__ == '__main__':
-  googletest.main()
+  unittest.main()

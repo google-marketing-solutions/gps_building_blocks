@@ -20,7 +20,7 @@ from gps_building_blocks.ml.preprocessing import cramer_v
 import unittest
 
 
-class CramerVTest(googletest.TestCase):
+class CramerVTest(unittest.TestCase):
 
   def test_cramer_returns_expected_value(self):
     x1 = np.array([1, 2, 1])
@@ -47,4 +47,4 @@ class CramerVTest(googletest.TestCase):
 
 
 if __name__ == '__main__':
-  googletest.main()
+  unittest.main()
