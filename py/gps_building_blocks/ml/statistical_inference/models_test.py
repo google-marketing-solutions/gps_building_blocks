@@ -172,7 +172,7 @@ class LinearModelTest(unittest.TestCase):
 
   def test_fit_with_data_not_ready_emit_warning(self):
     data = _prepare_data_and_target(ready_for_modelling=False)
-    model = models.InferenceElasticNet(random_state=18)
+    model = models.InferenceLinearRegression()
 
     with self.assertWarns(data_preparation.InferenceDataWarning):
       model.fit(data, raise_on_data_error=False)

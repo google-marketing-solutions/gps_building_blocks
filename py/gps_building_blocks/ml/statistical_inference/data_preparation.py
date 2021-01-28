@@ -139,10 +139,11 @@ class InferenceData():
         target_column='outcome')
 
     data.encode_categorical_covariates(
-      covariate_columns_to_encode=['variable_2']
+        covariate_columns_to_encode=['variable_2']
     )
 
-    data.control_with_fixed_effect(['control'], strategy='quick', min_frequency=2)
+    data.control_with_fixed_effect(
+        ['control'], strategy='quick', min_frequency=2)
 
     data.address_low_variance()
 
@@ -444,13 +445,30 @@ class InferenceData():
 
   def address_collinearity_with_vif(self,
                                     vif_threshold: int = 10,
+                                    sequential: bool = True,
+                                    interactive: bool = False,
                                     drop: bool = True) -> pd.DataFrame:
     """Uses VIF to identify columns that are collinear and option to drop them.
+
+    You can customize how collinearity will be resolved with `sequential` and
+    `interactive` parameters. By default, the VIF score will re-calculated every
+    time the column with the highest VIF score is dropped until the threshold is
+    met. If you wish to remove all the columns with VIF score higher than the
+    threshold, you can set `sequential=False`.
+    If you want to have a say on which column is going to removed, rather than
+    automatically pick the column with the highest VIF score, you can set
+    `interactive=True`. This will prompt for your input every time columns are
+    found with VIF score higher than your threshold, whether `sequential` is set
+    to True of False.
 
     Args:
       vif_threshold: Threshold to identify which columns have high collinearity
         and anything higher than this threshold is dropped or used for warning.
-      drop: Boolean to either drop columns with high vif or print message,
+      sequential: Whether you want to sequentially re-calculate VIF each time
+        after a set column(s) have been removed or only once.
+      interactive: Whether you want to manually specify which column(s) you want
+       to remove.
+      drop: Boolean to either drop columns with high VIF or print message,
         default is set to True.
 
     Returns:
@@ -463,9 +481,22 @@ class InferenceData():
     while True:
       tmp_data = covariates.drop(columns=columns_to_drop)
       vif_data = vif.calculate_vif(tmp_data, sort=True).reset_index(drop=True)
-      if vif_data.VIF[0] < vif_threshold:
+
+      if vif_data['VIF'][0] < vif_threshold:
         break
-      columns_to_drop.append(vif_data.features[0])
+
+      if interactive:
+        selected_columns = _vif_interactive_input_and_validation(vif_data)
+      elif sequential:
+        selected_columns = [vif_data['features'][0]]
+      else:
+        vif_filter = vif_data['VIF'] >= vif_threshold
+        selected_columns = vif_data['features'][vif_filter].tolist()
+
+      columns_to_drop.extend(selected_columns)
+
+      if not sequential or not selected_columns:
+        break
 
     if drop:
       self.data = self.data.drop(columns=columns_to_drop)
@@ -484,3 +515,40 @@ class InferenceData():
     target = self.data[self.target_column]
     data = self.data.drop(self.target_column, axis=1)
     return data, target
+
+
+def _input_mock(promp_message: str) -> str:
+  """Allows 'input' to be mocked with nose test."""
+  # https://stackoverflow.com/questions/25878616/attributeerror-none-does-not-have-the-attribute-print
+  return input(promp_message)
+
+
+def _print_mock(message: str) -> None:
+  """Allows 'print' to be mocked with nose test."""
+  # https://stackoverflow.com/questions/25878616/attributeerror-none-does-not-have-the-attribute-print
+  print(message)
+
+
+def _vif_interactive_input_and_validation(vif_data: pd.DataFrame) -> List[str]:
+  """Prompts and validates column selection for interactive sessions."""
+  while True:
+    _print_mock(vif_data.set_index('features'))
+    selected_columns = _input_mock(
+        'Select one or more variables to remove separated by comma. '
+        'To end the interactive session press Enter.\n')
+
+    if not selected_columns:
+      return []
+
+    selected_columns = selected_columns.split(',')
+
+    valid_selection = True
+    valid_columns = vif_data['features'].tolist()
+    for column in selected_columns:
+      if column not in valid_columns:
+        _print_mock(f'Invalid column "{column}". '
+                    f'Valid columns: {",".join(valid_columns)}')
+        valid_selection = False
+
+    if valid_selection:
+      return selected_columns

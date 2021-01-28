@@ -14,15 +14,18 @@
 
 """Tests for gps_building_blocks.ml.statistical_inference.inference."""
 
+from unittest import mock
+
+from absl.testing import parameterized
 import numpy as np
 import pandas as pd
 from sklearn import datasets
 
-from gps_building_blocks.ml.statistical_inference import data_preparation
 import unittest
+from gps_building_blocks.ml.statistical_inference import data_preparation
 
 
-class InferenceTest(unittest.TestCase):
+class InferenceTest(parameterized.TestCase):
   _missing_data = pd.DataFrame(
       data=[[np.nan, 0.0000],
             [0.6000, 0.0000],
@@ -130,7 +133,10 @@ class InferenceTest(unittest.TestCase):
 
     inference_data = data_preparation.InferenceData(
         iris_data, target_column='target')
-    result = inference_data.address_collinearity_with_vif(drop=True)
+    result = inference_data.address_collinearity_with_vif(
+        sequential=True,
+        interactive=False,
+        drop=True)
 
     pd.testing.assert_frame_equal(result, expected_result)
 
@@ -157,6 +163,39 @@ class InferenceTest(unittest.TestCase):
         columns=['variable_2'])
 
     pd.testing.assert_frame_equal(result, expected_result)
+
+  @parameterized.named_parameters(
+      ('single_selections', ['1', '2', '3'], ['1', '2', '3'], True),
+      ('double_selection', ['1,2', '3'], ['1', '2', '3'], True),
+      ('early_stopping', ['1', ''], ['1'], True),
+      ('all_at_once', ['1,2,3'], ['1', '2', '3'], True),
+      ('not_sequential', ['1,2'], ['1', '2'], False),
+  )
+  def test_address_collinearity_with_vif_interactive(
+      self, user_inputs, expected_dropped, sequential):
+    dataframe = pd.DataFrame(
+        data=[[1.1, 2.1, 3.1, 4.1, 0],
+              [1.0, 2.0, 3.0, 4.0, 0],
+              [1.0, 2.0, 3.0, 4.0, 0],
+              [1.0, 2.0, 3.0, 4.0, 1]],
+        columns=['1', '2', '3', '4', 'target'])
+    data = data_preparation.InferenceData(dataframe, target_column='target')
+
+    with mock.patch.object(data_preparation, '_input_mock') as input_mock:
+      # Avoid Colab\Notebook prints in tests output
+      with mock.patch.object(data_preparation, '_print_mock') as _:
+        user_inputs = list(reversed(user_inputs))
+        input_mock.side_effect = lambda x: user_inputs.pop()
+
+        result = data.address_collinearity_with_vif(
+            sequential=sequential,
+            interactive=True,
+            drop=True)
+
+    pd.testing.assert_frame_equal(
+        result,
+        dataframe.drop(expected_dropped, axis=1))
+
 
 if __name__ == '__main__':
   unittest.main()
