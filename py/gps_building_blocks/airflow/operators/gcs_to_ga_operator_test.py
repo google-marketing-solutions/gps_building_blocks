@@ -30,15 +30,20 @@ class GoogleCloudStorageToGoogleAnalyticsOperatorTest(
     unittest.TestCase):
 
   def test_init(self):
-    with mock.patch.object(gcp_api_base_hook.GoogleCloudBaseHook, '__init__',
-                           autospec=True):
-      data_connector = (gcs_to_ga_operator.
-                        GoogleCloudStorageToGoogleAnalyticsOperator(
-                            task_id='task',
-                            gcs_bucket='bucket',
-                            gcs_content_type='JSON',
-                            gcs_prefix='prefix',
-                            ga_tracking_id='UA-12345-6'))
+    with mock.patch.object(
+        gcs_hook, 'GoogleCloudStorageHook',
+        autospec=True), mock.patch.object(
+            ga_hook, 'GoogleAnalyticsHook',
+            autospec=True), mock.patch.object(
+                gcp_api_base_hook.GoogleCloudBaseHook,
+                '__init__', autospec=True):
+      data_connector = (
+          gcs_to_ga_operator.GoogleCloudStorageToGoogleAnalyticsOperator(
+              task_id='task',
+              gcs_bucket='bucket',
+              gcs_content_type='JSON',
+              gcs_prefix='prefix',
+              ga_tracking_id='UA-12345-6'))
 
     self.assertIsInstance(data_connector.input_hook,
                           gcs_hook.GoogleCloudStorageHook)

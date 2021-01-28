@@ -28,7 +28,7 @@ with open(path, "r") as fh:
 
 setuptools.setup(
     name="gps-building-blocks",
-    version="1.2.1",
+    version="1.2.2",
     author="gPS Team",
     author_email="no-reply@google.com",
     description="Modules and tools useful for use with advanced data solutions on Google Ads, Google Marketing Platform and Google Cloud.",
@@ -37,8 +37,11 @@ setuptools.setup(
     url="https://github.com/google/gps_building_blocks",
     license="Apache Software License",
     packages=setuptools.find_packages(),
+    include_package_data=True,
     install_requires=[
-        "absl-py==0.9.0",
+        "absl-py==0.10.0",
+        "apache-airflow==2.0.0",
+        "apache-airflow-providers-google==1.0.0",
         "google-api-core==1.21.0",
         "google-api-python-client==1.9.1",
         "google-auth==1.18.0",
@@ -46,14 +49,19 @@ setuptools.setup(
         "google-cloud-firestore==1.6.2",
         "google-cloud-storage==1.28.1",
         "google-cloud-pubsub==1.3.1",
+        "importlib-resources==1.5.0",
         "matplotlib==3.3.3",
         "networkx==2.5.0",
         "numpy==1.19.5",
         "pandas==1.1.5",
+        "parameterized==0.8.1",
         "plotly==4.14.3",
         "requests==2.23.0",
         "six==1.15.0",
         "sklearn==0.0.0",
+        "tensorflow==2.4.1",
+        "tensorflow-hub==0.11.0",
+        "statsmodels==0.12.1",
         "dataclasses; python_version<'3.7'"
     ],
     classifiers=[

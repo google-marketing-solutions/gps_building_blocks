@@ -14,19 +14,16 @@
 # limitations under the License.
 """Tests for keyword_clustering."""
 
-import os
-
 import unittest
 from unittest import mock
+
+import importlib_resources
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from google3.pyglib import resources
+from gps_building_blocks.ml.preprocessing import data as preprocess_data
 from gps_building_blocks.ml.preprocessing import keyword_clustering
-
-CURR_PATH = os.path.dirname(__file__)
-DATA_PATH = os.path.join(CURR_PATH, "data")
 
 
 class KeywordClusteringTest(unittest.TestCase):
@@ -46,13 +43,10 @@ class KeywordClusteringTest(unittest.TestCase):
     cls.kw_clustering = keyword_clustering.KeywordClustering(
         model=cls.model)
 
-    filename = resources.GetResourceFilename(
-        os.path.join(DATA_PATH, "example_cluster_df.txt"))
-    with open(filename, "r") as file:
-      for i, line in enumerate(file):
-        if i < 1:
-          continue
-        cls.test_df = pd.read_json(line)
+    contents = importlib_resources.read_text(preprocess_data,
+                                             "example_cluster_df.txt")
+    contents = contents.split("\n")[1]
+    cls.test_df = pd.read_json(contents)
 
   def test_extract_and_average_embedding(self):
     phrase = self.phrase

@@ -21,7 +21,7 @@ import io
 import json
 
 from typing import Generator, Text, List, Dict, Any
-from airflow.contrib.hooks import gcs_hook
+from airflow.providers.google.cloud.hooks import gcs as base_hook
 from googleapiclient import errors as googleapiclient_errors
 from googleapiclient import http
 
@@ -38,7 +38,7 @@ class BlobContentTypes(enum.Enum):
   CSV = enum.auto()
 
 
-class GoogleCloudStorageHook(gcs_hook.GoogleCloudStorageHook,
+class GoogleCloudStorageHook(base_hook.GCSHook,
                              input_hook_interface.InputHookInterface):
   """Extends the Google Cloud Storage hook.
 
@@ -230,7 +230,7 @@ class GoogleCloudStorageHook(gcs_hook.GoogleCloudStorageHook,
       DataInConnectorError: When listing blob in bucket returns a HttpError.
     """
     try:
-      blob_names = self.list(bucket=self.bucket, prefix=self.prefix)
+      blob_names = self.list(bucket_name=self.bucket, prefix=self.prefix)
     except googleapiclient_errors.HttpError as error:
       raise errors.DataInConnectorError(
           error=error, msg='Failed to get list of blobs from bucket.')

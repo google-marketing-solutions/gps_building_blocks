@@ -20,12 +20,14 @@ import json
 import unittest
 
 from unittest import mock
-from airflow.contrib.hooks import gcp_api_base_hook
-from airflow.contrib.hooks import gcs_hook as base_gcs_hook
+from airflow.providers.google.cloud.hooks import gcs as base_hook
 
 from gps_building_blocks.airflow.hooks import gcs_hook
 from gps_building_blocks.airflow.utils import blob
 from gps_building_blocks.airflow.utils import errors
+
+MOCK_BASE_HOOK = (
+    'airflow.providers.google.cloud.hooks.gcs.GCSHook.__init__')
 
 
 def fake_generator(expected):
@@ -60,23 +62,24 @@ def get_expected(expected, content_type=gcs_hook.BlobContentTypes.JSON.name):
 
 class JSONGoogleCloudStorageHookTest(unittest.TestCase):
 
-  def setUp(self):
+  @mock.patch(MOCK_BASE_HOOK)
+  def setUp(self, mocked_hook):
     super(JSONGoogleCloudStorageHookTest, self).setUp()
     self.addCleanup(mock.patch.stopall)
 
-    with mock.patch.object(gcp_api_base_hook.GoogleCloudBaseHook, '__init__',
-                           autospec=True):
-      self.gcs_hook = gcs_hook.GoogleCloudStorageHook(bucket='bucket',
-                                                      content_type='JSON',
-                                                      prefix='')
+    mocked_hook.return_value = mock.MagicMock(
+        gcp_conn_id='test_conn', autospec=True)
+    self.gcs_hook = gcs_hook.GoogleCloudStorageHook(
+        bucket='bucket',
+        content_type=gcs_hook.BlobContentTypes.JSON.name,
+        prefix='')
 
-    self.mocked_conn = mock.patch.object(base_gcs_hook.GoogleCloudStorageHook,
-                                         'get_conn',
-                                         autospec=True).start()
+    self.mocked_conn = mock.patch.object(
+        base_hook.GCSHook, 'get_conn',
+        autospec=True).start()
     self.mocked_conn.return_value.objects = mock.MagicMock()
-
-    self.mocked_list = mock.patch.object(base_gcs_hook.GoogleCloudStorageHook,
-                                         'list', autospec=True).start()
+    self.mocked_list = mock.patch.object(
+        base_hook.GCSHook, 'list', autospec=True).start()
 
     self.patched_chunk_generator = mock.patch.object(
         gcs_hook.GoogleCloudStorageHook, '_gcs_blob_chunk_generator',
@@ -186,23 +189,24 @@ class JSONGoogleCloudStorageHookTest(unittest.TestCase):
 
 class CSVGoogleCloudStorageHookTest(unittest.TestCase):
 
-  def setUp(self):
+  @mock.patch(MOCK_BASE_HOOK)
+  def setUp(self, mocked_hook):
     super(CSVGoogleCloudStorageHookTest, self).setUp()
     self.addCleanup(mock.patch.stopall)
 
-    with mock.patch.object(gcp_api_base_hook.GoogleCloudBaseHook, '__init__',
-                           autospec=True):
-      self.gcs_hook = gcs_hook.GoogleCloudStorageHook(
-          bucket='bucket', content_type=gcs_hook.BlobContentTypes.CSV.name,
-          prefix='')
+    mocked_hook.return_value = mock.MagicMock(
+        gcp_conn_id='test_conn', autospec=True)
+    self.gcs_hook = gcs_hook.GoogleCloudStorageHook(
+        bucket='bucket',
+        content_type=gcs_hook.BlobContentTypes.CSV.name,
+        prefix='')
 
-    self.mocked_conn = mock.patch.object(base_gcs_hook.GoogleCloudStorageHook,
-                                         'get_conn',
-                                         autospec=True).start()
+    self.mocked_conn = mock.patch.object(
+        base_hook.GCSHook, 'get_conn',
+        autospec=True).start()
     self.mocked_conn.return_value.objects = mock.MagicMock()
-
-    self.mocked_list = mock.patch.object(base_gcs_hook.GoogleCloudStorageHook,
-                                         'list', autospec=True).start()
+    self.mocked_list = mock.patch.object(
+        base_hook.GCSHook, 'list', autospec=True).start()
 
     self.patched_chunk_generator = mock.patch.object(
         gcs_hook.GoogleCloudStorageHook, '_gcs_blob_chunk_generator',
@@ -322,4 +326,3 @@ class CSVGoogleCloudStorageHookTest(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
-

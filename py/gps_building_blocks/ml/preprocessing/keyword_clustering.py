@@ -14,9 +14,9 @@
 # limitations under the License.
 """Functions to cluster words/phrase/sentences using embedding."""
 
-import os
 from typing import List, Optional, Text, Tuple
 
+import importlib_resources
 import numpy as np
 from numpy import linalg
 import pandas as pd
@@ -24,10 +24,7 @@ from sklearn import cluster
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from google3.pyglib import resources
-
-CURR_PATH = os.path.dirname(__file__)
-DATA_PATH = os.path.join(CURR_PATH, "data")
+from gps_building_blocks.ml.preprocessing import data as preprocess_data
 
 
 class KeywordClustering(object):
@@ -53,9 +50,11 @@ class KeywordClustering(object):
       self.model = model
 
     if stopwords is None:
-      stopwords_default = resources.GetResource(
-          os.path.join(DATA_PATH, "stopwords_eng.txt"), "r")
-      self.stopwords_to_remove = stopwords_default.split("\n")[1:]
+      stopwords_default = importlib_resources.read_text(preprocess_data,
+                                                        "stopwords_eng.txt")
+      stopwords_default = stopwords_default.split("\n")[1:]
+      self.stopwords_to_remove = list(
+          filter(lambda word: word, stopwords_default))
     else:
       self.stopwords_to_remove = stopwords
 

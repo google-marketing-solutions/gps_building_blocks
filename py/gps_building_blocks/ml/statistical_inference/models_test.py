@@ -126,7 +126,7 @@ class LinearModelTest(unittest.TestCase):
     predictions = model.predict(data)
 
     self.assertIsInstance(predictions, pd.Series)
-    self.assertLen(predictions, len(data.data))
+    self.assertEqual(len(predictions), len(data.data))
     pd.testing.assert_index_equal(predictions.index, data.data.index)
 
   def test_permutation_test(self):

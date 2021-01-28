@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,29 +12,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-absl-py==0.10.0
-apache-airflow==2.0.0
-apache-airflow-providers-google==1.0.0
-google-api-core==1.21.0
-google-api-python-client==1.9.1
-google-auth==1.18.0
-google-cloud-bigquery==1.22.0
-google-cloud-firestore==1.6.2
-google-cloud-storage==1.28.1
-google-cloud-pubsub==1.3.1
-importlib-resources==1.5.0
-matplotlib==3.3.3
-networkx==2.5.0
-numpy==1.19.5
-pandas==1.1.5
-parameterized==0.8.1
-plotly==4.14.3
-requests==2.23.0
-six==1.15.0
-sklearn==0.0.0
-statsmodels==0.12.1
-tensorflow==2.4.1
-tensorflow-hub==0.11.0
-
-dataclasses; python_version < '3.7'
