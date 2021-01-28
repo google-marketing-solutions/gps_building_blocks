@@ -257,7 +257,7 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
   def fit_bootstrap(
       self,
       bootstraps: int = 1000,
-      n_jobs: int = -1,
+      n_jobs: int = 1,
       verbose: bool = True,
       ) -> None:
     """Runs a bootstrap iteration to estimate confidence intervals.
@@ -305,7 +305,7 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
   def permutation_test(
       self,
       n_permutations: int = 100,
-      n_jobs: int = -1,
+      n_jobs: int = 1,
       verbose: bool = True) -> None:
     """Runs a permutation test.
 
