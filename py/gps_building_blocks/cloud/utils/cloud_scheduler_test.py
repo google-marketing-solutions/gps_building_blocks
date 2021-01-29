@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for gps_building_blocks.cloud.utils.cloud_scheduler."""
-import unittest
-from unittest import mock
-
 from google.auth import credentials
 from googleapiclient import errors
 
+from absl.testing import absltest
 from absl.testing import parameterized
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import cloud_scheduler
 
@@ -160,4 +159,4 @@ class CloudSchedulerTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

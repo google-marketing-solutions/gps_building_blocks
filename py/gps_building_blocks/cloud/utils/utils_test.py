@@ -16,12 +16,13 @@
 """Tests for gps_building_blocks.cloud.utils.utils."""
 
 import time
-import unittest
-from unittest import mock
+
 from googleapiclient import errors
 from googleapiclient import http
 
+from absl.testing import absltest
 from absl.testing import parameterized
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.utils import utils
 
 
@@ -110,4 +111,4 @@ class UtilsTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

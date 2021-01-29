@@ -15,19 +15,19 @@
 """Tests for gps_building_blocks.cloud.utils.cloud_composer."""
 
 from typing import Dict
-import unittest
-from unittest import mock
 
 from google.auth import credentials
 from googleapiclient import errors
 from googleapiclient import http
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import cloud_composer
 from gps_building_blocks.cloud.utils import utils
 
 
-class CloudComposerUtilsTest(unittest.TestCase):
+class CloudComposerUtilsTest(absltest.TestCase):
 
   def setUp(self):
     """Creates mock objects for googleapi client."""
@@ -318,4 +318,4 @@ class CloudComposerUtilsTest(unittest.TestCase):
     self.composer.delete_environment(self.environment_name)
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

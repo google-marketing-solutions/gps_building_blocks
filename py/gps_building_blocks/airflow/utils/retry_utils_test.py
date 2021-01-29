@@ -16,13 +16,12 @@
 
 """Tests for airflow.utils.retry_utils."""
 
-import unittest
-from unittest import mock
-
 from airflow import exceptions
 from googleapiclient import errors
 import parameterized
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.utils import retry_utils
 
 _NON_RETRIABLE_HTTP_STATUS_CODES = (401,  # Unauthorized
@@ -49,7 +48,7 @@ def parameterize_function_name(testcase_func, unused_param_num, param):
                        '_'.join(str(x) for x in param.args)))
 
 
-class RetryUtilsTest(unittest.TestCase):
+class RetryUtilsTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -124,4 +123,4 @@ class RetryUtilsTest(unittest.TestCase):
                      retry_utils._RETRY_UTILS_MAX_RETRIES)
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

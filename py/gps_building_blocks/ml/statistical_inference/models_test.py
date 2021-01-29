@@ -19,7 +19,7 @@ import pandas as pd
 
 from gps_building_blocks.ml.statistical_inference import data_preparation
 from gps_building_blocks.ml.statistical_inference import models
-import unittest
+from absl.testing import absltest
 
 
 def _prepare_data_and_target(ready_for_modelling=True):
@@ -70,7 +70,7 @@ def _prepare_data_and_target(ready_for_modelling=True):
   return inference_data
 
 
-class LinearModelTest(unittest.TestCase):
+class LinearModelTest(absltest.TestCase):
 
   def test_fit(self):
     data = _prepare_data_and_target()
@@ -178,4 +178,4 @@ class LinearModelTest(unittest.TestCase):
       model.fit(data, raise_on_data_error=False)
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

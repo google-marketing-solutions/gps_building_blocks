@@ -18,8 +18,6 @@
 import base64
 import io
 import os
-import unittest
-from unittest import mock
 
 from google import auth
 from google.auth import impersonated_credentials
@@ -27,10 +25,12 @@ from google.oauth2 import service_account
 from googleapiclient import discovery
 from googleapiclient import errors
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.utils import cloud_auth
 
 
-class AuthTest(unittest.TestCase):
+class AuthTest(absltest.TestCase):
 
   def setUp(self):
     """Creates mock objects for googleapi client."""
@@ -311,4 +311,4 @@ class AuthTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

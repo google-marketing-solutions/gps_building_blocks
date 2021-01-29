@@ -256,7 +256,7 @@ class InferenceData():
     """Checks if data have any categorical covariates."""
     covariates = self.data.drop(columns=self._control_columns)
     categorical_columns = covariates.select_dtypes(
-        include=['object', 'string']).columns.to_list()
+        include='object').columns.to_list()
 
     if categorical_columns:
       categorical_columns = ' , '.join(categorical_columns)

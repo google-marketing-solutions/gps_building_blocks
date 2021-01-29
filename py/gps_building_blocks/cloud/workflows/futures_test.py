@@ -16,18 +16,18 @@
 
 """Tests for gps_building_blocks.cloud.workflows.futures."""
 
-import unittest
-from unittest import mock
 import urllib
 
+import google.auth
 from googleapiclient import discovery
 
-import google.auth
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.firestore import fake_firestore
 from gps_building_blocks.cloud.workflows import futures
 
 
-class TasksTest(unittest.TestCase):
+class TasksTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -160,4 +160,4 @@ class TasksTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

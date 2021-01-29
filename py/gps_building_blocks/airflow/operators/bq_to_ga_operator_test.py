@@ -16,17 +16,16 @@
 
 """Tests for py.airflow.operators.bq_to_ga_operator."""
 
-import unittest
-from unittest import mock
-
 from airflow.contrib.hooks import bigquery_hook
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import bq_hook
 from gps_building_blocks.airflow.hooks import ga_hook
 from gps_building_blocks.airflow.operators import bq_to_ga_operator
 
 
-class BigQueryToGoogleAnalyticsOperatorbTest(unittest.TestCase):
+class BigQueryToGoogleAnalyticsOperatorbTest(absltest.TestCase):
 
   def test_init(self):
     with mock.patch.object(bigquery_hook.BigQueryHook, '__init__',
@@ -45,4 +44,4 @@ class BigQueryToGoogleAnalyticsOperatorbTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

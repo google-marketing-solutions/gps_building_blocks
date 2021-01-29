@@ -17,10 +17,10 @@
 
 import numpy as np
 from gps_building_blocks.ml.preprocessing import cramer_v
-import unittest
+from absl.testing import absltest
 
 
-class CramerVTest(unittest.TestCase):
+class CramerVTest(absltest.TestCase):
 
   def test_cramer_returns_expected_value(self):
     x1 = np.array([1, 2, 1])
@@ -47,4 +47,4 @@ class CramerVTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

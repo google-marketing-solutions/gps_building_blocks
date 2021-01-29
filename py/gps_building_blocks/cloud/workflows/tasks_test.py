@@ -19,15 +19,15 @@
 import base64
 import datetime
 import json
-import unittest
-from unittest import mock
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.firestore import fake_firestore
 from gps_building_blocks.cloud.workflows import futures
 from gps_building_blocks.cloud.workflows import tasks
 
 
-class TasksTest(unittest.TestCase):
+class TasksTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -128,7 +128,7 @@ class TasksTest(unittest.TestCase):
 
     # When task2 is finished but task3 is not, task4 cannot be run yet.
     runnable_tasks = [task.id for task in job._get_runnable_tasks()]
-    self.assertEqual(len(runnable_tasks), 0)
+    self.assertEmpty(runnable_tasks)
 
     for task in job.tasks:
       if task.id == 'task3':
@@ -157,7 +157,7 @@ class TasksTest(unittest.TestCase):
     job = self._define_job_with_two_dependent_tasks()
     job._load(job_to_load.id)
     self.assertEqual(job.id, job_to_load.id)
-    self.assertEqual(len(job.tasks), 2)
+    self.assertLen(job.tasks, 2)
 
   def test_schedule_successful_task_should_send_pubsub_message(self):
     job = self._define_job_with_two_dependent_tasks()
@@ -295,4 +295,4 @@ def mark_unused(*args):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

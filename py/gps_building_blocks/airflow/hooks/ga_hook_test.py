@@ -17,16 +17,17 @@
 """Tests for airflow.hooks.ga_hook."""
 
 import re
-import unittest
-import unittest.mock as mock
+
 import parameterized
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import ga_hook
 from gps_building_blocks.airflow.utils import errors
 from gps_building_blocks.airflow.utils import retry_utils
 
 
-class PayloadBuilderTest(unittest.TestCase):
+class PayloadBuilderTest(absltest.TestCase):
 
   def setUp(self):
     """Setup function for each unit test."""
@@ -160,10 +161,10 @@ class PayloadBuilderTest(unittest.TestCase):
     for aps in actual_payload_list:
       vr = vr and all([re.search(t, aps) for t in expected_payload_list])
     self.assertTrue(vr)
-    self.assertEqual(len(actual_payload_list), 10)
+    self.assertLen(actual_payload_list, 10)
 
 
-class GoogleAnalyticsHookTest(unittest.TestCase):
+class GoogleAnalyticsHookTest(absltest.TestCase):
 
   def setUp(self):
     """Setup function for each unit test."""
@@ -360,4 +361,4 @@ class GoogleAnalyticsHookTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

@@ -16,12 +16,12 @@
 
 """Tests for airflow.utils.blob."""
 
-import unittest
+from absl.testing import absltest
 
 from gps_building_blocks.airflow.utils import blob
 
 
-class BlobTest(unittest.TestCase):
+class BlobTest(absltest.TestCase):
 
   def test_init(self):
     blob_instance = blob.Blob([{'': ''}], 'id', 'GCP', 'Source', 'Location', 0)
@@ -40,4 +40,4 @@ class BlobTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

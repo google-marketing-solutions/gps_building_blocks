@@ -16,12 +16,12 @@
 
 """Tests for airflow.utils.errors."""
 
-import unittest
+from absl.testing import absltest
 
 from gps_building_blocks.airflow.utils import errors
 
 
-class ErrorsTest(unittest.TestCase):
+class ErrorsTest(absltest.TestCase):
 
   def test_error_class_repr_prints_class_only(self):
     error = errors.Error()
@@ -51,4 +51,4 @@ class ErrorsTest(unittest.TestCase):
                                     error_msg, str(base_error)))
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

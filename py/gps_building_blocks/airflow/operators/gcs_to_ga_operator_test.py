@@ -16,18 +16,16 @@
 
 """Tests for airflow.operators.gcs_to_ga_operator."""
 
-import unittest
-from unittest import mock
-
 from airflow.contrib.hooks import gcp_api_base_hook
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import ga_hook
 from gps_building_blocks.airflow.hooks import gcs_hook
 from gps_building_blocks.airflow.operators import gcs_to_ga_operator
 
 
-class GoogleCloudStorageToGoogleAnalyticsOperatorTest(
-    unittest.TestCase):
+class GoogleCloudStorageToGoogleAnalyticsOperatorTest(absltest.TestCase):
 
   def test_init(self):
     with mock.patch.object(
@@ -51,4 +49,4 @@ class GoogleCloudStorageToGoogleAnalyticsOperatorTest(
                           ga_hook.GoogleAnalyticsHook)
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

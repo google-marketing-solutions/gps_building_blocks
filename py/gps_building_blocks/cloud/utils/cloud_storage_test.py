@@ -16,19 +16,18 @@
 """Tests for gps_building_blocks.cloud.utils.cloud_storage."""
 
 import os
-import unittest
-
-from unittest import mock
 
 from google.api_core import exceptions
 from google.auth import credentials
 from google.cloud import storage
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.utils import cloud_auth
 from gps_building_blocks.cloud.utils import cloud_storage
 
 
-class CloudStorageTest(unittest.TestCase):
+class CloudStorageTest(absltest.TestCase):
 
   def setUp(self):
     super(CloudStorageTest, self).setUp()
@@ -290,4 +289,4 @@ class CloudStorageTest(unittest.TestCase):
     self.assertIsNone(file_contents)
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

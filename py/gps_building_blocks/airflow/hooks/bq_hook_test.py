@@ -18,11 +18,11 @@
 
 import time
 from typing import Any, Dict, List, Text
-import unittest
-from unittest import mock
 
 from googleapiclient import errors as googleapiclient_errors
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import bq_hook
 from gps_building_blocks.airflow.utils import blob
 from gps_building_blocks.airflow.utils import errors
@@ -193,7 +193,7 @@ class MockedBigQueryCursor():
     return {'fields': self.fields}
 
 
-class BigqueryHookTest(unittest.TestCase):
+class BigqueryHookTest(absltest.TestCase):
 
   @mock.patch(MOCK_BQ_HOOK)
   def setUp(self, mocked_hook):
@@ -374,4 +374,4 @@ class BigqueryHookTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

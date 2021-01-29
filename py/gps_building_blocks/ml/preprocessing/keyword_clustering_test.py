@@ -14,19 +14,18 @@
 # limitations under the License.
 """Tests for keyword_clustering."""
 
-import unittest
-from unittest import mock
-
 import importlib_resources
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.ml.preprocessing import data as preprocess_data
 from gps_building_blocks.ml.preprocessing import keyword_clustering
 
 
-class KeywordClusteringTest(unittest.TestCase):
+class KeywordClusteringTest(absltest.TestCase):
 
   @classmethod
   def setUpClass(cls):
@@ -73,4 +72,4 @@ class KeywordClusteringTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

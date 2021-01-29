@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from sklearn import datasets
 
-import unittest
+from absl.testing import absltest
 from gps_building_blocks.ml.statistical_inference import data_preparation
 
 
@@ -198,4 +198,4 @@ class InferenceTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

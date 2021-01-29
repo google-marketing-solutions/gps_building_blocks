@@ -16,13 +16,13 @@
 
 """Tests for gps_building_blocks.cloud.firestore.fake_firestore."""
 
-import unittest
-
-from gps_building_blocks.cloud.firestore import fake_firestore
 from google.cloud import firestore
 
+from absl.testing import absltest
+from gps_building_blocks.cloud.firestore import fake_firestore
 
-class FakeFirestoreTest(unittest.TestCase):
+
+class FakeFirestoreTest(absltest.TestCase):
 
   def test_create_db_client(self):
     client = fake_firestore.FakeFirestore()
@@ -112,4 +112,4 @@ class FakeFirestoreTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

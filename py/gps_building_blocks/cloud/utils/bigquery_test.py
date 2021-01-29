@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for gps_building_blocks.cloud.utils.bigquery."""
-import unittest
-from unittest import mock
-
 from google.auth import credentials
 from google.cloud import bigquery
+
+from absl.testing import absltest
 from absl.testing import parameterized
+from absl.testing.absltest import mock
 from gps_building_blocks.cloud.utils import bigquery as bigquery_utils
 from gps_building_blocks.cloud.utils import cloud_auth
 
@@ -80,4 +80,4 @@ class BigQueryTest(parameterized.TestCase):
       self.bigquery_client.insert_rows(table_name, [])
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

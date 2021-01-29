@@ -1,6 +1,4 @@
 # Licensed under the Apache License, Version 2.0
-
-# TODO() ensure tests run on github repo.
 """Tests for gps_building_blocks.py.ml.diagnostics.bootstrap."""
 
 import numpy as np
@@ -8,9 +6,9 @@ import pandas as pd
 import pandas.util.testing as pandas_testing
 from sklearn import linear_model
 
-from gps_building_blocks.ml.diagnostics import bootstrap
-import unittest
+from absl.testing import absltest
 from absl.testing import parameterized
+from gps_building_blocks.ml.diagnostics import bootstrap
 
 
 class BootstrapTest(parameterized.TestCase):
@@ -340,4 +338,4 @@ class BootstrapTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

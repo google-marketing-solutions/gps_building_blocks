@@ -21,10 +21,10 @@ import pandas.util.testing as pandas_testing
 from sklearn import datasets
 
 from gps_building_blocks.analysis import feature_graph_visualization as fgv
-import unittest
+from absl.testing import absltest
 
 
-class FeatureGraphVisualizationTest(unittest.TestCase):
+class FeatureGraphVisualizationTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -93,4 +93,4 @@ class FeatureGraphVisualizationTest(unittest.TestCase):
     pandas_testing.assert_frame_equal(similarity, expected_output)
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

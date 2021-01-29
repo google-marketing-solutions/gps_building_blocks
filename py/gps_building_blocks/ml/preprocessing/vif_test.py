@@ -15,15 +15,15 @@
 
 """Tests for gps_building_blocks.ml.preprocessing.vif."""
 
-import unittest
 import numpy as np
 import pandas as pd
 from sklearn import datasets
 
+from absl.testing import absltest
 from gps_building_blocks.ml.preprocessing import vif
 
 
-class VifTest(unittest.TestCase):
+class VifTest(absltest.TestCase):
 
   @classmethod
   def setUpClass(cls):
@@ -51,4 +51,4 @@ class VifTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

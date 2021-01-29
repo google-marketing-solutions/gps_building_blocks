@@ -16,9 +16,8 @@
 
 """Tests for py.airflow.operators.datastore_operator."""
 
-import unittest
-from unittest import mock
-
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import ga_hook
 from gps_building_blocks.airflow.hooks import gcs_hook
 from gps_building_blocks.airflow.operators import data_connector_operator
@@ -31,7 +30,7 @@ def fake_events_generator(blobs):
     yield blb
 
 
-class DataConnectorOperatorTest(unittest.TestCase):
+class DataConnectorOperatorTest(absltest.TestCase):
 
   def setUp(self):
     super(DataConnectorOperatorTest, self).setUp()
@@ -125,4 +124,4 @@ class DataConnectorOperatorTest(unittest.TestCase):
                           'Error: There are some unsent events in this blob'])
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

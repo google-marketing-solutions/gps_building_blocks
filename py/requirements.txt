@@ -13,8 +13,7 @@
 # limitations under the License.
 
 absl-py==0.10.0
-apache-airflow==2.0.0
-apache-airflow-providers-google==1.0.0
+apache-airflow==1.10.3
 google-api-core==1.21.0
 google-api-python-client==1.9.1
 google-auth==1.18.0
@@ -26,7 +25,8 @@ importlib-resources==1.5.0
 matplotlib==3.3.3
 networkx==2.5.0
 numpy==1.19.5
-pandas==1.1.5
+pandas==0.25.3
+pandas_gbq==0.14.1
 parameterized==0.8.1
 plotly==4.14.3
 requests==2.23.0
