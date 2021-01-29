@@ -16,13 +16,13 @@
 
 """Tests for google3.corp.gtech.ads.data_catalyst.components.models.cc4d.operators.automl_tables_batch_prediction_operator."""
 
-import unittest
-from unittest import mock
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import automl_tables_hook
 from gps_building_blocks.airflow.operators import automl_tables_batch_prediction_operator as automl_pred_op
 
 
-class AutomlTablesBatchPredictionOperatorTest(unittest.TestCase):
+class AutomlTablesBatchPredictionOperatorTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -141,4 +141,4 @@ class AutomlTablesBatchPredictionOperatorTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()

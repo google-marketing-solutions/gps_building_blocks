@@ -16,12 +16,12 @@
 
 """Tests for google3.corp.gtech.ads.data_catalyst.components.models.cc4d.hooks.automl_tables_hook."""
 
-import unittest
-from unittest import mock
+from absl.testing import absltest
+from absl.testing.absltest import mock
 from gps_building_blocks.airflow.hooks import automl_tables_hook
 
 
-class AutoMLTablesHookTest(unittest.TestCase):
+class AutoMLTablesHookTest(absltest.TestCase):
 
   def setUp(self):
     """Set up mocks for hook test."""
@@ -313,4 +313,4 @@ class AutoMLTablesHookTest(unittest.TestCase):
                                         'bq://output')
 
 if __name__ == '__main__':
-  unittest.main()
+  absltest.main()
