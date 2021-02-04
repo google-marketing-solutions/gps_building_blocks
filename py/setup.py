@@ -52,7 +52,7 @@ setuptools.setup(
         "matplotlib==3.3.3",
         "networkx==2.5.0",
         "numpy==1.19.5",
-        "pandas==0.25.3",
+        "pandas==1.0.5",
         "pandas_gbq==0.14.1",
         "parameterized==0.8.1",
         "plotly==4.14.3",
