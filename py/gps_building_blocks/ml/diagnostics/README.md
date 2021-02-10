@@ -11,6 +11,7 @@ scalability to the data science workflow.
 -   [Key Features](#key-features)
 -   [Modules overview](#modules-overview)
     -   [1. Bootstrap](#1-bootstrap)
+    -   [2. Binary classification diagnostics](#binary-classification-diagnostics)
 
 ## Key Features
 
@@ -42,3 +43,7 @@ to use at least 1,000 bootstrap samples, even 10,000 is not uncommon.
       bootstraps=5,
       n_jobs=-1)
 ```
+
+### Binary classification diagnostics
+
+TODO(): Update model_diagnostics README with usage examples.
