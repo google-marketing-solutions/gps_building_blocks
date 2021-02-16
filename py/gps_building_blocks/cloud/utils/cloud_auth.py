@@ -19,7 +19,7 @@ import base64
 import json
 import os
 import textwrap
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 from absl import logging
 import google.auth
@@ -45,7 +45,7 @@ class Error(Exception):
 
 
 def get_credentials(service_account_key_file: str) -> credentials.Credentials:
-  """Get credentials to authenticate while calling GCP APIs.
+  """Gets credentials to authenticate while calling GCP APIs.
 
   If the "service_account_key_file" is not provided then an error will be
   raised.
@@ -67,6 +67,27 @@ def get_credentials(service_account_key_file: str) -> credentials.Credentials:
 
   return service_account.Credentials.from_service_account_file(
       service_account_key_file, scopes=[_SCOPE])
+
+
+def get_credentials_from_info(
+    service_account_info: Mapping[str, str]) -> credentials.Credentials:
+  """Gets credentials to authenticate while calling GPC APIs.
+
+  Args:
+    service_account_info: A dictionary containing a service account info, e.g.:
+      ```
+      service_account_info = json.load(open('service_account.json'))
+      get_credentials_from_info(service_account_info)
+      ```
+
+  Returns:
+    Credential object to authenticate while calling GCP APIs.
+
+  Raises:
+    ValueError: If the info is not in the expected format.
+  """
+  return service_account.Credentials.from_service_account_info(
+      service_account_info)
 
 
 def get_default_credentials() -> credentials.Credentials:

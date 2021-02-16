@@ -79,6 +79,34 @@ class AuthTest(absltest.TestCase):
     with self.assertRaises(FileNotFoundError):
       cloud_auth.get_credentials('/tmp/invalid_file')
 
+  @mock.patch.object(service_account.Credentials, 'from_service_account_info')
+  def test_get_credentials_from_service_account_info(
+      self, mock_from_service_account_info):
+    mock_from_service_account_info.return_value = self.mock_credentials
+    credentials = cloud_auth.get_credentials_from_info({
+        'type': 'service_account',
+        'project_id': 'google.com:fake_project',
+        'private_key_id': '',
+        'private_key': '',
+        'client_email': '',
+        'client_id': '',
+        'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+        'token_uri': 'https://accounts.google.com/o/oauth2/token',
+        'auth_provider_x509_cert_url':
+            'https://www.googleapis.com/oauth2/v1/certs',
+        'client_x509_cert_url': ''
+    })
+
+    self.mock_auth_default.assert_not_called()
+    self.assertEqual(self.mock_credentials, credentials)
+
+  @mock.patch.object(service_account.Credentials, 'from_service_account_info')
+  def test_exception_is_raised_when_service_account_info_in_wrong_format(
+      self, mock_from_service_account_info):
+    mock_from_service_account_info.side_effect = ValueError()
+    with self.assertRaises(ValueError):
+      cloud_auth.get_credentials_from_info({})
+
   @mock.patch.object(cloud_auth, 'build_service_client', autospec=True)
   def test_iam_client(self, mock_build_service_client):
     cloud_auth._get_iam_client()
