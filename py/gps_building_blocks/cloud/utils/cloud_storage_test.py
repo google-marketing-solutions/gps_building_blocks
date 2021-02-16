@@ -79,6 +79,20 @@ class CloudStorageTest(absltest.TestCase):
     self.mock_client.assert_called_with(
         project=self.project_id, credentials=self.mock_credentials)
 
+  @mock.patch.object(cloud_auth, 'get_credentials_from_info', autospec=True)
+  def test_client_initializes_with_service_account_info(
+      self, mock_get_credentials_from_info):
+    service_account_info = {''}
+    mock_get_credentials_from_info.return_value = self.mock_credentials
+
+    cloud_storage.CloudStorageUtils(
+        project_id=self.project_id,
+        service_account_info=service_account_info)
+
+    mock_get_credentials_from_info.assert_called_once_with(service_account_info)
+    self.mock_client.assert_called_with(
+        project=self.project_id, credentials=self.mock_credentials)
+
   def test_parse_blob_url(self):
     bucket_name, path = self.cloud_storage_obj._parse_blob_url(
         self.destination_blob_url)

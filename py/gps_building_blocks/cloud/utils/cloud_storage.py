@@ -16,7 +16,7 @@
 """Manage operations on Cloud Storage."""
 
 import os
-from typing import Optional, Tuple
+from typing import Mapping, Optional, Tuple
 from urllib import parse
 
 from absl import logging
@@ -42,12 +42,30 @@ class CloudStorageUtils(object):
 
   def __init__(self,
                project_id: str,
+               service_account_info: Mapping[str, str] = None,
                service_account_name: Optional[str] = None,
                service_account_key_file: Optional[str] = None) -> None:
     """Initialize new instance of CloudStorageUtils.
 
     Args:
       project_id: GCP project id.
+      service_account_info: Mapping containing the service account info, such
+        as the example below:
+
+          {
+            'type': 'service_account',
+            'project_id': '[PROJECT_ID]',
+            'private_key_id': '[PRIVATE_KEY_ID]',
+            'private_key': '[PRIVATE_KEY]',
+            'client_email': '[CLIENT_EMAIL]',
+            'client_id': '[CLIENT_ID]',
+            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+            'token_uri': 'https://accounts.google.com/o/oauth2/token',
+            'auth_provider_x509_cert_url':
+                'https://www.googleapis.com/oauth2/v1/certs',
+            'client_x509_cert_url': '[CERTIFICATE_URL]'
+          }
+
       service_account_name: The service account name.
       service_account_key_file: File containing service account key.
     """
@@ -55,6 +73,8 @@ class CloudStorageUtils(object):
       credentials = cloud_auth.impersonate_service_account(service_account_name)
     elif service_account_key_file:
       credentials = cloud_auth.get_credentials(service_account_key_file)
+    elif service_account_info:
+      credentials = cloud_auth.get_credentials_from_info(service_account_info)
     else:
       logging.info('Neither Service account key file nor service account '
                    'name was provided, so using default credentials.')
