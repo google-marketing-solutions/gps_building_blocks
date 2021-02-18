@@ -61,7 +61,7 @@ googleapis-common-protos==1.52.0
 graphviz==0.13.2
 grpcio==1.31.0
 gunicorn==19.10.0
-httplib2==0.14.0
+httplib2==0.19.0
 idna==2.8
 importlib-metadata==1.0.0
 iso8601==0.1.12
