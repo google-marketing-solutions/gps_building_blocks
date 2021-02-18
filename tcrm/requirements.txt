@@ -1,0 +1,121 @@
+# coding=utf-8
+# Copyright 2020 Google LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+absl-py==0.8.1
+alembic==1.3.1
+apache-airflow==1.10.6
+apispec==3.1.0
+argcomplete==1.10.3
+attrs==19.3.0
+Babel==2.7.0
+cached-property==1.5.1
+cachetools==3.1.0
+certifi==2019.11.28
+chardet==3.0.4
+Click==7.0
+colorama==0.4.1
+colorlog==4.0.2
+configparser==3.5.3
+croniter==0.3.30
+defusedxml==0.6.0
+dill==0.3.1.1
+docutils==0.15.2
+fasteners==0.15
+Flask-Admin==1.5.3
+Flask-AppBuilder==1.13.1
+Flask-Babel==0.12.2
+Flask-Caching==1.3.3
+Flask-JWT-Extended==3.24.1
+Flask-Login==0.4.1
+Flask-OpenID==1.2.5
+Flask-SQLAlchemy==2.4.1
+flask-swagger==0.2.13
+Flask-WTF==0.14.2
+Flask==1.1.1
+frozendict==1.2
+funcsigs==1.0.0
+future==0.16.0
+google-api-core==1.22.1
+google-api-python-client==1.7.11
+google-apitools==0.5.26
+google-auth-httplib2==0.0.3
+google-auth==1.21.0
+google-cloud-core==1.4.1
+google_cloud_datastore==1.15.0
+google-cloud-storage==1.33.0
+google-resumable-media==1.1.0
+googleads==24.1.0
+googleapis-common-protos==1.52.0
+graphviz==0.13.2
+grpcio==1.31.0
+gunicorn==19.10.0
+httplib2==0.14.0
+idna==2.8
+importlib-metadata==1.0.0
+iso8601==0.1.12
+itsdangerous==1.1.0
+Jinja2==2.10.3
+json-merge-patch==0.2
+jsonschema==3.2.0
+lazy-object-proxy==1.4.3
+lockfile==0.12.2
+Mako==1.1.0
+Markdown==2.6.11
+MarkupSafe==1.1.1
+marshmallow-enum==1.5.1
+marshmallow-sqlalchemy==0.18.0
+marshmallow==2.19.5
+monotonic==1.5
+more-itertools==7.2.0
+numpy==1.17.4
+oauth2client==4.1.3
+ordereddict==1.1
+pandas==0.25.3
+pandas-gbq==0.13.2
+parameterized==0.7.0
+pendulum==1.4.4
+prison==0.1.0
+protobuf==3.12.0
+psutil==5.6.5
+pyasn1-modules==0.2.7
+pyasn1==0.4.8
+Pygments==2.4.2
+PyJWT==1.7.1
+pyrsistent==0.15.5
+python-daemon==2.1.2
+python-dateutil==2.8.1
+python-editor==1.0.4
+python3-openid==3.1.0
+pytz==2019.3
+pytzdata==2019.3
+PyYAML==5.1.2
+requests==2.22.0
+rsa==4.0
+setproctitle==1.1.10
+six==1.13.0
+SQLAlchemy==1.3.11
+tabulate==0.8.6
+tenacity==4.12.0
+termcolor==1.1.0
+text-unidecode==1.2
+thrift==0.13.0
+tzlocal==1.5.1
+unicodecsv==0.14.1
+uritemplate==3.0.0
+urllib3==1.25.7
+Werkzeug==0.16.0
+WTForms==2.2.1
+zipp==0.6.0
+zope.deprecation==4.4.0
