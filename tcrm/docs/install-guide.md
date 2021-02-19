@@ -45,7 +45,7 @@ Create a new
 [Google Cloud Platform project](https://console.cloud.google.com),
 or use an existing one. Open it and make sure you can see the project name at
 the top of the page.
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_1.png" align="center" width="85%">
+<img src="./images/tcrm_install_1.png" align="center" width="85%">
 
 ### Step 2: Install TCRM
 
@@ -53,7 +53,7 @@ the top of the page.
 
 1.  Click on the Cloud Shell Icon on the top right corner of the page to open
     the GCP command line.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_6.png" align="center" width="85%">
+    <img src="./images/tcrm_install_6.png" align="center" width="85%">
 
 2.  Run the following command in the shell to clone the TCRM code folder:
 
@@ -61,14 +61,14 @@ the top of the page.
   git clone https://github.com/google/tcrm.git
 ```
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_7.png" align="center" width="85%">
+<img src="./images/tcrm_install_7.png" align="center" width="85%">
 3. Next, run this command:
 
 ```bash
 cd tcrm && sh setup.sh --project_id=$GOOGLE_CLOUD_PROJECT
 ```
 
-   <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_8.png" align="center" width="85%">
+   <img src="./images/tcrm_install_8.png" align="center" width="85%">
 
 NOTE: This command will do the following 3 steps: 1. Create a Python virtual
 environment, and install all the required Python packages. 2. Enable the
@@ -89,15 +89,15 @@ Click on Identity → Service Accounts. Then click on the three dots next to the
 service account that starts with `tcrm-sa` and select Create Key → JSON →
 Create.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_19.png" align="center" width="85%">
+<img src="./images/tcrm_install_19.png" align="center" width="85%">
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_20.png" align="center" width="85%">
+<img src="./images/tcrm_install_20.png" align="center" width="85%">
 
 Open the downloaded key in a text editor and copy the JSON within.
 
 Go back to Airflow (Composer → Airflow) and select Admin → Connections.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_21.png" align="center" width="85%">
+<img src="./images/tcrm_install_21.png" align="center" width="85%">
 
 Click on the pencil icon next to the connection `bigquery_default`.
 
@@ -110,38 +110,38 @@ TIP: Refer to
 [this page](https://cloud.google.com/composer/docs/how-to/managing/connections)
 for more details on managing Airflow connections.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_22.png" align="center" width="85%">
+<img src="./images/tcrm_install_22.png" align="center" width="85%">
 
 Paste the service account JSON into the Keyfile JSON field and click save.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_23.png" align="center" width="85%">
+<img src="./images/tcrm_install_23.png" align="center" width="85%">
 
 #### 3.2 Setup variables using Airflow UI
 
 1.  Open the menu on the top left part of the screen. Then click on `Composer`to
     open the
     [Composer environments page](http://console.cloud.google.com/composer).
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_9.png" align="center" width="85%">
+    <img src="./images/tcrm_install_9.png" align="center" width="85%">
 
 2.  In the Composer Screen, find the row named `tcrm-env` on the left side of
     the list. In that row, click the `Airflow` link to open the Airflow console.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_10.png" align="center" width="85%">
+    <img src="./images/tcrm_install_10.png" align="center" width="85%">
 
 3.  In the Airflow console, on the top menu bar, click on `Admin` option, then
     choose `Variables` from the drop down menu.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_11.png" align="center" width="85%">
+    <img src="./images/tcrm_install_11.png" align="center" width="85%">
 
 4.  In the Variables screen click on `Create`.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_12.png" align="center" width="85%">
+    <img src="./images/tcrm_install_12.png" align="center" width="85%">
 
 5.  To add a new variable enter the variable key name and the value, then click
     on `save`. Refer to the next 2 steps to see which variables are needed for
     each DAG.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_13.png" align="center" width="85%">
+    <img src="./images/tcrm_install_13.png" align="center" width="85%">
 
 #### 3.3 Configure General DAG variables
 
-The following table containes the general variables needed by all the DAGs.
+The following table contains the general variables needed by all the DAGs.
 Those variables have default values already automatically set up for you so
 **you don't need to change anything if the default values fit your needs**. You
 can change these variables, however, at any time by setting an Airflow variable
@@ -157,7 +157,7 @@ called `tcrm_gcs_to_ga_schedule`. To schedule `tcrm_gcs_to_ads_oc` DAG, create a
 variable called `tcrm_gcs_to_ads_oc_schedule`.
 
 The DAG name can be found in the Airflow UI in the DAGs tab:
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_18.png" align="center" width="85%">
+<img src="./images/tcrm_install_18.png" align="center" width="85%">
 
 ##### 3.3.1 General Variable Table
 
@@ -166,10 +166,10 @@ Variable Name                  | Default Value             | Variable Informatio
 `<DAG_Name>_retries`           | `0`                       | Integer. Number of times Airflow will try to re-run the DAG if it fails. We recommend to keep this at 0 since TCRM has its own retry mechnism. Seting it to any other integer however will not cause errors, but it will not attempt to re-send previously faild events.
 `<DAG_Name>_retry_delay`       | `3`                       | Integer. Number of minutes between each DAG re-run.
 `<DAG_Name>_schedule`          | `@once`                   | A DAG Schedule. See section [3.3.2 Schedule a DAG](#332-schedule-a-dag) for more information on how to schedule DAGs.
-`<DAG_Name>_is_retry`          | `1`                       | `1` to enable, `0` to disable. Whether or not the DAG should retry sending previously failed events to the same output source. This is an internal retry to send faild events from previous similar runs. It is different from the Airflow retry of the whole DAG. See the [Retry Mechanism](https://g3doc.corp.google.com/third_party/gps_building_blocks/tcrm/g3doc/use/retry.md) section of this Usage Guide for more information.
-`<DAG_Name>_is_run`            | `1`                       | `1` to enable, `0` to disable. Whether or not the DAG should includ a main run. This option can be disabled should the user want to skip the main run and only run the retry operation. See the [Run](https://g3doc.corp.google.com/third_party/gps_building_blocks/tcrm/g3doc/use/run.md) section of this Usage Guide for more information.
-`<DAG_Name>_enable_run_report` | `0`                       | `1` to enable, `0` to disable. Indicates whether the DAG will return a run report or not. Not all DAGs have reports. See the [Reports](https://g3doc.corp.google.com/third_party/gps_building_blocks/tcrm/g3doc/use/report.md) section of this Usage Guide for more information.
-`<DAG_Name>_enable_monitoring` | `1`                       | `1` to enable, `0` to disable. See the [Monitoring](https://g3doc.corp.google.com/third_party/gps_building_blocks/tcrm/g3doc/use/monitoring.md) section of this Usage Guide for more information.
+`<DAG_Name>_is_retry`          | `1`                       | `1` to enable, `0` to disable. Whether or not the DAG should retry sending previously failed events to the same output source. This is an internal retry to send failed events from previous similar runs. It is different from the Airflow retry of the whole DAG. See the [Retry Mechanism](#) section of this Usage Guide for more information.
+`<DAG_Name>_is_run`            | `1`                       | `1` to enable, `0` to disable. Whether or not the DAG should include a main run. This option can be disabled should the user want to skip the main run and only run the retry operation. See the [Run](#) section of this Usage Guide for more information.
+`<DAG_Name>_enable_run_report` | `0`                       | `1` to enable, `0` to disable. Indicates whether the DAG will return a run report or not. Not all DAGs have reports. See the [Reports](#) section of this Usage Guide for more information.
+`<DAG_Name>_enable_monitoring` | `1`                       | `1` to enable, `0` to disable. See the [Monitoring](#) section of this Usage Guide for more information.
 `monitoring_dataset`           | `tcrm_monitoring_dataset` | The dataset id of the monitoring table.
 `monitoring_table`             | `tcrm_monitoring_table`   | The table name of the monitoring table.
 `monitoring_bq_conn_id`        | `bigquery_default`        | BigQuery connection ID for the monitoring table. This could be the same or different from the input BQ connection ID.
@@ -191,11 +191,11 @@ find out about all the available scheduling options.
 These are optional variables. If schedule variables are not set, the default
 schedule for all DAGs is `@once`.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_17.png" align="center" width="85%">
+<img src="./images/tcrm_install_17.png" align="center" width="85%">
 
 #### 3.4 Configure specific DAG variables
 
-The folowing section indicates which variables are needed to run each DAG. You
+The following section indicates which variables are needed to run each DAG. You
 will only need to set up variables for the DAGs you are planning to use.
 
 ##### 3.4.1 `tcrm_bq_to_ga` DAG
@@ -208,7 +208,7 @@ To to run the `tcrm_bq_to_ga` DAG set the following variables:
     `my_table`
 *   `ga_tracking_id`: Google Analytics Tracking ID. Example: `UA-123456789-1`
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_14.png" align="center" width="85%">
+<img src="./images/tcrm_install_14.png" align="center" width="85%">
 
 ##### 3.4.2 `tcrm_gcs_to_ga` DAG
 
@@ -221,7 +221,7 @@ To run the `tcrm_gcs_to_ga` DAG set the following variables:
     `CSV`.
 *   `ga_tracking_id`: Google Analytics Tracking ID. Example: `UA-123456789-1`
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_15.png" align="center" width="85%">
+<img src="./images/tcrm_install_15.png" align="center" width="85%">
 
 ##### 3.4.3 `tcrm_bq_to_ads_oc` DAG
 
@@ -272,24 +272,24 @@ client_customer_id is located on the top right above your email after you log in
 to Google Ads. The Google Ads account should contain the campaign for TCRM to
 automate.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_24.png" align="center" width="85%">
+<img src="./images/tcrm_install_24.png" align="center" width="85%">
 
 developer_token is located in API Center after you log in to your Google Ads MCC
 account. The Google Ads MCC account should include the above Google Ads account
 that contains the campaign for TCRM to automate.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_25.png" align="center" width="85%">
+<img src="./images/tcrm_install_25.png" align="center" width="85%">
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_26.png" align="center" width="85%">
+<img src="./images/tcrm_install_26.png" align="center" width="85%">
 
 client_id and client_secret can be created in the APIs & Services page in GCP
 console.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_27.png" align="center" width="65%">
+<img src="./images/tcrm_install_27.png" align="center" width="65%">
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_28.png" align="center" width="90%">
+<img src="./images/tcrm_install_28.png" align="center" width="90%">
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_29.png" align="center" width="50%">
+<img src="./images/tcrm_install_29.png" align="center" width="50%">
 
 refresh_token can be generated by doing the following:
 
@@ -301,21 +301,21 @@ refresh_token can be generated by doing the following:
 
 *   Click on the link.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_30.png" align="center" width="85%">
+<img src="./images/tcrm_install_30.png" align="center" width="85%">
 
 *   Choose the email account that has the permission to modify your Google Ads
     data and click Allow.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_31.png" align="center" width="50%">
+<img src="./images/tcrm_install_31.png" align="center" width="50%">
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_32.png" align="center" width="50%">
+<img src="./images/tcrm_install_32.png" align="center" width="50%">
 
 *   Copy the code and paste it into the terminal after the code. The refresh
     token will be shown below.
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_33.png" align="center" width="50%">
+<img src="./images/tcrm_install_33.png" align="center" width="50%">
 
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_34.png" align="center" width="85%">
+<img src="./images/tcrm_install_34.png" align="center" width="85%">
 
 ### Step 4: Prepare Data to Send
 
@@ -328,7 +328,7 @@ for the detailed requirements.
 To send your data to GA you can choose from the following 3 options:
 
 1.  From BigQuery using the `tcrm_bq_to_ga` DAG in SQL table Format.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/bq-table.png" align="center" width="60%">
+    <img src="./images/bq-table.png" align="center" width="60%">
 
 2.  From Google Cloud Storage using the `tcrm_gcp_to_ga` DAG in JSON Format.
 
@@ -360,7 +360,7 @@ and **uncheck** “Exclude all hits from known bots and spiders”.
 To send your data to Google Ads you can choose from the following 3 options:
 
 1.  From BigQuery using the `tcrm_bq_to_ads_oc` DAG in SQL table Format.
-    <img src="/third_party/gps_building_blocks/tcrm/g3doc/images/bq-table-ads-oc.png" align="center" width="60%">
+    <img src="./images/bq-table-ads-oc.png" align="center" width="60%">
 
 2.  From Google Cloud Storage using the `tcrm_gcs_to_ads_oc` DAG in JSON Format.
 
@@ -386,4 +386,4 @@ my_conversion_2,20191030 122601 Asia/Calcutta,0.17,gclid4
 In the Airflow console click on the `DAGs` option from the top menu bar. Find
 the DAG you’d like to run in the list on the left. Then run it by clicking the
 `Play` button on the right side of the list.
-<img src="/third_party/gps_building_blocks/tcrm/g3doc/images/tcrm_install_16.png" align="center" width="85%">
+<img src="./images/tcrm_install_16.png" align="center" width="85%">
