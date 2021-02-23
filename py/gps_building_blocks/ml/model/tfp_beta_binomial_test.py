@@ -58,6 +58,19 @@ class TfpBetaBinomialTest(absltest.TestCase):
     self.assertTupleEqual(tuple(alpha.shape), (nadapt + nburn + npost, nchains))
     self.assertTupleEqual(tuple(kappa.shape), (nadapt + nburn + npost, nchains))
 
+  def test_estimator_with_data_check_posterior(self):
+    # generate some numpy test data (as opposed to tensors).
+    rows, cols, npost, nchains = 5, 2, 100, 2
+    covariate_matrix = np.arange(rows * cols).reshape((rows, cols)) / 10
+    successes = np.arange(rows)
+    trials = 2 * successes
+    bb_model = tfp_beta_binomial.BetaBinomialModel(npost=npost, nchains=nchains)
+    bb_model.fit(covariate_matrix, successes, trials)
+    posterior_params = bb_model.extract_posterior_parameters()
+    print(bb_model)
+    self.assertTupleEqual(posterior_params['beta'].shape,
+                          (npost * nchains, cols))
+
 
 if __name__ == '__main__':
   absltest.main()
