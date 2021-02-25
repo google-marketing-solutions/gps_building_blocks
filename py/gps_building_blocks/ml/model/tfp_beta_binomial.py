@@ -59,7 +59,6 @@ def model(covariate_matrix: tf.Tensor,
 
   @tfd.JointDistributionCoroutine
   def _model_it():
-    #TODO(): Allow user to change priors.
     beta = yield root(tfd.Sample(tfd.Normal(0, 1.0),
                                  [covariate_columns], name='beta'))
     alpha = yield root(tfd.Normal(0, 1.0, name='alpha'))
@@ -72,6 +71,33 @@ def model(covariate_matrix: tf.Tensor,
                                reinterpreted_batch_ndims=1,
                                name='ct')
   return _model_it
+
+
+def predictions_with_parameters(covariate_matrix: tf.Tensor,
+                                trials: tf.Tensor,
+                                beta: tf.Tensor,
+                                alpha: tf.Tensor,
+                                kappa: tf.Tensor) \
+    -> tfp.distributions.BetaBinomial:
+  """Predict successes given posterior parameters and covariate and trials.
+
+  Note that all posterior draws need to have the same length.
+
+  Args:
+    covariate_matrix: Matrix of covariates.
+    trials: Vector of trials, as tensor.
+    beta: posterior draws of beta parameters.
+    alpha: posterior draws of alpha parameter.
+    kappa: posterior draws of kappa parameter.
+
+  Returns:
+    Predicted successes as beta_proportion function, that we can `samnple()`
+      from. When you sample you get a matrix of (draws, obs) shape.
+  """
+  mu = tf.math.sigmoid(alpha[..., tf.newaxis] + tf.einsum('...p,np->...n',
+                                                          beta,
+                                                          covariate_matrix))
+  return beta_proportion(mu, kappa[..., tf.newaxis], trials)
 
 
 def _trace_fn(state: Any,
@@ -234,9 +260,30 @@ class BetaBinomialModel():
               covariate_matrix: np.ndarray,
               trials: np.ndarray,
               aggfunc: Callable = np.mean) -> np.ndarray:
-    """Predict the number of successes."""
-    # TODO(): implement sampled predictions.
-    return np.array([0])
+    """Predict the number of successes.
+
+    Args:
+      covariate_matrix: Matrix of covariates as numpy.
+      trials: number of trials, as numpy vector.
+      aggfunc: aggregation function for predictions, can be None to return
+        matrix.
+
+    Returns:
+      Aggregated or unaggregated success predictions. Note that averaged
+        integer successes could be floats.
+    """
+    params = self.extract_posterior_parameters()
+    beta = tf.convert_to_tensor(params['beta'], dtype=self.dtype)
+    alpha = tf.convert_to_tensor(params['alpha'], dtype=self.dtype)
+    kappa = tf.convert_to_tensor(params['kappa'], dtype=self.dtype)
+    covariate_matrix = tf.convert_to_tensor(covariate_matrix, dtype=self.dtype)
+    trials = tf.convert_to_tensor(trials, dtype=self.dtype)
+    predicted_successes = predictions_with_parameters(
+        covariate_matrix, trials, beta, alpha, kappa).sample()
+    if aggfunc:
+      return np.apply_along_axis(aggfunc, 0, predicted_successes.numpy())
+    else:
+      return predicted_successes.numpy()
 
   def extract_posterior_parameters(self) -> Dict[str, np.ndarray]:
     """Return posterior draws for all parameters."""
@@ -258,10 +305,10 @@ class BetaBinomialModel():
     beta = beta.numpy()[-self.npost:, :, :]
     alpha = alpha.numpy()[-self.npost:, :]
     kappa = kappa.numpy()[-self.npost:, :]
-    rhat_beta = rhats[0].numpy()[-self.npost:, :]
-    rhat_alpha = rhats[1].numpy()[-self.npost:]
-    rhat_kappa = rhats[2].numpy()[-self.npost:]
-    report = [f'{len(alpha)} samples']
+    rhat_beta = rhats[0].numpy()[-1, :]
+    rhat_alpha = rhats[1].numpy()[-1]
+    rhat_kappa = rhats[2].numpy()[-1]
+    report = [f'{alpha.size} samples']
     report.append(f'using {prob[1] - prob[0]:.2f} interval')
     report.append('Param. CI-Low Mean CI-Up Rhat')
     for i in range(self._covariate_columns):
@@ -269,14 +316,13 @@ class BetaBinomialModel():
       report.append((f'beta{i} {np.quantile(param, prob[0]):.2f} '
                      f'{param.mean():.2f} '
                      f'{np.quantile(param, prob[1]):.2f} '
-                     f'{rhat_beta[:, i].mean():.2f}'))
+                     f'{rhat_beta[i].mean():.2f}'))
     report.append((f'alpha {np.quantile(alpha, prob[0]):.2f} '
                    f'{alpha.mean():.2f} '
                    f'{np.quantile(alpha, prob[1]):.2f} '
-                   f'{rhat_alpha.mean():.2f}'))
+                   f'{rhat_alpha:.2f}'))
     report.append((f'kappa {np.quantile(kappa, prob[0]):.2f} '
                    f'{kappa.mean():.2f} '
                    f'{np.quantile(kappa, prob[1]):.2f} '
-                   f'{rhat_kappa.mean():.2f}'))
+                   f'{rhat_kappa:.2f}'))
     return '\n'.join(report)
-

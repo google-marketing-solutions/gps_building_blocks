@@ -38,7 +38,7 @@ class TfpBetaBinomialTest(absltest.TestCase):
     self.assertIsInstance(pinned, tfp.distributions.JointDistributionCoroutine)
 
   def test_with_synthetic_data(self):
-    rows, cols = 100, 2
+    rows, cols = 20, 2
     nchains = 3
     nadapt, nburn, npost = 10, 10, 10
     covariate_matrix = tf.random.stateless_normal([rows, cols], seed=[5, 8])
@@ -60,16 +60,20 @@ class TfpBetaBinomialTest(absltest.TestCase):
 
   def test_estimator_with_data_check_posterior(self):
     # generate some numpy test data (as opposed to tensors).
-    rows, cols, npost, nchains = 5, 2, 100, 2
+    rows, cols, npost, nchains = 5, 2, 20, 2
     covariate_matrix = np.arange(rows * cols).reshape((rows, cols)) / 10
     successes = np.arange(rows)
-    trials = 2 * successes
+    trials = 1 + 2 * successes
     bb_model = tfp_beta_binomial.BetaBinomialModel(npost=npost, nchains=nchains)
     bb_model.fit(covariate_matrix, successes, trials)
     posterior_params = bb_model.extract_posterior_parameters()
     print(bb_model)
+    predicted_successes = bb_model.predict(
+        covariate_matrix, trials, aggfunc=None)
     self.assertTupleEqual(posterior_params['beta'].shape,
                           (npost * nchains, cols))
+    self.assertTupleEqual(predicted_successes.shape,
+                          (npost * nchains, len(trials)))
 
 
 if __name__ == '__main__':
