@@ -95,6 +95,7 @@ class MonitoringCleanupDag(base_dag.BaseDag):
         monitoring_dataset=self.monitoring_dataset,
         monitoring_table=self.monitoring_table,
         days_to_live=self.days_to_live,
+        dag_name=_DAG_NAME,
         dag=main_dag)
 
 

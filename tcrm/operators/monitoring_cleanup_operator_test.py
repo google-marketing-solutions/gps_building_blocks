@@ -44,6 +44,7 @@ class MonitoringCleanupOperatorTest(unittest.TestCase):
       monitoring_cleanup_operator = \
           monitoring_cleanup_operator_lib.MonitoringCleanupOperator(
               monitoring_bq_conn_id='dummy-connection',
+              dag_name='dummy-dag',
               days_to_live=1,
               monitoring_dataset='dummy-monitoring-dataset',
               monitoring_table='dummy-monitoring-table',

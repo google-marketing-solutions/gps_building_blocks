@@ -27,6 +27,7 @@ class MonitoringCleanupOperator(models.BaseOperator):
 
   def __init__(self, *args,
                monitoring_bq_conn_id: str,
+               dag_name: str,
                days_to_live: int,
                monitoring_dataset: str,
                monitoring_table: str,
@@ -37,6 +38,7 @@ class MonitoringCleanupOperator(models.BaseOperator):
       *args: arguments for the operator.
       monitoring_bq_conn_id: Optional;  BigQuery connection ID for the
         monitoring table. Default is 'bigquery_default'
+      dag_name: The name of the DAG running the cleanup operator.
       days_to_live: Optional; The number of days data can live before being
         removed. Default is 50 days.
       monitoring_dataset: Dataset id of the monitoring table.
@@ -47,6 +49,7 @@ class MonitoringCleanupOperator(models.BaseOperator):
     self.days_to_live = days_to_live
     self.monitoring_hook = monitoring_hook_lib.MonitoringHook(
         bq_conn_id=monitoring_bq_conn_id,
+        dag_name=dag_name,
         monitoring_dataset=monitoring_dataset,
         monitoring_table=monitoring_table)
 

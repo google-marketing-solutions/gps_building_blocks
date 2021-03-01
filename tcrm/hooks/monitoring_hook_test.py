@@ -375,6 +375,24 @@ class MonitoringHookTest(unittest.TestCase):
 
   def test_cleanup_by_days_to_live(self):
     time_to_live = 1
+    self.hook.dag_name = 'bq_to_cm_dag'
+    cutoff_timestamp = (datetime.datetime.utcnow() - datetime.timedelta(
+        days=time_to_live)).isoformat() + 'Z'
+    cleanup_sql = (f'DELETE FROM `{self.dataset_id}.{self.table_id}` WHERE '
+                   f'`timestamp`<%(cutoff_timestamp)s AND '
+                   'dag_name="bq_to_cm_dag"')
+    params = {'cutoff_timestamp': cutoff_timestamp}
+
+    self.mock_cursor_obj.execute = mock.MagicMock()
+
+    self.hook.cleanup_by_days_to_live(days_to_live=time_to_live)
+
+    self.mock_cursor_obj.execute.assert_called_once_with(cleanup_sql, params)
+
+  def test_cleanup_by_days_to_live_running_from_cleanup_dag(self):
+    """Asserts SQL has no DAG name filter when running from cleanup DAG."""
+    time_to_live = 1
+    self.hook.dag_name = 'tcrm_monitoring_cleanup'
     cutoff_timestamp = (datetime.datetime.utcnow() - datetime.timedelta(
         days=time_to_live)).isoformat() + 'Z'
     cleanup_sql = (f'DELETE FROM `{self.dataset_id}.{self.table_id}` WHERE '

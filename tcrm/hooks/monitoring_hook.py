@@ -417,15 +417,25 @@ class MonitoringHook(
                                              params: Dict[str, Any]) -> None:
     """Performs the delete operation to remove data from the monitoring table.
 
+    If cleanup was kicked off from the cleanup DAG (tcrm_monitoring_cleanup),
+    then everything will be cleaned up. However, if cleanup was kicked off as
+    part of a non-cleanup DAG's execution, only events associated with that DAG
+    will be cleaned up. For example, if it is being run as part of bq_to_ga,
+    only events for the bq_to_ga DAG will be cleaned up.
+
     Args:
       cleanup_condition: The SQL clause to determine which data to remove.
       params: The params to be used in the SQL statement.
     """
-    sql = (
-        f'DELETE '
-        f'FROM `{self.dataset_id}.{self.table_id}` '
-        f'WHERE {cleanup_condition}'
-    )
+    if self.dag_name == 'tcrm_monitoring_cleanup':
+      where_condition = f'WHERE {cleanup_condition}'
+    else:
+      where_condition = (f'WHERE {cleanup_condition} AND '
+                         f'dag_name="{self.dag_name}"')
+
+    sql = (f'DELETE '
+           f'FROM `{self.dataset_id}.{self.table_id}` '
+           f'{where_condition}')
 
     bq_cursor = self.get_conn().cursor()
     bq_cursor.execute(sql, params)
