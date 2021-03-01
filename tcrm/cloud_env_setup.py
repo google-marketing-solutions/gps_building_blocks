@@ -48,7 +48,9 @@ _COMPOSER_PYPI_PACKAGES = {
     'frozendict': '',
 }
 # Composer environment variables.
-_COMPOSER_ENV_VARIABLES = {'PYTHONPATH': '/home/airflow/gcs'}
+_COMPOSER_ENV_VARIABLES = {
+    'PYTHONPATH': '/home/airflow/gcs:/home/airflow/gcs/plugins'
+}
 
 # Local folder names.
 _LOCAL_DAGS_FOLDER = 'src/'
