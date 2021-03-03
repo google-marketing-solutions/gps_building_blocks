@@ -86,8 +86,6 @@ AS (
     [STRUCT(totals.bounces AS value, TIMESTAMP_SECONDS(visitStartTime) AS ts)] AS totals_bounces,
     [STRUCT(totals.transactions AS value,
             TIMESTAMP_SECONDS(visitStartTime) AS ts)] AS totals_transactions,
-    [STRUCT(totals.transactionRevenue AS value,
-            TIMESTAMP_SECONDS(visitStartTime) AS ts)] AS totals_transactionRevenue,
     [STRUCT(totals.newVisits AS value,
             TIMESTAMP_SECONDS(visitStartTime) AS ts)] AS totals_newVisits,
     [STRUCT(totals.screenviews AS value,
