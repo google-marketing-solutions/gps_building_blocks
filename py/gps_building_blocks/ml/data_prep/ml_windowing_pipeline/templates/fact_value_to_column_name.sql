@@ -17,10 +17,10 @@
 #   <fact_name>: Already a legal BigQuery column name.
 #   <encoded_fact_value>: Any characters in the value that are not legal in a BigQuery column name
 #                         are replaced by _. Also, if necessary, the tail of the value is docked to
-#                         fit inside the 128 character limit.
+#                         fit inside the 100 character limit of AutoML.
 #   <hashed_fact_value>: FARM_FINGERPRINT of the fact_value to distinguish between two distinct
 #                        values that have the same encoded_fact_value, e.g "value/" and "value\"
-# Note that the function will die if the length of the fact_name and hashed_fact_value exceed 126.
+# Note that the function will die if the length of the fact_name and hashed_fact_value exceeds 74.
 # In this case, the fact name should be renamed.
 CREATE TEMP FUNCTION ColumnName(fact_name STRING, fact_value STRING) AS (
   CASE
@@ -29,11 +29,11 @@ CREATE TEMP FUNCTION ColumnName(fact_name STRING, fact_value STRING) AS (
     REGEXP_REPLACE(
       CONCAT(fact_name,
              '_',
-             # Dock the tail of the fact value so that the column name fits within 102 characters,
-             # leaving 26 characters for the feature name, and helping to ensure that the final
-             # column name fits within the BigQuery 128 character limit.
+             # Dock the tail of the fact value so that the column name fits within 74 characters,
+             # leaving 26 characters for the feature name and separating underscores. This helps
+             # ensure that the final column name fits within the AutoML 100 character limit.
              LEFT(fact_value, GREATEST(
-               0, 102 - LENGTH(fact_name) - LENGTH(CAST(FARM_FINGERPRINT(fact_value) AS STRING)))),
+               0, 74 - LENGTH(fact_name) - LENGTH(CAST(FARM_FINGERPRINT(fact_value) AS STRING)))),
              '_',
              FARM_FINGERPRINT(fact_value)
       ), '[^a-zA-Z0-9_]', '_')
