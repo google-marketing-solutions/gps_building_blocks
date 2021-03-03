@@ -21,14 +21,18 @@ import setuptools
 
 _README = "README.md"
 _EXT_README = "EXTERNAL_" + _README
+_VERSION = "VERSION"
 path = _EXT_README if os.path.isfile(_EXT_README) else _README
 
 with open(path, "r") as fh:
   long_description = fh.read()
 
+with open(_VERSION, "r") as version_file:
+  version = version_file.read().strip()
+
 setuptools.setup(
     name="gps-building-blocks",
-    version="1.2.2",
+    version=version,
     author="gPS Team",
     author_email="no-reply@google.com",
     description="Modules and tools useful for use with advanced data solutions on Google Ads, Google Marketing Platform and Google Cloud.",
