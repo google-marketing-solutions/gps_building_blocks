@@ -196,6 +196,53 @@ class InferenceTest(parameterized.TestCase):
         result,
         dataframe.drop(expected_dropped, axis=1))
 
+  @parameterized.named_parameters(
+      ('onehot_returns_expected_bins', False, False, pd.DataFrame(
+          [[1, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0],
+           [0, 1, 0, 0, 0],
+           [0, 1, 0, 0, 0],
+           [0, 1, 0, 0, 0],
+           [0, 1, 0, 0, 0],
+           [0, 0, 1, 0, 0],
+           [0, 0, 0, 0, 1]],
+          columns=['variable_(-0.02, 4.0]', 'variable_(4.0, 8.0]',
+                   'variable_(8.0, 12.0]', 'variable_(12.0, 16.0]',
+                   'variable_(16.0, 20.0]'])),
+      ('equal_sized_onehot_returns_expected_bins', True, False, pd.DataFrame(
+          [[1, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0],
+           [0, 1, 0, 0, 0],
+           [0, 1, 0, 0, 0],
+           [0, 0, 1, 0, 0],
+           [0, 0, 1, 0, 0],
+           [0, 0, 0, 1, 0],
+           [0, 0, 0, 1, 0],
+           [0, 0, 0, 0, 1],
+           [0, 0, 0, 0, 1]],
+          columns=['variable_(-0.001, 2.0]', 'variable_(2.0, 4.0]',
+                   'variable_(4.0, 6.0]', 'variable_(6.0, 8.0]',
+                   'variable_(8.0, 20.0]'])),
+      ('scalar_numeric_returns_expected_bins', False, True, pd.DataFrame(
+          [0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 4], columns=['variable'])),
+      ('equal_sized_numeric_expected_bins', True, True, pd.DataFrame(
+          [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4], columns=['variable'])),
+  )
+  def test_descretize(self, equal_sized_bins, numeric, expected_result):
+    data = data_preparation.InferenceData(pd.DataFrame(
+        data=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20],
+        columns=['variable']))
+
+    result = data.discretize_numeric_covariate(
+        'variable', equal_sized_bins=equal_sized_bins, bins=5, numeric=numeric)
+
+    pd.testing.assert_frame_equal(
+        result, expected_result, check_dtype=False)
+
 
 if __name__ == '__main__':
   absltest.main()

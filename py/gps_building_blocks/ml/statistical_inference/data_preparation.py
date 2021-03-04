@@ -289,6 +289,48 @@ class InferenceData():
 
     return self.data
 
+  def discretize_numeric_covariate(
+      self,
+      covariate_name: str,
+      equal_sized_bins: bool = False,
+      bins: int = 4,
+      numeric: bool = False):
+    """Transforms a continuous variable into a set bins.
+
+    This useful for segmenting continuous variables to a categorical variable.
+    For example when converting ages to groups of age ranges.
+
+    Args:
+      covariate_name: Name of the column to transform.
+      equal_sized_bins: Whether you want to create bins with equal number of
+        observations (when set to `True`) or segmenting in equal interval
+        looking at the values range (when set to `False`).
+      bins: Number of bins to create.
+      numeric: Whether the results of the transformation should be an integer or
+        a one-hot-encoding representation of the categorical variables
+        generated. Returning a numeric could be convenient as it would preserve
+        the "natural" ordering of the variable. For example for age ranges, with
+        "16-25" encoded as `1` and "26-35" encoded as `2` would preserve the
+        ordering which would be lost otherwise in a one-hot encoding.
+
+    Returns:
+      Latest version of the data the the selected covariate transformed.
+    """
+    cut_kwargs = {'labels': False if numeric else None, 'duplicates': 'drop'}
+
+    if equal_sized_bins:
+      buckets = pd.qcut(self.data[covariate_name], q=bins, **cut_kwargs)
+    else:
+      buckets = pd.cut(self.data[covariate_name], bins=bins, **cut_kwargs)
+
+    self.data[covariate_name] = buckets
+
+    if not numeric:
+      self.data = pd.get_dummies(
+          self.data, columns=[covariate_name], prefix=covariate_name)
+
+    return self.data
+
   def _check_control(self, raise_on_error: bool = True)  -> None:
     """Verifies if data is controlling for external variables."""
     if not self._has_control_factors:
