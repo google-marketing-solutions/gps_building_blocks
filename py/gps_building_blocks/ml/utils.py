@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common utility functions for ML modules."""
+from typing import Dict, Union
 
 import numpy as np
 
@@ -47,3 +48,49 @@ def assert_label_and_prediction_length_match(labels: np.ndarray,
   """
   assert len(labels) == len(predictions), (
       'labels and predictions should have the same length')
+
+
+def read_file(file_path: str) -> str:
+  """Reads and returns contents of the file.
+
+  Args:
+    file_path: File path.
+
+  Returns:
+    content: File content.
+
+  Raises:
+      FileNotFoundError: If the provided file is not found.
+  """
+  try:
+    with open(file_path, 'r') as stream:
+      content = stream.read()
+  except FileNotFoundError:
+    raise FileNotFoundError(f'The file "{file_path}" could not be found.')
+  else:
+    return content
+
+
+def configure_sql(sql_path: str, query_params: Dict[str, Union[str, int,
+                                                               float]]) -> str:
+  """Configures parameters of SQL script with variables supplied from Airflow.
+
+  Args:
+    sql_path: Path to SQL script.
+    query_params: Configuration containing query parameter values.
+
+  Returns:
+    sql_script: String representation of SQL script with parameters assigned.
+  """
+  sql_script = read_file(sql_path)
+
+  params = {}
+  for param_key, param_value in query_params.items():
+    # If given value is list of strings (ex. 'a,b,c'), create tuple of
+    # strings (ex. ('a', 'b', 'c')) to pass to SQL IN operator.
+    if isinstance(param_value, str) and ',' in param_value:
+      params[param_key] = tuple(param_value.split(','))
+    else:
+      params[param_key] = param_value
+
+  return sql_script.format(**params)
