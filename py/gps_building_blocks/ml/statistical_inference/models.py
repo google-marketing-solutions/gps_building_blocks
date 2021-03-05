@@ -40,15 +40,37 @@ InferenceElasticNet is a wrapper of ElasticNet in `sklearn.linear_model`.
 """
 
 import abc
-from typing import Any, MutableMapping, Text
+import enum
+from typing import Any, Collection, MutableMapping, Text
 
 import numpy as np
 import pandas as pd
 import scipy.stats
 from sklearn import linear_model
+from sklearn import metrics
 
 from gps_building_blocks.ml.diagnostics import bootstrap
 from gps_building_blocks.ml.statistical_inference import data_preparation
+
+
+@enum.unique
+class FitMetric(enum.Enum):
+  """Fit metrics types."""
+  MAPE = 'mape'
+  R2 = 'r2'
+  RMSE = 'rmse'
+
+  def score(self, actuals, predictions):
+    # Disable pylint because of https://github.com/PyCQA/pylint/issues/2306.
+
+    if self.value == 'rmse':
+      return np.sqrt(metrics.mean_squared_error(actuals, predictions))
+    elif self.value == 'mape':
+      return metrics.mean_absolute_percentage_error(
+          actuals, predictions)
+    elif self.value == 'r2':
+      return metrics.r2_score(actuals, predictions)
+
 
 
 class InferenceModel(metaclass=abc.ABCMeta):
@@ -220,6 +242,35 @@ class InferenceModel(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def _predict(self, data: pd.DataFrame, **kwargs) -> pd.Series:
     """Predicts using the underlying model implementation."""
+
+  def calculate_fit_metrics(
+      self,
+      data: data_preparation.InferenceData,
+      fit_metrics: Collection[str] = ('mape', 'r2'),
+      **kwargs) -> MutableMapping[Text, float]:
+    """Returns various fit metrics dependent on the data.
+
+    https://scikit-learn.org/stable/modules/model_evaluation.html
+
+    Allowed metrics are: mape, r2, rmse.
+
+    Args:
+      data: InferenceData object with the data you want to score.
+      fit_metrics: Various fit metrics as list eg ('mape', 'r2').
+      **kwargs: Any additional parameter to sent to `underlying` model.
+
+    Returns:
+      A dict with desired fit metrics like r2 and mape.
+
+    Raises:
+      ValueError: if a non mapped metric is requested.
+    """
+    valid_fit_metrics = [FitMetric(fit_metric) for fit_metric in fit_metrics]
+    _, target = data.get_data_and_target()
+    predictions = self.predict(data, **kwargs)
+
+    return {fit_metric.value: fit_metric.score(target, predictions)
+            for fit_metric in valid_fit_metrics}
 
 
 class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):

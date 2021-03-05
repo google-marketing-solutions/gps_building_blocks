@@ -129,6 +129,18 @@ class LinearModelTest(absltest.TestCase):
     self.assertEqual(len(predictions), len(data.data))
     pd.testing.assert_index_equal(predictions.index, data.data.index)
 
+  def test_metrics_calculates_r2_and_mape(self):
+    data = _prepare_data_and_target()
+    model = models.InferenceElasticNet(random_state=18)
+    model.fit(data)
+
+    fit_metrics = ('rmse', 'r2')
+    metrics = model.calculate_fit_metrics(data, fit_metrics=fit_metrics)
+
+    self.assertTrue(0 < metrics['r2'] < 1)
+    self.assertLess(0, metrics['rmse'])
+    self.assertCountEqual(metrics.keys(), fit_metrics)
+
   def test_permutation_test(self):
     """Ensures the permutation test computes the expected results."""
     data = _prepare_data_and_target()
