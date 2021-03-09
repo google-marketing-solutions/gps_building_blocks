@@ -15,7 +15,7 @@ import '//releasetools/rapid/workflows/rapid.pp' as rapid
 
 vars = rapid.create_vars() {}
 
-_shell_command = 'borgcfg /google_src/head/depot/google3/corp/gtech/ads/building_blocks/meta/version_file_updater/jobs/update_version.borg up --user=cse-tools-devops-jobs --skip-confirmation'
+shell_command = 'borgcfg /google_src/head/depot/google3/corp/gtech/ads/building_blocks/meta/version_file_updater/jobs/update_version.borg up --user=cse-tools-devops-jobs --skip-confirmation'
 
 task_deps = [
   'placeholer':['start'],
@@ -23,7 +23,7 @@ task_deps = [
 ]
 
 task_properties = [
-  'shell-update_version' : ['command=' + _shell_command],
+  'shell-update_version' : ['command=' + shell_command],
   'kokoro.trigger_build' : [
     "full_job_name=prod:gps_building_blocks/gcp_ubuntu/release",
     "changelist=head",
