@@ -1,17 +1,13 @@
-// Workflow that labels a candidate's MPM packages and tags the candidate.
+// Workflow that updates a target VERSION document and triggers a Kokoro build.
 //
 // Accepts this required workflow parameter:
 //
-// *   environment: Target environment, the name of a DeploymentEnvironmentInfo
-//     entry in your blueprint. The workflow will apply the mpm_label for that
-//     environment to the candidate's packages. Defaults to 'live'.
+// *   n/a
 //
 // The workflow does the following:
 //
-// 1.  Tags the candidate with ReleaseType=production if environment is 'live'.
-// 2.  Labels the packages built by the candidate based on the mpm_label of the
-//     DeploymentEnvironmentInfo whose name matches the given environment.
-// 3.  Tags the candidate with the name of the given environment.
+// 1.  Starts a Borg job executing the version_file_updater MPM module
+// 2.  Triggers a Kokoro Realease workflow.
 
 // http://google3/releasetools/rapid/tasks/executors/kokoro/trigger_build.py
 
@@ -19,11 +15,15 @@ import '//releasetools/rapid/workflows/rapid.pp' as rapid
 
 vars = rapid.create_vars() {}
 
+_shell_command = 'borgcfg /google_src/head/depot/google3/corp/gtech/ads/building_blocks/meta/version_file_updater/jobs/update_version.borg up --user=cse-tools-devops-jobs --skip-confirmation'
+
 task_deps = [
-  'kokoro.trigger_build':['start']
+  'placeholer':['start'],
+  'kokoro.trigger_build':['placeholder']
 ]
 
 task_properties = [
+  'shell-update_version' : ['command=' + _shell_command],
   'kokoro.trigger_build' : [
     "full_job_name=prod:gps_building_blocks/gcp_ubuntu/release",
     "changelist=head",
