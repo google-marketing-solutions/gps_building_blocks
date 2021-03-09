@@ -18,8 +18,8 @@ vars = rapid.create_vars() {}
 shell_command = 'borgcfg /google_src/head/depot/google3/corp/gtech/ads/building_blocks/meta/version_file_updater/jobs/update_version.borg up --user=cse-tools-devops-jobs --skip-confirmation'
 
 task_deps = [
-  'placeholer':['start'],
-  'kokoro.trigger_build':['placeholder']
+  'shell-update_version':['start'],
+  'kokoro.trigger_build':['shell-update_version']
 ]
 
 task_properties = [
