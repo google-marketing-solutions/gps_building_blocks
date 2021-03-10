@@ -19,6 +19,7 @@ import operator
 from typing import Iterable, List, Optional, Text, Tuple
 import warnings
 
+import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from gps_building_blocks.ml.preprocessing import vif
@@ -441,23 +442,51 @@ class InferenceData():
 
   def address_low_variance(self,
                            threshold: float = 0,
-                           drop: bool = True) -> pd.DataFrame:
+                           drop: bool = True,
+                           minmax_scaling: bool = False) -> pd.DataFrame:
     """Identifies low variances columns and option to drop it.
+
+    Features with a variance below the threshold are identified and dropped if
+    requested. The data is expected to be normalised to ensure variances can be
+    compared across features. The data can be normalised with MinMax scaling on
+    the fly setting minmax_scaling=True.
 
     Args:
       threshold: Threshold to use in VarianceThreshold where anything less than
-        this threshold is dropped or used for warning.
+        this threshold is dropped or used for warning. If 0, drops constants.
+        The maximum variance possible is .25 if MinMax scaling is applied.
       drop: Boolean to either drop columns with low variance or print message.
         By default all columns with low variance is dropped.
+      minmax_scaling: If False (default) no scaling is applied to the data and
+        it is expected that the user has done the appropriate normalization
+        before. If True, MinMax scaling is applied to ensure variances can be
+        compared across features.
 
     Returns:
       Latest version of the data after low variance check has been applied.
     """
     # TODO(): Address boolean and categorical columns
-    covariates = self.data.drop(columns=self.target_column)
-    covariates_normalized = pd.DataFrame(
-        preprocessing.scale(covariates), columns=covariates.columns)
-    column_var_bool = covariates_normalized.var() > threshold
+    covariates = self.data
+    if self.target_column:
+      covariates = covariates.drop(columns=self.target_column)
+
+    if minmax_scaling:
+      covariates = pd.DataFrame(
+          preprocessing.minmax_scale(covariates), columns=covariates.columns)
+      if not 0 <= threshold <= .25:
+        message = (
+            'The threshold should be between 0 and .25, with .25 being the',
+            ' maximum variance possible, leading to all columns being dropped.')
+        warnings.warn(LowVarianceWarning(message))
+    variances = covariates.var(ddof=0)
+    unique_variances = variances.unique()
+    if all(
+        np.isclose(variance, 0) or np.isclose(variance, 1)
+        for variance in unique_variances):
+      message = ('All features have a variance of 1 or 0. Please ensure you',
+                 ' do not z-score your data before running this step.')
+      warnings.warn(LowVarianceWarning(message))
+    column_var_bool = variances > threshold
     columns_to_delete = column_var_bool[~column_var_bool].index.to_list()
 
     if columns_to_delete:

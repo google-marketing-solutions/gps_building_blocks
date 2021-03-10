@@ -19,6 +19,7 @@ from unittest import mock
 from absl.testing import parameterized
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn import datasets
 
 from absl.testing import absltest
@@ -123,6 +124,55 @@ class InferenceTest(parameterized.TestCase):
     result = inference_data.address_low_variance(drop=True)
 
     pd.testing.assert_frame_equal(result, expected_result)
+
+  @parameterized.named_parameters({
+      'testcase_name': 'scale_10',
+      'scaling': 10,
+  }, {
+      'testcase_name': 'scale_50',
+      'scaling': 50,
+  }, {
+      'testcase_name': 'scale_-50',
+      'scaling': -50,
+  })
+  def test_minmaxscaling_drops_appropriate_variables(self, scaling):
+    data = pd.DataFrame(
+        data=[[0.0, 1.0, 0.0, 10.0], [-0.5, 1.0, 0.0, 10.0],
+              [0.1, 1.0, 0.0, 5.00], [0.2, 0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'variable_2', 'outcome'])
+    data = data * scaling
+    expected_result = data[['variable_1', 'outcome']]
+
+    inference_data = data_preparation.InferenceData(
+        data)
+    result = inference_data.address_low_variance(
+        threshold=.15,
+        drop=True,
+        minmax_scaling=True,
+    )
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_zscored_input_raises_warning(self):
+    data = pd.DataFrame(
+        data=[[0.0, 1.0, 0.0, 10.0], [-0.5, 1.0, 0.0, 10.0],
+              [0.1, 1.0, 0.0, 5.00], [0.2, 0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'variable_2', 'variable_3'])
+
+    data = data.apply(stats.zscore).fillna(0)
+    inference_data = data_preparation.InferenceData(data)
+    with self.assertWarns(Warning):
+      _ = inference_data.address_low_variance()
+
+  def test_minmaxscaling_with_invalid_threshold_raises_warning(self):
+    data = pd.DataFrame(
+        data=[[0.0, 1.0, 0.0, 10.0], [-0.5, 1.0, 0.0, 10.0],
+              [0.1, 1.0, 0.0, 5.00], [0.2, 0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'variable_2', 'variable_3'])
+
+    inference_data = data_preparation.InferenceData(data)
+    with self.assertWarns(Warning):
+      _ = inference_data.address_low_variance(minmax_scaling=True, threshold=.5)
 
   def test_address_collinearity_with_vif_removes_column(self):
     iris = datasets.load_iris()
