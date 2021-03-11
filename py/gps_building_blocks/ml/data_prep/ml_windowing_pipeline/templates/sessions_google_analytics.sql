@@ -167,15 +167,15 @@ AS (
             TIMESTAMP_SECONDS(visitStartTime) AS ts)] AS geoNetwork_latitude,
     [STRUCT(geoNetwork.longitude AS value,
             TIMESTAMP_SECONDS(visitStartTime) AS ts)] AS geoNetwork_longitude,
-    -- customDimensions
-    ARRAY(
-      SELECT
-        STRUCT(customDimensions.value AS value, TIMESTAMP_SECONDS(visitStartTime) AS ts)
-        FROM UNNEST(customDimensions) AS customDimensions
-        WHERE
-          customDimensions.index = 4
-          AND customDimensions.value IS NOT NULL
-    ) AS customDimensions4,
+    -- customDimensions: Example of how to extract the 4th customDimension.
+    --  ARRAY(
+    --    SELECT
+    --      STRUCT(customDimensions.value AS value, TIMESTAMP_SECONDS(visitStartTime) AS ts)
+    --      FROM UNNEST(customDimensions) AS customDimensions
+    --      WHERE
+    --        customDimensions.index = 4
+    --        AND customDimensions.value IS NOT NULL
+    --  ) AS customDimensions4,
     -- hits.page
     ARRAY(
       SELECT
