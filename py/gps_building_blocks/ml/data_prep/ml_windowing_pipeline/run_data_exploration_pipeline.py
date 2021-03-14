@@ -72,6 +72,8 @@ flags.DEFINE_integer('prediction_window_size_in_days', None,
                      'prediction_window_gap_in_days) days. Conversions outside'
                      'the prediction window are ignored.',
                      lower_bound=1)
+# Debug flag.
+flags.DEFINE_bool('verbose', False, 'Debug logging.')
 
 
 def main(argv):

@@ -52,6 +52,8 @@ flags.DEFINE_string('conversions_sql', 'conversions_google_analytics.sql',
                     'Name of the conversion extraction SQL file in templates/.')
 flags.DEFINE_string('sessions_sql', 'sessions_google_analytics.sql',
                     'Name of the session extraction SQL file in templates/.')
+# Debug flag.
+flags.DEFINE_bool('verbose', False, 'Debug logging.')
 
 
 def main(argv):

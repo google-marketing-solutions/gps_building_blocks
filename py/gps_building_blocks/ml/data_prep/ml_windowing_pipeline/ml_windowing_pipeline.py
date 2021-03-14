@@ -126,8 +126,9 @@ def _run_sql(client: bigquery.client.Client,
              template_sql: str,
              params: Dict[str, Any]) -> bigquery.table.RowIterator:
   sql = _jinja_env.get_template(template_sql).render(params)
-  # Including a print here for easier debugging and to show pipeline progress.
-  print(sql)
+  if params['verbose']:
+    # Including a print here for easier debugging and to show pipeline progress.
+    print(sql)
   return client.query(sql).result()
 
 
@@ -202,6 +203,7 @@ def _get_feature_options_params(
 
 
 def update_params_with_defaults(params):
+  """Update paramaters with default value."""
   params.setdefault('run_id', '')
   params.setdefault('timezone', 'UTC')
   params.setdefault('stop_on_first_positive', False)
@@ -212,6 +214,7 @@ def update_params_with_defaults(params):
   params.setdefault('top_n_values_per_fact', 3)
   params.update(_get_output_table_ids(
       params['project_id'], params['dataset_id'], params['run_id']))
+  params.setdefault('verbose', False)
 
 
 def check_gcp_params(params: Dict[str, Any]):

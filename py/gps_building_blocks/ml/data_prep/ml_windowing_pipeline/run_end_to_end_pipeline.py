@@ -139,6 +139,8 @@ flags.DEFINE_string('count_values', '', 'Feature Options for Count')
 flags.DEFINE_string('mode_values', '', 'Feature Options for Mode')
 flags.DEFINE_string('proportions_values', '', 'Feature Options for Proportion')
 flags.DEFINE_string('latest_values', '', 'Feature Options for Recent')
+# Debug flag.
+flags.DEFINE_bool('verbose', False, 'Debug logging.')
 
 
 def main(argv):
