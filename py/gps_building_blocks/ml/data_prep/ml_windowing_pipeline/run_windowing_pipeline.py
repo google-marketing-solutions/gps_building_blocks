@@ -99,9 +99,7 @@ flags.DEFINE_string('windows_sql', 'sliding_windows.sql',
 flags.DEFINE_bool('verbose', False, 'Debug logging.')
 
 
-def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError('Delete argv unused.')
+def main(_):
   params = FLAGS.flag_values_dict()
   ml_windowing_pipeline.run_windowing_pipeline(params)
   return 0
