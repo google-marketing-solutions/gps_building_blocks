@@ -159,13 +159,10 @@ def _get_automatic_feature_params(
   return automatic_features_params
 
 
-def _get_feature_options_params(
-    client: bigquery.client.Client,
-    params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_feature_options_params(params: Dict[str, Any]) -> Dict[str, Any]:
   """Parses input into FeatureOptions.
 
   Args:
-    client: BigQuery client.
     params: Dict from ml_windowing_pipeline parameter names to values.
 
   Returns:
@@ -184,22 +181,40 @@ def _get_feature_options_params(
       params['proportions_values'])
   feature_option_params['latest_feature_options'] = parse_feature_option(
       params['latest_values'])
-  feature_option_params['feature_options'] = params[
-      'proportions_feature_options']
-  feature_option_params['feature_options'] = params['feature_options'] + params[
-      'count_feature_options']
+  feature_option_params['feature_options'] = (
+      feature_option_params['proportions_feature_options'] +
+      feature_option_params['count_feature_options'])
+  return feature_option_params
 
+
+def _get_value_to_column_suffix_mapping_params(
+    client: bigquery.client.Client,
+    params: Dict[str, Any]) -> Dict[str, Any]:
+  """Extracts a mapping from fact name and value to column suffix.
+
+  For each feature_option in params, extracts a mapping from the fact name and
+  value to a unique BigQuery column suffix.
+
+  Args:
+    client: BigQuery client.
+    params: Dict from ml_windowing_pipeline parameter names to values.
+
+  Returns:
+    Dict containing fact_name_to_value_and_column_suffix or empty if
+    there are no feature_options.
+  """
+  new_params = {}
   fact_name_to_value_and_column_suffix = {}
-  if feature_option_params['feature_options']:
+  if params['feature_options']:
     for (fact_name, fact_value, column_name_suffix) in _run_sql(
         client, 'feature_column_name.sql', params):
       if fact_name not in fact_name_to_value_and_column_suffix:
         fact_name_to_value_and_column_suffix[fact_name] = []
       fact_name_to_value_and_column_suffix[fact_name].append(
           (fact_value, column_name_suffix))
-  feature_option_params['fact_name_to_value_and_column_suffix'] = (
-      fact_name_to_value_and_column_suffix)
-  return feature_option_params
+    new_params['fact_name_to_value_and_column_suffix'] = (
+        fact_name_to_value_and_column_suffix)
+  return new_params
 
 
 def update_params_with_defaults(params):
@@ -306,7 +321,8 @@ def generate_features_table(
   if params['features_sql'] == 'automatic_features.sql':
     params.update(_get_automatic_feature_params(client, params))
   elif params['features_sql'] == 'features_from_input.sql':
-    params.update(_get_feature_options_params(client, params))
+    params.update(_get_feature_options_params(params))
+    params.update(_get_value_to_column_suffix_mapping_params(client, params))
   _run_sql(client, params['features_sql'], params)
 
 
