@@ -227,6 +227,12 @@ def update_params_with_defaults(params):
   params.setdefault('windows_sql', 'sliding_windows.sql')
   params.setdefault('features_sql', 'automatic_features.sql')
   params.setdefault('top_n_values_per_fact', 3)
+  params.setdefault('sum_values', '')
+  params.setdefault('avg_values', '')
+  params.setdefault('count_values', '')
+  params.setdefault('mode_values', '')
+  params.setdefault('proportions_values', '')
+  params.setdefault('latest_values', '')
   params.update(_get_output_table_ids(
       params['project_id'], params['dataset_id'], params['run_id']))
   params.setdefault('verbose', False)
