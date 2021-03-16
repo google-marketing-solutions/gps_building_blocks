@@ -20,11 +20,13 @@ import abc
 import datetime
 import logging
 from typing import Any
+
 from airflow import models
 from airflow import utils
 from airflow.exceptions import AirflowException
 
 from gps_building_blocks.tcrm.operators import error_report_operator
+from gps_building_blocks.tcrm.operators import monitoring_cleanup_operator
 from gps_building_blocks.tcrm.utils import errors
 
 # Airflow DAG configurations.
@@ -41,6 +43,12 @@ _ENABLE_RETURN_REPORT = False
 _DAG_ENABLE_MONITORING = True
 _DEFAULT_MONITORING_DATASET_ID = 'tcrm_monitoring_dataset'
 _DEFAULT_MONITORING_TABLE_ID = 'tcrm_monitoring_table'
+
+# Whether or not the cleanup opeartor should run automatically after a DAG
+# completes.
+_DEFAULT_DAG_ENABLE_MONITORING_CLEANUP = False
+# Number of days data can live in the monitoring table before being removed.
+_DEFAULT_MONITORING_DATA_DAYS_TO_LIVE = 50
 
 # BigQuery connection ID for the monitoring table. Refer to
 # https://cloud.google.com/composer/docs/how-to/managing/connections
@@ -103,6 +111,10 @@ class BaseDag(abc.ABC):
     dag_enable_monitoring: Whether or not the DAG should use the monitoring
                            storage for logging. Enable monitoring to enable
                            retry and reporting later.
+    dag_enable_monitoring_cleanup: Whether or not the cleanup opeartor should
+                                   run automatically after a DAG completes.
+    days_to_live: Number of days data can live in the monitoring table before
+                  being removed.
     monitoring_dataset: Dataset id of the monitoring table.
     monitoring_table: Table name of the monitoring table.
     monitoring_bq_conn_id: BigQuery connection ID for the monitoring table.
@@ -134,6 +146,15 @@ class BaseDag(abc.ABC):
     self.dag_enable_monitoring = bool(int(
         models.Variable.get(f'{self.dag_name}_enable_monitoring',
                             _DAG_ENABLE_MONITORING)))
+
+    self.dag_enable_monitoring_cleanup = bool(int(
+        models.Variable.get(f'{self.dag_name}_enable_monitoring_cleanup',
+                            _DEFAULT_DAG_ENABLE_MONITORING_CLEANUP)))
+
+    self.days_to_live = int(
+        models.Variable.get('monitoring_data_days_to_live',
+                            _DEFAULT_MONITORING_DATA_DAYS_TO_LIVE))
+
     self.monitoring_dataset = models.Variable.get(
         'monitoring_dataset', _DEFAULT_MONITORING_DATASET_ID)
     self.monitoring_table = models.Variable.get(
@@ -197,6 +218,30 @@ class BaseDag(abc.ABC):
             ValueError) as error:
       raise errors.DAGError(error=error, msg='Couldn\'t create task.')
 
+  def _create_cleanup_task(self, main_dag: models.DAG) -> Any:
+    """Creates and initializes the cleanup task.
+
+    Args:
+      main_dag: The dag that the task attaches to.
+
+    Returns:
+      MonitoringCleanupOperator.
+    """
+    try:
+      return monitoring_cleanup_operator.MonitoringCleanupOperator(
+          task_id='monitoring_cleanup_task',
+          monitoring_bq_conn_id=self.monitoring_bq_conn_id,
+          monitoring_dataset=self.monitoring_dataset,
+          monitoring_table=self.monitoring_table,
+          days_to_live=self.days_to_live,
+          dag_name=self.dag_name,
+          dag=main_dag)
+    except (errors.DataOutConnectorValueError,
+            errors.DataInConnectorValueError,
+            AirflowException,
+            ValueError) as error:
+      raise errors.DAGError(error=error, msg='Couldn\'t create cleanup task.')
+
   def create_dag(self) -> models.DAG:
     """Creates the DAG.
 
@@ -213,6 +258,9 @@ class BaseDag(abc.ABC):
         run_task = self._try_create_task(main_dag=dag, is_retry=False)
         if self.dag_is_retry:
           run_task.set_upstream(retry_task)
+        if self.dag_enable_monitoring_cleanup:
+          cleanup_task = self._create_cleanup_task(main_dag=dag)
+          run_task.set_upstream(cleanup_task)
     except errors.DAGError as error:
       dag = self._initialize_dag()
       create_error_report_task(dag=dag, error=error)

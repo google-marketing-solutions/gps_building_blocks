@@ -43,23 +43,9 @@ _AIRFLOW_ENV = 'AIRFLOW_HOME'
 _DAG_NAME = 'tcrm_monitoring_cleanup'
 _DAG_SCHEDULE = '@once'
 
-# Number of days data can live in the monitoring table before being removed.
-_DEFAULT_MONITORING_DATA_DAYS_TO_LIVE = 50
-
 
 class MonitoringCleanupDag(base_dag.BaseDag):
   """DAG to run monitoring table cleanup."""
-
-  def __init__(self, dag_name: str):
-    """Initializes the base DAG.
-
-    Args:
-      dag_name: The name of the DAG.
-    """
-    super().__init__(dag_name)
-    self.days_to_live = int(
-        models.Variable.get('monitoring_data_days_to_live',
-                            _DEFAULT_MONITORING_DATA_DAYS_TO_LIVE))
 
   def create_dag(self) -> models.DAG:
     """Creates the monitoring cleanup DAG and attaches the cleanup task.

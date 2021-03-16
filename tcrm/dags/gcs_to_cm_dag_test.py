@@ -38,6 +38,8 @@ AIRFLOW_VARIABLES = {
     f'{_DAG_NAME}_is_run': True,
     f'{_DAG_NAME}_enable_run_report': False,
     f'{_DAG_NAME}_enable_monitoring': True,
+    f'{_DAG_NAME}_enable_monitoring_cleanup': False,
+    'monitoring_data_days_to_live': 50,
     'monitoring_dataset': 'test_monitoring_dataset',
     'monitoring_table': 'test_monitoring_table',
     'monitoring_bq_conn_id': 'test_monitoring_conn',
