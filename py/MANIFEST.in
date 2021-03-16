@@ -1,1 +1,2 @@
 graft gps_building_blocks/ml/preprocessing/data
+graft gps_building_blocks/ml/data_prep/ml_windowing_pipeline/templates
