@@ -85,9 +85,12 @@ latest_values: Feature Options for Recent.
 
 import os
 from typing import Any, Dict
+
 from google.cloud import bigquery
 import jinja2
+
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import fact
+from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import merge_feature_option_list
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import parse_feature_option
 
 _TABLE_NAME_TO_ID = {
@@ -181,9 +184,10 @@ def _get_feature_options_params(params: Dict[str, Any]) -> Dict[str, Any]:
       params['proportions_values'])
   feature_option_params['latest_feature_options'] = parse_feature_option(
       params['latest_values'])
-  feature_option_params['feature_options'] = (
-      feature_option_params['proportions_feature_options'] +
-      feature_option_params['count_feature_options'])
+  feature_option_params[
+      'count_proportion_feature_options'] = merge_feature_option_list(
+          feature_option_params['proportions_feature_options'],
+          feature_option_params['count_feature_options'])
   return feature_option_params
 
 
@@ -205,7 +209,7 @@ def _get_value_to_column_suffix_mapping_params(
   """
   new_params = {}
   fact_name_to_value_and_column_suffix = {}
-  if params['feature_options']:
+  if params['count_proportion_feature_options']:
     for (fact_name, fact_value, column_name_suffix) in _run_sql(
         client, 'feature_column_name.sql', params):
       if fact_name not in fact_name_to_value_and_column_suffix:

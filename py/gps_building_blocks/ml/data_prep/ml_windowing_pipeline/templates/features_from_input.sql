@@ -40,7 +40,7 @@ AS (
       SELECT IFNULL(AVG(value), 0) FROM UNNEST({{feature_option.fact_name}})
     ) AS avg_{{feature_option.fact_name}},
     {% endfor %}
-    {% for feature_option in feature_options %}
+    {% for feature_option in count_proportion_feature_options %}
     (
       SELECT COUNT(*) FROM UNNEST({{feature_option.fact_name}})
     ) AS count_{{feature_option.fact_name}},
@@ -48,36 +48,36 @@ AS (
     {% for feature_option in mode_feature_options %}
     (
       SELECT
-      {% if not feature_options.value_list %}
+      {% if not feature_option.value_list %}
         value
       {% else %}
         CASE
-        {% for value in feature_options.value_list %}
+        {% for value in feature_option.value_list %}
           WHEN CAST(value AS STRING) = '{{value}}' THEN CAST(value AS STRING)
         {% endfor %}
-        {% if feature_options.remainder_column_name %}
-          ELSE '{{feature_options.remainder_column_name}}'
+        {% if feature_option.remainder_column_name %}
+          ELSE '{{feature_option.remainder_column_name}}'
         {% endif %}
         END
       {% endif %}
         AS transformed_value
       FROM UNNEST({{feature_option.fact_name}})
       GROUP BY transformed_value
-      ORDER BY COUNT(*) DESC, value
+      ORDER BY COUNT(*) DESC, transformed_value
       LIMIT 1
     ) AS mode_{{feature_option.fact_name}},
     {% endfor %}
     {% for feature_option in latest_feature_options %}
     (
       SELECT
-      {% if not feature_options.value_list %}
+      {% if not feature_option.value_list %}
         value
       {% else %}
         CASE
-        {% for value in feature_options.value_list %}
+        {% for value in feature_option.value_list %}
           WHEN CAST(value AS STRING) = '{{value}}' THEN CAST(value AS STRING)
         {% endfor %}
-        {% if feature_options.remainder_column_name %}
+        {% if feature_option.remainder_column_name %}
           ELSE '{{feature_options.remainder_column_name}}'
         {% endif %}
           END
@@ -173,7 +173,7 @@ AS (
       {% endfor %}
       {% if opt.remainder_column_name %}
     SAFE_DIVIDE(
-        Features.count_{{opt.remainder_column_name}},
+        Features.count_{{opt.fact_name}}_others,
         Features.count_{{opt.fact_name}})
       AS proportion_{{opt.remainder_column_name}},
       {% endif %}
@@ -188,7 +188,7 @@ AS (
     Features.count_{{column_suffix}},
         {% endfor %}
         {% if opt.remainder_column_name %}
-    Features.count_{{opt.remainder_column_name}},
+    Features.count_{{opt.fact_name}}_others AS count_{{opt.remainder_column_name}},
         {% endif %}
       {% endif %}
     {% endfor %}

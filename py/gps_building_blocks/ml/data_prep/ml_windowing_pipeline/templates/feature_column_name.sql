@@ -17,7 +17,7 @@
 #   feature_options: List of feature option with value list
 
 {% include 'fact_value_to_column_name.sql' %}
-{% for feature_option in feature_options  %}
+{% for feature_option in count_proportion_feature_options  %}
   {% if not loop.first and feature_option.value_list %} # Union at Feature Option level
    UNION ALL
   {% endif %}

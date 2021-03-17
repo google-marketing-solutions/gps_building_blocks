@@ -85,3 +85,28 @@ def split(param_str: str, delimiter: str) -> List[str]:
   for line in csv.reader(value_list_str, delimiter=delimiter, escapechar='/'):
     values = line
   return values
+
+
+def merge_feature_option_list(
+    list1: List[feature_option.FeatureOption],
+    list2: List[feature_option.FeatureOption]
+) -> List[feature_option.FeatureOption]:
+  """Merges two lists of FeatureOption into one list without duplication.
+
+  Args:
+    list1: List of FeatureOptions
+    list2: List of FeatureOptions
+
+  Returns:
+    List of FeatureOptions.
+  """
+
+  fact_dict = {}
+  for feature_opt2 in list2:
+    fact_dict[feature_opt2.fact_name] = feature_opt2
+
+  for feature_opt1 in list1:
+    if feature_opt1.fact_name not in fact_dict:
+      fact_dict[feature_opt1.fact_name] = feature_opt1
+
+  return list(fact_dict.values())
