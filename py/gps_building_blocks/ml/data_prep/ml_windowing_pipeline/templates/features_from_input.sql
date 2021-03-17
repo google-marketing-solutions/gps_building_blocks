@@ -78,7 +78,7 @@ AS (
           WHEN CAST(value AS STRING) = '{{value}}' THEN CAST(value AS STRING)
         {% endfor %}
         {% if feature_option.remainder_column_name %}
-          ELSE '{{feature_options.remainder_column_name}}'
+          ELSE '{{feature_option.remainder_column_name}}'
         {% endif %}
           END
       {% endif %}
