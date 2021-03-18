@@ -167,7 +167,7 @@ Parameters:
 | conversions_sql | Optional. Name of the conversion extraction SQL file in templates/ directory. Default value is 'conversions_google_analytics.sql'. | *'my_analytics_conversions.sql'* |
 | sessions_sql | Optional. Name of the session extraction SQL file in templates/ directory. Default value is 'sessions_google_analytics.sql'. | *'my_analytics_sessions.sql'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
-| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | * True * |
+| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
 
 To run in jupyter notebook:
 
@@ -241,7 +241,7 @@ Parameters:
 | prediction_window_size_in_days | Required. Duration of the prediction window in days. The prediction window ends on (snapshot date + prediction_window_gap_in_days + prediction_window_size_in_days). Conversions outside the prediction window are ignored. Minimum value is 1. | 14 |
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
-| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | * True * |
+| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
 
 
 To run in jupyter Notebook:
@@ -287,7 +287,7 @@ The windows can be defined in two ways:
 * based on calendar dates and a sliding window. This is implemented in the
   `sliding_windows.sql` and used as the default.
 * based on each session of each user. This is implemented in the
-  `session_windows.sql` and you can use --windows_sql parameter to specify it.
+  `session_windows.sql` and you can use the `windows_sql` parameter to specify it.
 
 **Usage example:**
 
@@ -306,7 +306,7 @@ The windows can be defined in two ways:
 | windows_sql | Optional. Name of the windows extraction SQL file in templates/ directory. Default value is 'sliding_windows.sql'. Set this to 'session_windows.sql' to window data based on user session. | *'sliding_windows.sql'* |
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
-| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | * True * |
+| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
 
 To run in jupyter Notebook:
 
@@ -372,8 +372,8 @@ Parameters:
 | proportions_values | Optional. A semi-colon separated list of categorical Feature Options to create Proportion feature (proportion of occurance of each category): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | latest_values | Optional. A semi-colon separated list of categorical Feature Options to create Latest Value feature (the latest category value): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | mode_values | Optional. A semi-colon separated list of categorical Feature Options to create Mode Value feature (the most frequent category value): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
-| run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'* |
-| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | * True * |
+| run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
+| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
 
 To run in jupyter notebook:
 
@@ -430,7 +430,7 @@ python run_features_pipeline.py \
 | features_sql | Required. Name of the feature extraction SQL file in templates/ directory. Usee 'automatic_features.sql'. Check, modify and use 'features_google_analytics.sql' and 'features_firebase.sql' for custom SQL feature extraction. | *'automatic_features.sql'* |
 | top_n_values_per_fact | Optional. Extract the top n values by count for each categorical fact to turn into features in automatic feature extraction. Default value is 3. | *5* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
-| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | * True * |
+| verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
 
 To run in jupyter notebook:
 
