@@ -41,7 +41,7 @@ def calc_performance_metrics(
     binarize_threshold: Probability threshold to be used to binarize the
       predicted probabilities. By default the proportion of positive instances
       in the labels is used.
-    decimal_points: Number of decimal points to use when outputing the
+    decimal_points: Number of decimal points to use when outputting the
       calculated performance metrics.
 
   Returns:
@@ -52,11 +52,11 @@ def calc_performance_metrics(
        Following metrics are calculated after binarizing the predicted
        probabilities based on the given binarize_threshold,
        accuracy: Total accuracy of the predictions,
-       true_positive_rate (recall or sensitiviry): True positive rate,
+       true_positive_rate (recall or sensitivity): True positive rate,
        true_negative_rate (specificity): True negative rate,
        precision: Precision (confidence) of the true positive predictions,
        f1_score: F1 score of sensitivity and specificity,
-       precision_uplift: Uplift of the precision conpared to random prediction}
+       precision_uplift: Uplift of the precision compared to random prediction}
   """
   utils.assert_label_values_are_valid(labels)
   utils.assert_prediction_values_are_valid(probability_predictions)
@@ -82,31 +82,24 @@ def calc_performance_metrics(
                             binarize_threshold).astype(int))
 
   # Calculate metrics based on binarized predictions.
-  accuracy = round(
-      sklearn.metrics.accuracy_score(labels, binarized_predictions),
-      decimal_points)
-  tp_rate = round(
-      sklearn.metrics.recall_score(labels, binarized_predictions, pos_label=1),
-      decimal_points)
-  tn_rate = round(
-      sklearn.metrics.recall_score(labels, binarized_predictions, pos_label=0),
-      decimal_points)
-  precision = round(
-      sklearn.metrics.precision_score(labels, binarized_predictions),
-      decimal_points)
-  f1_score = round(
-      sklearn.metrics.f1_score(labels, binarized_predictions), decimal_points)
+  accuracy = sklearn.metrics.accuracy_score(labels, binarized_predictions)
+  tp_rate = sklearn.metrics.recall_score(
+      labels, binarized_predictions, pos_label=1)
+  tn_rate = sklearn.metrics.recall_score(
+      labels, binarized_predictions, pos_label=0)
+  precision = sklearn.metrics.precision_score(labels, binarized_predictions)
+  f1_score = sklearn.metrics.f1_score(labels, binarized_predictions)
 
   return {
-      'prop_positives': prop_positives,
-      'auc_roc': auc_roc,
-      'auc_pr': auc_pr,
-      'binarize_threshold': binarize_threshold,
-      'accuracy': accuracy,
-      'true_positive_rate': tp_rate,
-      'true_negative_rate': tn_rate,
-      'precision': precision,
-      'f1_score': f1_score
+      'prop_positives': round(prop_positives, decimal_points),
+      'auc_roc': round(auc_roc, decimal_points),
+      'auc_pr': round(auc_pr, decimal_points),
+      'binarize_threshold': round(binarize_threshold, decimal_points),
+      'accuracy': round(accuracy, decimal_points),
+      'true_positive_rate': round(tp_rate, decimal_points),
+      'true_negative_rate': round(tn_rate, decimal_points),
+      'precision': round(precision, decimal_points),
+      'f1_score': round(f1_score, decimal_points)
   }
 
 
@@ -120,11 +113,11 @@ def calc_bin_metrics(labels: np.ndarray,
     labels: An array of true binary labels represented by 1.0 and 0.0.
     probability_predictions: An array of predicted probabilities between 0.0 and
       1.0.
-    number_bins: Number of bins that we want to divide the ranked precitions
+    number_bins: Number of bins that we want to divide the ranked predictions
       into. Default is deciles (10 bins) such that the 1st bin contains the
-      higest 10% of the predictions, the 2nd bin contains the next 10% of the
+      highest 10% of the predictions, the 2nd bin contains the next 10% of the
       predictions and so on.
-      decimal_points: Number of decimal points to use when outputing the
+      decimal_points: Number of decimal points to use when outputting the
         calculated performance metrics.
 
   Returns:
@@ -213,7 +206,7 @@ def plot_bin_metrics(bin_metrics: pd.DataFrame,
     fig_height: Height of the figure.
     title_fontsize: Title font size of the plots.
     axis_label_fontsize: Axis label font size of the plots.
-    axis_tick_fontsize: Axis tick finrt size of the plots.
+    axis_tick_fontsize: Axis tick font size of the plots.
     precision_bar_color: Color of the precision bar plot.
     precision_uplift_bar_color: Color of the precision uplift bar plot.
     coverage_bar_color: Color of the coverage bar plot.
@@ -268,10 +261,10 @@ def calc_cumulative_bin_metrics(
     probability_predictions: An array of predicted probabilities between 0.0 and
       1.0.
     number_bins: Number of cumulative bins that we want to divide the ranked
-      precitions into. Default is 10 bins such that the 1st bin contains the
-      highest 10% of the predictions, 2nd bin contains the higest 20% of the
+      predictions into. Default is 10 bins such that the 1st bin contains the
+      highest 10% of the predictions, 2nd bin contains the highest 20% of the
       predictions and so on.
-      decimal_points: Number of decimal points to use when outputing the
+      decimal_points: Number of decimal points to use when outputting the
         calculated performance metrics.
 
   Returns:
@@ -358,7 +351,7 @@ def plot_cumulative_bin_metrics(
     fig_height: Height of the figure.
     title_fontsize: Title font size of the plots.
     axis_label_fontsize: Axis label font size of the plots.
-    axis_tick_fontsize: Axis tick finrt size of the plots.
+    axis_tick_fontsize: Axis tick font size of the plots.
     precision_bar_color: Color of the precision bar plot.
     precision_uplift_bar_color: Color of the precision uplift bar plot.
     coverage_bar_color: Color of the coverage (recall) bar plot.
@@ -482,7 +475,7 @@ def _calc_stats_and_plot_categorical_feature(
 
   Returns:
     plot: A stacked bar plot showing the distribution of categories of the
-      featurte for each bin.
+      feature for each bin.
   """
   # Calculates the distribution (proportion) of each category of the feature
   # within the bin.
@@ -542,13 +535,13 @@ def plot_binned_features(
     data: Dataset containing the feature to be plotted with the probability
       predictions columns.
     prediction_column_name: Column name of the probability predictions.
-    feature_names: Columns names of the features to be ploted.
+    feature_names: Columns names of the features to be plotted.
     feature_types: Types of the corresponding features to be plotted in order of
       the values in feature_names. Should only contains 'numerical' and
       'categorical' as values.
-    number_bins: Number of bins that we want to divide the ranked precitions
+    number_bins: Number of bins that we want to divide the ranked predictions
       into. Default is deciles (10 bins) such that the 1st bin contains the
-      higest 10% of the predictions, the 2nd bin contains the next 10% of the
+      highest 10% of the predictions, the 2nd bin contains the next 10% of the
       predictions and so on.
     fig_width: Width of the figure.
     fig_height: Height of the figure.
@@ -560,7 +553,7 @@ def plot_binned_features(
     legend_font_size: Font size of the legend.
 
   Returns:
-    plots: Plots of the selected fetaures.
+    plots: Plots of the selected features.
   """
   assert len(feature_names) == len(feature_types), (
       'feature_names and feature_types should have the same length')
@@ -616,7 +609,7 @@ def plot_predicted_probabilities(labels: np.ndarray,
                                  print_stats: bool = True,
                                  fig_width: Optional[int] = 20,
                                  fig_height: Optional[int] = 15) -> axes.Axes:
-  """Plots the distributions of predicted probsabilities for each class.
+  """Plots the distributions of predicted probabilities for each class.
 
   Args:
     labels: An array of true binary labels represented by 1.0 and 0.0.
@@ -677,7 +670,6 @@ def plot_roc_curve(labels: np.ndarray,
 
   Returns:
       plots: Class density plots of the ROC curve.
-
   """
   false_positive_rate, ture_positive_rate, _ = sklearn.metrics.roc_curve(
       labels, probability_predictions)

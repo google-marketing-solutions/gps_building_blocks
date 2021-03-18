@@ -19,7 +19,13 @@ scalability to the data science workflow.
 
 ## Modules overview
 
-### Bootstrap
+### Installation
+
+```python
+pip install gps_building_blocks
+```
+
+## Bootstrap
 The module, `regression_bootstrap` offers a simple interface to run a
 parallelized bootstrap analysis when using `sklearn.linear_model.LinearModel` models.
 It is [good practice](https://statweb.stanford.edu/~owen/courses/305-1314/FoxOnBootingRegInR.pdf)
@@ -44,19 +50,20 @@ to use at least 1,000 bootstrap samples, even 10,000 is not uncommon.
       n_jobs=-1)
 ```
 
-### Binary classification diagnostics
+## Binary classification diagnostics
 
 This module helps to diagnose a binary classification model to make sure that
-the model is fair (e.g. no label leakage in features). It also extracts model
-insights (the relationship between features and the predictions/label) helping
-to generate new business insights. Further, it produces plots to understand the
-model performance in relation to the predictions helping to design media
-experiments in the case of propensity models.
+the model is reasonable (e.g. no label leakage in features). It also extracts
+model insights (the relationship between features and the predictions/label)
+helping to generate new business insights. Further, it produces plots to
+understand the model performance in relation to the predictions helping to
+design media experiments in the case of propensity models.
 
 The different functionalities are explained below.
 
-NOTE: Following all functions require a Pandas DataFrame containing `labels`
-and `probability predictions`.
+NOTE: Following functions require a Pandas DataFrame with columns containing the
+binary label (1.0 and 0.0 values) and predicted probabilities (between 0.0 and
+1.0).
 
 #### Calculate Performance Metrics
 
@@ -66,6 +73,8 @@ performance metrics related to a binary classification model.
 **Usage example:**
 
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 binary_classification.calc_performance_metrics(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values)
@@ -93,15 +102,15 @@ The description of above metrics:
 *   `auc_roc`: Area under the ROC curve (more on this below).
 *   `auc_pr`: Area under the Precision Recall Curve (more on this below).
 *   `binarize_threshold`: The probability threshold used to binarize the
-    predictions to calculate the following performance metrics.
+     predictions to calculate the following performance metrics.
 *   `accuracy`: overall accuracy of the predictions.
 *   `true_positive_rate`: (Recall or Sensitivity) proportion of positive.
-    instances correctly predicted out of all the positive instances in the
-    dataset.
+     instances correctly predicted out of all the positive instances in the
+     dataset.
 *   `true_negative_rate`: (Specificity) proportion of negative instances.
-    correctly predicted out of all the negative instances in the dataset.
+     correctly predicted out of all the negative instances in the dataset.
 *   `precision`: (Confidence) proportion of positive instances correctly
-    predicted out of all the instances predicted as positives.
+     predicted out of all the instances predicted as positives.
 *   `f1_score`: A weighted average between Precision and Recall.
 
 #### Plot ROC (True Positive Rate vs False Positive Rate)
@@ -115,13 +124,15 @@ Under The Curve) is also printed.
 **Usage example:**
 
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 binary_classification.plot_roc_curve(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values,
-    print_stats=False,
+    print_stats=True,
     fig_width=5,
     fig_height=5,
-    curve_color='k')
+    curve_color='black')
 ```
 
 **Expected output:**
@@ -143,10 +154,12 @@ also printed for the evaluation of precision recall curve.
 **Usage example:**
 
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 binary_classification.plot_precision_recall_curve(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values,
-    curve_color='g',
+    curve_color='green',
     fig_width=4,
     fig_height=4)
 ```
@@ -164,6 +177,8 @@ the predicted probabilities for different classes are.
 **Usage example:**
 
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 binary_classification.plot_predicted_probabilities(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values,
@@ -193,6 +208,8 @@ bins of the predicted probabilities. It does following:
 **Usage example:**
 
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 bin_metrics = binary_classification.calc_bin_metrics(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values)
@@ -231,6 +248,8 @@ metrics for cumulative bins of the predicted probabilities. It does following:
 **Usage example:**
 
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 cumulative_bin_metrics = binary_classification.calc_cumulative_bin_metrics(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values)
@@ -259,7 +278,12 @@ bins (e.g. deciles when N = 10) such that the first bin has the instances with
 the highest probabilities and so on. Then it calculates and plots the
 distribution of each feature for each plot.
 
+NOTE: Following functions require a Pandas DataFrame with columns containing the
+predicted probabilities (between 0.0 and 1.0) and features.
+
 ```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+
 feature_names = ('recency', 'history', 'channel', 'zip_code')
 feature_types = ('numerical', 'numerical', 'categorical', 'categorical')
 binary_classification.plot_binned_features(
@@ -286,17 +310,17 @@ leading to:
 plotted for each bin as shown below. For example, in the following plot we see
 the positive correlation between the features ‘history’ and the predictions.
 
-<img src="images/feature_exp_num.png" width="40%">
+<img src="images/feature_exp_num.png" width="80%">
 
 *Categorical feature plots:* For each categorical feature we plot the
 distribution of categorical values within each bin to observe their relationship
 between the predictions as shown below.
 
-<img src="images/feature_exp_cat.png" width="40%">
+<img src="images/feature_exp_cat.png" width="80%">
 
 *Example of a suspicious feature:* If a feature shows a very dramatic
 distribution change going from high probability bins to low probability ones (as
 in the plot below) that would require more investigation to make sure that
 distribution change is not due to data collection or processing issues.
 
-<img src="images/feature_exp_sus.png" width="40%">
+<img src="images/feature_exp_sus.png" width="80%">
