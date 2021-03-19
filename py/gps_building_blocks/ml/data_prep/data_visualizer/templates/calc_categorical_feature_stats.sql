@@ -14,8 +14,8 @@
 
 -- Calculate statistics for categorical features in the Features table in BigQuery.
 -- Features table is created by the
--- GenerateFeaturesPipeline of the MLDataWindowingPipeline tool. For more info:
--- https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/master/marketing-analytics/predicting/ml-data-windowing-pipeline
+-- FeaturesPipeline of the MLWindowingPipeline tool. For more info:
+-- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects following parameters:
 -- `bq_features_table`: Full path to the Features Table in BigQuery. Ex: project.dataset.table.
@@ -24,9 +24,9 @@
 WITH
   FeatureStructTable AS (
     SELECT
-      userId AS user_id,
-      effectiveDate AS snapshot_date,
-      predictionLabel AS label,
+      user_id,
+      snapshot_ts AS snapshot_date,
+      label,
       [
           {sql_code_segment}
       ] AS feature_data

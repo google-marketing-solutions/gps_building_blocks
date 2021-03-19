@@ -13,14 +13,14 @@
 # limitations under the License.
 
 # python3
-"""Visualizes the Instances table created by the MLDataWindowingPipeline.
+"""Visualizes the Instances table created by the ML Windowing Pipeline module.
 
 Calculates statistics from the Instance table in BigQuery, generates and outputs
 plots.
 
 Instance table is created by the DataExplorationPipeline of the
-MLDataWindowingPipeline tool. For more info:
-https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/master/marketing-analytics/predicting/ml-data-windowing-pipeline
+ML Windowing Pipeline tool. For more info:
+https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 """
 
 from typing import Optional, Union
@@ -184,7 +184,8 @@ class InstanceVisualizer(object):
         'xlabel_fontsize': barplot_xlabel_fontsize,
         'ylabel_fontsize': barplot_ylabel_fontsize,
         'xticklabels_fontsize': barplot_xticklabels_fontsize,
-        'yticklabels_fontsize': barplot_yticklabels_fontsize
+        'yticklabels_fontsize': barplot_yticklabels_fontsize,
+        'xticklabels_rotation': 45
     }
 
     logging.info('Plotting % of positive label distribution over time.')

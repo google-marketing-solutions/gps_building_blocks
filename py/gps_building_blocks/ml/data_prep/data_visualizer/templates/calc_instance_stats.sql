@@ -13,8 +13,8 @@
 -- limitations under the License.
 
 -- Calculate statistics from Instance table in BigQuery. Instance table is created by the
--- DataExplorationPipeline of the MLDataWindowingPipeline tool. For more info:
--- https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/master/marketing-analytics/predicting/ml-data-windowing-pipeline
+-- DataExplorationPipeline of the MLWindowingPipeline tool. For more info:
+-- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects the following parameters:
 --  bq_instance_table: Full path to the Instance Table in BigQuery. Ex: project.dataset.table.
@@ -28,7 +28,7 @@
 WITH
   Data AS (
     SELECT
-      CAST(TIMESTAMP_MILLIS(snapshotTimeInMillis) AS DATE) AS snapshot_date,
+      CAST(snapshot_ts AS DATE) AS snapshot_date,
       {label_column} as label
     FROM `{bq_instance_table}`
     ),

@@ -13,20 +13,19 @@
 # limitations under the License.
 
 # python3
-"""Visualizes the ML features created by the MLDataWindowingPipeline.
+"""Visualizes the ML features created by the ML Windowing Pipeline.
 
 Calculates statistics from the numerical and categoticals features in the
 Features table in BigQuery, generates and outputs plots. These plots can be
 used to explore the features to understand the distributions and any anomalies
 such as label leakage and inconsistencies over time.
 
-Feature table is created by the GenerateFeaturesPipeline of the
-MLDataWindowingPipeline tool. For more info:
-https://cloud.google.com/solutions/preparing-ml-ready-data-for-personalization
+Feature table is created by the FeaturesPipeline of the
+ML Windowing Pipeline tool. For more info:
+https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 """
 
 from typing import List, Optional, Sequence, Union
-
 from absl import logging
 from google.cloud import bigquery
 from matplotlib import axes
@@ -34,7 +33,6 @@ from matplotlib import pyplot
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from gps_building_blocks.ml import utils
 from gps_building_blocks.ml.data_prep.data_visualizer import viz_utils
 
 # Class FeatureVisualizer utilize these constants to generate  plots and arrange
@@ -138,9 +136,7 @@ def _plot_numerical_feature(
       ncols=_NUMERICAL_COLS_IN_SUBPLOTS_GRID,
       figsize=(plot_style_params.fig_width, plot_style_params.fig_height))
 
-  df_data.loc[:, 'snapshot_date_dt'] = pd.to_datetime(df_data['snapshot_date'])
-
-  df_data = df_data.sort_values(by='snapshot_date_dt', ascending=True)
+  df_data = df_data.sort_values(by='snapshot_date', ascending=True)
   # Calculate 95% confidence interval to plot error bars
   # indicating estimated range of values for average.
   df_data.loc[:, 'ci'] = (1.96 * df_data['stddev'] /
@@ -149,6 +145,7 @@ def _plot_numerical_feature(
   density_plot_common_params = {
       'plot_data': df_data_sample,
       'label_variable': 'label',
+      'title_fontsize': plot_style_params.lineplot_title_fontsize,
       'class1_label': positive_class_label,
       'class2_label': negative_class_label,
       'axes': plots
@@ -174,14 +171,15 @@ def _plot_numerical_feature(
 
   viz_utils.plot_line(
       plot_data=pos_data,
-      x_variable='snapshot_date_dt',
+      x_variable='snapshot_date',
       y_variable='average',
+      line_color='green',
       title=f'{feature_name} - {title_text} = {positive_class_label}',
       subplot_index=1,
       **common_lineplot_params)
 
   plots[1].errorbar(
-      x=pos_data['snapshot_date_dt'],
+      x=pos_data['snapshot_date'],
       y=pos_data['average'],
       yerr=pos_data['ci'])
 
@@ -190,14 +188,15 @@ def _plot_numerical_feature(
 
   viz_utils.plot_line(
       plot_data=neg_data,
-      x_variable='snapshot_date_dt',
+      x_variable='snapshot_date',
       y_variable='average',
+      line_color='blue',
       title=f'{feature_name} - {title_text} = {negative_class_label}',
       subplot_index=2,
       **common_lineplot_params)
 
   plots[2].errorbar(
-      x=neg_data['snapshot_date_dt'],
+      x=neg_data['snapshot_date'],
       y=neg_data['average'],
       yerr=neg_data['ci'])
   return plots
@@ -230,10 +229,9 @@ def _plot_categorical_feature(
       figsize=(plot_style_params.fig_width, plot_style_params.fig_height))
 
   # Processing types for filtering and sorting.
-  df_data['label'] = df_data[['label']].astype(str)
-  df_data.loc[:, 'snapshot_date_dt'] = pd.to_datetime(df_data['snapshot_date'])
-  # Aggregating dataframe on date level to get data for the first chart.
+  df_data.loc[:, 'label'] = df_data['label'].astype(str)
 
+  # Aggregating dataframe on date level to get data for the first chart.
   cols_value_count = ['feature', 'value', 'label']
   df_value_count = df_data.groupby(cols_value_count)[['count']].sum()
 
@@ -249,43 +247,43 @@ def _plot_categorical_feature(
 
   # Dataframe for label True.
   pos = df_data[df_data['label'] == 'True']
-  pos = pos.sort_values(['snapshot_date_dt', 'feature'], ascending=True)
+  pos = pos.sort_values(['snapshot_date', 'feature'], ascending=True)
   pos_pivoted = pos.pivot(
-      index='snapshot_date_dt', columns='value', values='percentage')
+      index='snapshot_date', columns='value', values='percentage')
 
   # Dataframe for label False.
   neg = df_data[df_data['label'] == 'True']
-  neg = neg.sort_values(['snapshot_date_dt', 'feature'], ascending=True)
+  neg = neg.sort_values(['snapshot_date', 'feature'], ascending=True)
   neg_pivoted = neg.pivot(
-      index='snapshot_date_dt', columns='value', values='percentage')
+      index='snapshot_date', columns='value', values='percentage')
 
   # Class conditional proportions for each category.
   plot1 = sns.barplot(
       x='percentage', y='value', data=df_data, ax=plots[0], hue='label')
   plot1.set_title(
       'Distribution of ' + feature_name,
-      fontsize=plot_style_params.lineplot_title_fontsize)
-  plot1.set_xlabel('%', fontsize=plot_style_params.lineplot_xlabel_fontsize)
-  plot1.set_ylabel('Value', fontsize=plot_style_params.lineplot_ylabel_fontsize)
-  plot1.tick_params(labelsize=plot_style_params.lineplot_xticklabels_fontsize)
+      fontsize=plot_style_params.barplot_title_fontsize)
+  plot1.set_xlabel('%', fontsize=plot_style_params.barplot_xlabel_fontsize)
+  plot1.set_ylabel('Value', fontsize=plot_style_params.barplot_ylabel_fontsize)
+  plot1.tick_params(labelsize=plot_style_params.barplot_xticklabels_fontsize)
 
   # Plot positive class.
-  plot2 = pos_pivoted.plot.bar(stacked=True, ax=plots[1])
+  plot2 = pos_pivoted.plot.bar(stacked=True, ax=plots[1], rot=45)
   plot2.set_title(
       'Snapshot Distribution of ' + feature_name + ' for label = True',
-      fontsize=plot_style_params.lineplot_title_fontsize)
-  plot2.set_ylabel('%', fontsize=plot_style_params.lineplot_ylabel_fontsize)
+      fontsize=plot_style_params.barplot_title_fontsize)
+  plot2.set_ylabel('%', fontsize=plot_style_params.barplot_ylabel_fontsize)
   plot2.set_xlabel(
-      'Snapshot Date', fontsize=plot_style_params.lineplot_xticklabels_fontsize)
+      'Snapshot Date', fontsize=plot_style_params.barplot_xticklabels_fontsize)
 
   # Plot negative class.
-  plot3 = neg_pivoted.plot.bar(stacked=True, ax=plots[2])
+  plot3 = neg_pivoted.plot.bar(stacked=True, ax=plots[2], rot=45)
   plot3.set_title(
       'Snapshot Distribution of ' + feature_name + ' for label = False',
-      fontsize=plot_style_params.lineplot_title_fontsize)
-  plot3.set_ylabel('%', fontsize=plot_style_params.lineplot_ylabel_fontsize)
+      fontsize=plot_style_params.barplot_title_fontsize)
+  plot3.set_ylabel('%', fontsize=plot_style_params.barplot_ylabel_fontsize)
   plot3.set_xlabel(
-      'Snapshot Date', fontsize=plot_style_params.lineplot_xticklabels_fontsize)
+      'Snapshot Date', fontsize=plot_style_params.barplot_xticklabels_fontsize)
   return plots
 
 
@@ -344,8 +342,10 @@ class FeatureVisualizer(object):
     Returns:
       results: sql code segment.
     """
-    sql_segment = ', '.join(f"STRUCT('{column}' AS feature, {column} AS value)"
-                            for column in column_list)
+    sql_segment = ', '.join(
+        f"STRUCT('{column}' AS feature, {column} AS value)"
+        for column in column_list
+        )
 
     return sql_segment
 
@@ -378,7 +378,7 @@ class FeatureVisualizer(object):
         'bq_features_table': self._features_table_path,
         'sql_code_segment': sql_segment
     }
-    sql_query = utils.configure_sql(_CALC_NUM_FEATURE_STATS_SQL_PATH,
+    sql_query = viz_utils.patch_sql(_CALC_NUM_FEATURE_STATS_SQL_PATH,
                                     query_params)
     logging.info('Finished creating the sql code.')
 
@@ -396,7 +396,8 @@ class FeatureVisualizer(object):
     """
     logging.info('Extracting a random sample of numerical features.')
     logging.info('Creating the sql code.')
-    sql_segment = self._create_column_list_sql(self._numerical_feature_list)
+    sql_segment = self._create_column_list_sql(
+        self._numerical_feature_list)
     query_params = {
         'bq_features_table': self._features_table_path,
         'label_column': self._label_column,
@@ -404,9 +405,9 @@ class FeatureVisualizer(object):
         'negative_class_label': self._negative_class_label,
         'num_pos_instances': self._num_pos_instances,
         'num_neg_instances': self._num_neg_instances,
-        'sql_code_segment': sql_segment
+        'column_list_sql': sql_segment
     }
-    sql_query = utils.configure_sql(_EXTRACT_NUM_FEATURE_SAMPLE_SQL_PATH,
+    sql_query = viz_utils.patch_sql(_EXTRACT_NUM_FEATURE_SAMPLE_SQL_PATH,
                                     query_params)
     logging.info('Finished creating the sql code.')
 
@@ -430,7 +431,7 @@ class FeatureVisualizer(object):
         'bq_features_table': self._features_table_path,
         'sql_code_segment': sql_segment
     }
-    sql_query = utils.configure_sql(_CALC_CAT_FEATURE_STATS_SQL_PATH,
+    sql_query = viz_utils.patch_sql(_CALC_CAT_FEATURE_STATS_SQL_PATH,
                                     query_params)
     logging.info('Finished creating the sql code.')
 
@@ -442,19 +443,19 @@ class FeatureVisualizer(object):
 
   def plot_features(
       self,
-      fig_width: Optional[int] = 10,
-      fig_height: Optional[int] = 30,
-      lineplot_title_fontsize: Optional[int] = 15,
+      fig_width: Optional[int] = 30,
+      fig_height: Optional[int] = 25,
+      lineplot_title_fontsize: Optional[int] = 12,
       lineplot_legend_fontsize: Optional[int] = 10,
       lineplot_xlabel_fontsize: Optional[int] = 10,
       lineplot_ylabel_fontsize: Optional[int] = 10,
       lineplot_xticklabels_fontsize: Optional[int] = 10,
       lineplot_yticklabels_fontsize: Optional[int] = 10,
-      barplot_title_fontsize: Optional[int] = 10,
+      barplot_title_fontsize: Optional[int] = 12,
       barplot_legend_fontsize: Optional[int] = 10,
       barplot_xlabel_fontsize: Optional[int] = 10,
       barplot_ylabel_fontsize: Optional[int] = 10,
-      barplot_xticklabels_fontsize: Optional[int] = 10,
+      barplot_xticklabels_fontsize: Optional[int] = 8,
       barplot_yticklabels_fontsize: Optional[int] = 10
   ) -> List[List[axes.Axes]]:
     """Creates plots for numerical and categorical features.
@@ -503,6 +504,11 @@ class FeatureVisualizer(object):
     numerical_feature_stats = self._calc_numerical_feature_stats()
     numerical_feature_sample = self._extract_numerical_feature_sample()
     categorical_feature_stats = self._calc_categorical_feature_stats()
+
+    numerical_feature_stats.loc[:, 'snapshot_date'] = pd.to_datetime(
+        numerical_feature_stats['snapshot_date'])
+    categorical_feature_stats.loc[:, 'snapshot_date'] = pd.to_datetime(
+        categorical_feature_stats['snapshot_date']).dt.date.astype(str)
 
     all_plots = []
 

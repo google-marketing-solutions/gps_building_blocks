@@ -12,11 +12,11 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- Extracts daysSinceFirstActivity, daysSinceLatestActivity and hasPositiveLabel columns from
--- Instance table in BigQuery for num_instances number of rows selected randomly.
--- Instance table is created by the DataExplorationPipeline of the MLDataWindowingPipeline tool.
+-- Extracts days_since_first_activity, days_since_latest_activity and <label_column> columns from
+-- Instance table in BigQuery for <num_instances> number of rows selected randomly.
+-- Instance table is created by the DataExplorationPipeline of the MLWindowingPipeline tool.
 -- For more info:
--- https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/master/marketing-analytics/predicting/ml-data-windowing-pipeline
+-- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects the following parameters:
 --  bq_instance_table: Full path to the Instance Table in BigQuery. Ex: project.dataset.table.
@@ -24,8 +24,8 @@
 --  label_column: Name of the label column of the Instance table.
 
 SELECT
-  daysSinceFirstActivity AS days_since_first_activity,
-  daysSinceLatestActivity AS days_since_latest_activity,
+  days_since_first_activity,
+  days_since_latest_activity,
   {label_column}
 FROM `{bq_instance_table}`
 WHERE RAND() < {num_instances} / (SELECT COUNT(*) FROM `{bq_instance_table}`);

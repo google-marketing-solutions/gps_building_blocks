@@ -111,10 +111,9 @@ class FeatureVisualizerTest(absltest.TestCase):
 
     cat_feature1_data = CATEGORICAL_FEATURES_STATS[
         CATEGORICAL_FEATURES_STATS['feature'] == 'cat_feature1']
-    cat_feature1_category_values1 = sorted(
-        list(set(cat_feature1_data['value'])))
-    cat_feature1_category_values2 = sorted(
-        list(set(cat_feature1_data['snapshot_date'])))
+    cat_feature1_category_values1 = sorted(set(cat_feature1_data['value']))
+    cat_feature1_category_values2 = sorted(set(pd.to_datetime(
+        cat_feature1_data['snapshot_date']).dt.date.astype(str)))
 
     num_feature_1_plots, _, cat_feature_1_plots, _ = (
         self.feature_viz_obj.plot_features())

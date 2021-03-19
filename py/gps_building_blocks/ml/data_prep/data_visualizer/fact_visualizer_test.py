@@ -47,44 +47,32 @@ class FactVisualizerTest(absltest.TestCase):
     super(FactVisualizerTest, self).setUp()
 
     self.mock_bq_client = absltest.mock.create_autospec(bigquery.client.Client)
-    self.facts_table_path = 'project_id.dataset.facts_table'
-    self.numerical_facts = ('num_fact1', 'num_fact2')
-    self.categorical_facts = ('cat_fact1', 'cat_fact2')
-    self.number_top_levels = 10
+    self.numerical_facts_table_path = 'project_id.dataset.num_facts_table'
+    self.categorical_facts_table_path = 'project_id.dataset.cat_facts_table'
+    self.number_top_categories = 5
 
     self.fact_viz_obj = fact_visualizer.FactVisualizer(
         bq_client=self.mock_bq_client,
-        facts_table_path=self.facts_table_path,
-        numerical_facts=self.numerical_facts,
-        categorical_facts=self.categorical_facts,
-        number_top_levels=self.number_top_levels)
+        numerical_facts_table_path=self.numerical_facts_table_path,
+        categorical_facts_table_path=self.categorical_facts_table_path,
+        number_top_categories=self.number_top_categories)
 
     self.mock_configure_sql = absltest.mock.patch.object(
         utils, 'configure_sql', autospec=True).start()
-    self.mock_bq_client.query.return_value.to_dataframe.side_effect = [
-        NUMERICAL_FACT_STATS, CATEGORICAL_FACT_STATS
-    ]
 
-  def test_plot_facts_returns_correct_plots(self):
+  def test_plot_numerical_facts_returns_correct_plots(self):
+    self.mock_bq_client.query.return_value.to_dataframe.return_value = NUMERICAL_FACT_STATS
     num_fact1_data = (
         NUMERICAL_FACT_STATS[NUMERICAL_FACT_STATS['fact_name'] == 'num_fact1'])
     num_fact1_total_record_count = list(num_fact1_data['total_record_count'])
     num_fact1_average = list(num_fact1_data['average'])
     num_fact1_stddev = list(num_fact1_data['stddev'])
 
-    cat_fact1_data = (
-        CATEGORICAL_FACT_STATS[CATEGORICAL_FACT_STATS['fact_name'] ==
-                               'cat_fact1'])
-    cat_fact1_tot_record_count = list(set(cat_fact1_data['total_record_count']))
-    cat_fact1_category_values = sorted(
-        list(set(cat_fact1_data['category_value'])))
-    cat_fact1_category_percentage = list(set(cat_fact1_data['percentage']))
-
-    num_fact_1_plots, _, cat_fact_1_plots, _ = self.fact_viz_obj.plot_facts()
+    num_fact_plots = self.fact_viz_obj.plot_numerical_facts()
+    num_fact_1_plots = num_fact_plots[0]
 
     with self.subTest(name='test the number of plots returned'):
       self.assertLen(num_fact_1_plots, 3)
-      self.assertLen(cat_fact_1_plots, 3)
     with self.subTest(
         name='test the elements of record counts plot of num_fact_1'):
       self.assertListEqual(
@@ -98,6 +86,20 @@ class FactVisualizerTest(absltest.TestCase):
       self.assertListEqual(
           num_fact1_stddev,
           list(num_fact_1_plots[2].get_lines()[0].get_data()[1]))
+
+  def test_plot_categorical_facts_returns_correct_plots(self):
+    self.mock_bq_client.query.return_value.to_dataframe.return_value = CATEGORICAL_FACT_STATS
+    cat_fact1_data = (
+        CATEGORICAL_FACT_STATS[CATEGORICAL_FACT_STATS['fact_name'] ==
+                               'cat_fact1'])
+    cat_fact1_tot_record_count = list(set(cat_fact1_data['total_record_count']))
+    cat_fact1_category_values = sorted(
+        list(set(cat_fact1_data['category_value'])))
+    cat_fact1_category_percentage = list(set(cat_fact1_data['percentage']))
+
+    cat_fact_plots = self.fact_viz_obj.plot_categorical_facts()
+    cat_fact_1_plots = cat_fact_plots[0]
+
     with self.subTest(
         name='test the elements of record counts plot of cat_fact_1'):
       self.assertListEqual(

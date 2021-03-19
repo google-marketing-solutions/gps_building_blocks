@@ -14,24 +14,23 @@
 
 -- Calculate statistics for categorical variables in the Facts table in BigQuery.
 -- Facts table is created by the
--- DataExplorationPipeline of the MLDataWindowingPipeline tool. For more info:
--- https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/master/marketing-analytics/predicting/ml-data-windowing-pipeline
+-- DataExplorationPipeline of the MLWindowingPipeline tool. For more info:
+-- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects following parameters:
 --  bq_facts_table: Full path to the Facts Table in BigQuery. Ex: project.dataset.table.
 --  categorical_fact_list: A comma separated list of categorical fact names to calculate
 --  statistics for.
---  number_top_levels: Number of top value levels to consider for each categorical fact.
+--  number_top_categories: Number of top value levels to consider for each categorical fact.
 
 WITH
   FactCount AS (
     SELECT
-      FORMAT_TIMESTAMP('%Y-%m-%d', TIMESTAMP_MILLIS(timeInMillis)) AS date,
+      FORMAT_TIMESTAMP('%Y-%m-%d', ts) AS date,
       name,
       value,
       COUNT(*) AS record_count
     FROM `{bq_facts_table}`
-    WHERE name IN {categorical_fact_list}
     GROUP BY date, name, value
   ),
   ValueRank AS (
@@ -46,7 +45,7 @@ WITH
     SELECT
       name,
       value,
-      IF(rank <= {number_top_levels}, rank, NULL) AS rank
+      IF(rank <= {number_top_categories}, rank, NULL) AS rank
     FROM ValueRank
   ),
   TotalCount AS (

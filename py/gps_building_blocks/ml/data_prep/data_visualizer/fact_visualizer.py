@@ -13,18 +13,18 @@
 # limitations under the License.
 
 # python3
-"""Visualizes the Facts table created by the MLDataWindowingPipeline.
+"""Visualizes the Facts tables created by the ML Windowing Pipeline.
 
-Calculates statistics from the numerical and categoticals variables in the Facts
-table in BigQuery and generates and outputs plots.These plots can be used to
+Calculates statistics from the numerical and categoticals Fact tables in
+BigQuery and generates plots.These plots can be used to
 explore the data to understand the distributions and any anomalies.
 
-Facts table is created by the DataExplorationPipeline of the
-MLDataWindowingPipeline tool. For more info:
-https://cloud.google.com/solutions/preparing-ml-ready-data-for-personalization
+Facts tables are created by the DataExplorationPipeline of the
+ML Windowing Pipeline tool. For more info:
+https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 """
 
-from typing import List, Optional, Sequence
+from typing import List, Optional
 from absl import logging
 from google.cloud import bigquery
 from matplotlib import axes
@@ -250,27 +250,25 @@ class FactVisualizer(object):
   Facts table).
   """
 
-  def __init__(self, bq_client: bigquery.client.Client, facts_table_path: str,
-               numerical_facts: Sequence[str], categorical_facts: Sequence[str],
-               number_top_levels: int) -> None:
+  def __init__(self, bq_client: bigquery.client.Client,
+               numerical_facts_table_path: str,
+               categorical_facts_table_path: str,
+               number_top_categories: int) -> None:
     """Initialises parameters.
 
     Args:
       bq_client: Connection object to the Bigquery account.
-      facts_table_path: Full path to the BigQuery facts table. example:
-        'project_id.dataset.facts_table'.
-      numerical_facts: Sequence of numerical fact names to calculate statistics
-        for.
-      categorical_facts: Sequence of categorical fact names to calculate
-        statistics for.
-      number_top_levels: Number of top value levels to consider for each
-        categorical fact.
+      numerical_facts_table_path: Full path to the BigQuery numerical facts
+        table. example:'project_id.dataset.numerical_facts'.
+      categorical_facts_table_path: Full path to the BigQuery categorical facts
+        table. Example: 'project_id.dataset.categorical_facts'.
+      number_top_categories: Number of top categorical values to consider for
+        each categorical fact.
     """
     self._bq_client = bq_client
-    self._facts_table_path = facts_table_path
-    self._numerical_facts = numerical_facts
-    self._categorical_facts = categorical_facts
-    self._number_top_levels = number_top_levels
+    self._numerical_facts_table_path = numerical_facts_table_path
+    self._categorical_facts_table_path = categorical_facts_table_path
+    self._number_top_categories = number_top_categories
 
   def _calc_numerical_fact_stats(self) -> pd.DataFrame:
     """Calculates the statistics for selected numerical fact variables.
@@ -281,14 +279,14 @@ class FactVisualizer(object):
     logging.info('Calculating statistics from numerical facts.')
     logging.info('Reading the sql query from the file.')
     query_params = {
-        'bq_facts_table': self._facts_table_path,
-        'numerical_fact_list': self._numerical_facts
+        'bq_facts_table': self._numerical_facts_table_path,
     }
     sql_query = utils.configure_sql(_CALC_NUM_FACT_STATS_SQL_PATH, query_params)
 
     results = viz_utils.execute_sql(self._bq_client, sql_query)
     logging.info('Finished calculating statistics from numerical facts.')
 
+    results['date'] = pd.to_datetime(results['date'])
     return results
 
   def _calc_categorical_fact_stats(self) -> pd.DataFrame:
@@ -300,24 +298,83 @@ class FactVisualizer(object):
     logging.info('Calculating statistics from categorical facts.')
     logging.info('Reading the sql query from the file.')
     query_params = {
-        'bq_facts_table': self._facts_table_path,
-        'categorical_fact_list': self._categorical_facts,
-        'number_top_levels': self._number_top_levels
+        'bq_facts_table': self._categorical_facts_table_path,
+        'number_top_categories': self._number_top_categories
     }
     sql_query = utils.configure_sql(_CALC_CAT_FACT_STATS_SQL_PATH, query_params)
 
     results = viz_utils.execute_sql(self._bq_client, sql_query)
     logging.info('Finished calculating statistics from categorical facts.')
 
+    results['date'] = pd.to_datetime(results['date'])
+
     return results
 
-  def plot_facts(
+  def plot_numerical_facts(
       self,
       fig_width: Optional[int] = 10,
       fig_height: Optional[int] = 30,
-      line_color_record_count: Optional[int] = 'blue',
+      line_color_record_count: Optional[int] = 'lightblue',
       line_color_average: Optional[int] = 'coral',
       line_color_stddev: Optional[int] = 'lightcoral',
+      lineplot_title_fontsize: Optional[int] = 15,
+      lineplot_legend_fontsize: Optional[int] = 10,
+      lineplot_xlabel_fontsize: Optional[int] = 10,
+      lineplot_ylabel_fontsize: Optional[int] = 10,
+      lineplot_xticklabels_fontsize: Optional[int] = 10,
+      lineplot_yticklabels_fontsize: Optional[int] = 10,
+  ) -> List[List[axes.Axes]]:
+    """Generates and plots statistics for numerical facts.
+
+    Args:
+      fig_width: Width of the figure.
+      fig_height: Height of the figure.
+      line_color_record_count: Line color of the daily record count plot.
+      line_color_average: Line color of the daily average value plot.
+      line_color_stddev: Line color of the daily standard deviation value plot.
+      lineplot_title_fontsize: Title font size of the line plots.
+      lineplot_legend_fontsize: Legend font size of the line plots.
+      lineplot_xlabel_fontsize: X-axis label font size of the line plots.
+      lineplot_ylabel_fontsize: Y-axis label font size of the line plots.
+      lineplot_xticklabels_fontsize: X-axis tick label font size of the line
+        plots.
+      lineplot_yticklabels_fontsize: Y-axis tick label font size of the line
+        plots.
+
+    Returns:
+      all_numerical_plots: all the plots generated for the numerical facts.
+    """
+    plot_style_params = _FactPlotStyles(
+        fig_width=fig_width,
+        fig_height=fig_height,
+        line_color_record_count=line_color_record_count,
+        line_color_average=line_color_average,
+        line_color_stddev=line_color_stddev,
+        lineplot_title_fontsize=lineplot_title_fontsize,
+        lineplot_legend_fontsize=lineplot_legend_fontsize,
+        lineplot_xlabel_fontsize=lineplot_xlabel_fontsize,
+        lineplot_ylabel_fontsize=lineplot_ylabel_fontsize,
+        lineplot_xticklabels_fontsize=lineplot_xticklabels_fontsize,
+        lineplot_yticklabels_fontsize=lineplot_yticklabels_fontsize)
+
+    numerical_fact_stats = self._calc_numerical_fact_stats()
+
+    all_numerical_plots = []
+
+    logging.info('Plotting numerical facts.')
+    for fact_name in sorted(set(numerical_fact_stats['fact_name'])):
+      num_plot_data = numerical_fact_stats[numerical_fact_stats['fact_name'] ==
+                                           fact_name]
+      all_numerical_plots.append(
+          _plot_numerical_fact(num_plot_data, fact_name, plot_style_params))
+
+    return all_numerical_plots
+
+  def plot_categorical_facts(
+      self,
+      fig_width: Optional[int] = 10,
+      fig_height: Optional[int] = 30,
+      line_color_record_count: Optional[int] = 'lightblue',
       lineplot_title_fontsize: Optional[int] = 15,
       lineplot_legend_fontsize: Optional[int] = 10,
       lineplot_xlabel_fontsize: Optional[int] = 10,
@@ -331,14 +388,12 @@ class FactVisualizer(object):
       barplot_xticklabels_fontsize: Optional[int] = 10,
       barplot_yticklabels_fontsize: Optional[int] = 10
   ) -> List[List[axes.Axes]]:
-    """Generates data and execute plotting.
+    """Generates and plots statistics for categorical facts.
 
     Args:
       fig_width: Width of the figure.
       fig_height: Height of the figure.
       line_color_record_count: Line color of the daily record count plot.
-      line_color_average: Line color of the daily average value plot.
-      line_color_stddev: Line color of the daily standard deviation value plot.
       lineplot_title_fontsize: Title font size of the line plots.
       lineplot_legend_fontsize: Legend font size of the line plots.
       lineplot_xlabel_fontsize: X-axis label font size of the line plots.
@@ -357,14 +412,12 @@ class FactVisualizer(object):
         plots.
 
     Returns:
-      all_plots: all the plots generated for the selected facts.
+      all_categorical_plots: all the plots generated for the categorical facts.
     """
     plot_style_params = _FactPlotStyles(
         fig_width=fig_width,
         fig_height=fig_height,
         line_color_record_count=line_color_record_count,
-        line_color_average=line_color_average,
-        line_color_stddev=line_color_stddev,
         lineplot_title_fontsize=lineplot_title_fontsize,
         lineplot_legend_fontsize=lineplot_legend_fontsize,
         lineplot_xlabel_fontsize=lineplot_xlabel_fontsize,
@@ -378,23 +431,15 @@ class FactVisualizer(object):
         barplot_xticklabels_fontsize=barplot_xticklabels_fontsize,
         barplot_yticklabels_fontsize=barplot_yticklabels_fontsize)
 
-    numerical_fact_stats = self._calc_numerical_fact_stats()
     categorical_fact_stats = self._calc_categorical_fact_stats()
 
-    all_plots = []
-
-    logging.info('Plotting numerical facts.')
-    for fact_name in self._numerical_facts:
-      num_plot_data = numerical_fact_stats[numerical_fact_stats['fact_name'] ==
-                                           fact_name]
-      all_plots.append(
-          _plot_numerical_fact(num_plot_data, fact_name, plot_style_params))
+    all_categorical_plots = []
 
     logging.info('Plotting categorical facts.')
-    for fact_name in self._categorical_facts:
+    for fact_name in sorted(set(categorical_fact_stats['fact_name'])):
       cat_plot_data = categorical_fact_stats[categorical_fact_stats['fact_name']
                                              == fact_name]
-      all_plots.append(
+      all_categorical_plots.append(
           _plot_categorical_fact(cat_plot_data, fact_name, plot_style_params))
 
-    return all_plots
+    return all_categorical_plots

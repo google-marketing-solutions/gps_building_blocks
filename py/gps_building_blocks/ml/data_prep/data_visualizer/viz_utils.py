@@ -15,8 +15,6 @@
 # python3
 """Contains functions to support data visualizations."""
 
-import ast
-import configparser
 import logging
 from typing import Dict, Optional, Union
 from google.cloud import bigquery
@@ -40,24 +38,6 @@ def patch_sql(sql_path: str, query_params: Dict[str, Union[str, int,
   """
   sql_script = utils.read_file(sql_path)
   return sql_script.format(**query_params)
-
-
-def parse_config_file(config_file):
-  """Parses configuration file.
-
-  Args:
-    config_file: A path to configuration file.
-
-  Returns:
-    viz_config: A dictionary of configuration for data visualization.
-  """
-  parser = configparser.ConfigParser()
-  parser.read(config_file)
-  raw_config = dict(parser['core'])
-  # ast.literal_eval helps to parse more complex structures such as
-  # lists, dicts, from the config file correctly.
-  viz_config = {k: ast.literal_eval(v) for k, v in raw_config.items()}
-  return viz_config
 
 
 def execute_sql(bq_client: bigquery.Client, sql_query: str) -> pd.DataFrame:
@@ -87,12 +67,13 @@ def plot_bar(plot_data: pd.DataFrame,
              subplot_index: int,
              x_label: Optional[str] = None,
              y_label: Optional[str] = None,
-             bar_color: Optional[str] = 'blue',
+             bar_color: Optional[str] = 'lightcoral',
              title_fontsize: Optional[int] = 15,
              xlabel_fontsize: Optional[int] = 10,
              ylabel_fontsize: Optional[int] = 10,
              xticklabels_fontsize: Optional[int] = 10,
-             yticklabels_fontsize: Optional[int] = 10) -> None:
+             yticklabels_fontsize: Optional[int] = 10,
+             xticklabels_rotation: Optional[int] = 0) -> None:
   """Generates a bar plot and attaches to the axes object.
 
   Args:
@@ -110,6 +91,7 @@ def plot_bar(plot_data: pd.DataFrame,
     ylabel_fontsize: Font size of Y-axis label.
     xticklabels_fontsize: Font size of X-axis tick labels.
     yticklabels_fontsize: Font size of Y-axis tick labels.
+    xticklabels_rotation: Degrees of rotation for X-axis tick labels.
   """
   bar_plot = plot_data.plot.bar(
       x=x_variable,
@@ -117,7 +99,7 @@ def plot_bar(plot_data: pd.DataFrame,
       ax=axes[subplot_index],
       color=str(bar_color).lower(),
       legend=False,
-      rot=45)
+      rot=xticklabels_rotation)
 
   if x_label is None:
     x_label = x_variable
@@ -189,14 +171,15 @@ def plot_line(plot_data: pd.DataFrame,
               subplot_index: int,
               x_label: Optional[str] = None,
               y_label: Optional[str] = None,
-              line_color: Optional[str] = 'blue',
+              line_color: Optional[str] = 'lightblue',
               category_variable: Optional[str] = None,
               title_fontsize: Optional[int] = 15,
               xlabel_fontsize: Optional[int] = 10,
               ylabel_fontsize: Optional[int] = 10,
               xticklabels_fontsize: Optional[int] = 10,
               yticklabels_fontsize: Optional[int] = 10,
-              legend_fontsize: Optional[int] = 10) -> None:
+              legend_fontsize: Optional[int] = 10,
+              xticklabels_rotation: Optional[int] = 0) -> None:
   """Generates a line plot attaches to the axes object.
 
   Args:
@@ -218,11 +201,13 @@ def plot_line(plot_data: pd.DataFrame,
     xticklabels_fontsize: Font size of x tick labels.
     yticklabels_fontsize: Font size of y tick labels.
     legend_fontsize: Font size of the legend.
+    xticklabels_rotation: Degrees of rotation for X-axis tick labels.
   """
   if category_variable is not None:
     plot_data_pivoted = plot_data.pivot(
         index=x_variable, columns=category_variable, values=y_variable)
-    line_plot = plot_data_pivoted.plot.line(ax=axes[subplot_index], rot=90)
+    line_plot = plot_data_pivoted.plot.line(ax=axes[subplot_index],
+                                            rot=xticklabels_rotation)
     pyplot.setp(
         axes[subplot_index].get_legend().get_texts(), fontsize=legend_fontsize)
   else:
@@ -231,7 +216,7 @@ def plot_line(plot_data: pd.DataFrame,
         y=y_variable,
         color=str(line_color).lower(),
         ax=axes[subplot_index],
-        rot=45)
+        rot=xticklabels_rotation)
 
   if x_label is None:
     x_label = x_variable

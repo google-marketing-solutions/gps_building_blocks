@@ -15,12 +15,10 @@
 # python3
 """Tests for google3.corp.gtech.ads.data_catalyst.components.data_preparation.data_visualizer.plot_data_creation_utils."""
 
-import os
 from absl.testing import absltest
 from google.cloud import bigquery
 from matplotlib import pyplot as plt
 import pandas as pd
-import parameterized
 from gps_building_blocks.ml.data_prep.data_visualizer import viz_utils
 
 TESTDATA_1 = pd.DataFrame({
@@ -48,17 +46,6 @@ class VizUtilsTest(absltest.TestCase):
     super(VizUtilsTest, self).setUp()
 
     self.mock_bq_client = absltest.mock.create_autospec(bigquery.client.Client)
-
-  @parameterized.parameterized.expand([([
-      'service_account_key_file', 'project_id', 'dataset', 'output_local_path',
-      'output_gcs_path'
-  ], str), (['num_instances'], int), (['plot_style_params'], dict)])
-  def test_parse_config_file(self, keys, expected_type):
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
-    config_file = os.path.join(test_data_dir, 'instance_visualizer_config.cfg')
-    actual = viz_utils.parse_config_file(config_file)
-    for key in keys:
-      self.assertIsInstance(actual[key], expected_type)
 
   def test_execute_sql_returns_pd_dataframe(self):
     fake_sql_query = 'SELECT * FROM project.dataset.table;'

@@ -13,9 +13,9 @@
 -- limitations under the License.
 
 -- Extracts a random sample of rows for a given list of numerical features from the Features table
--- in BigQuery. Features table is created by the GenerateFeaturesPipeline of the
--- MLDataWindowingPipeline tool. For more info:
--- https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/master/marketing-analytics/predicting/ml-data-windowing-pipeline
+-- in BigQuery. Features table is created by the FeaturesPipeline of the
+-- MLWindowingPipeline tool. For more info:
+-- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects the following parameters:
 -- `bq_features_table`: Full path to the Features Table in BigQuery. Ex: project.dataset.table.
@@ -29,24 +29,24 @@ WITH
   PositiveExamples AS (
     SELECT
       {column_list_sql},
-      predictionLabel AS label
+      label
     FROM `{bq_features_table}`
     WHERE
-      predictionLabel = TRUE
+      label = true
       AND RAND() < {num_pos_instances} / (SELECT COUNT(*)
                                           FROM `{bq_features_table}`
-                                          WHERE predictionLabel = true)
+                                          WHERE label = true)
   ),
   NegativeExamples AS (
     SELECT
       {column_list_sql},
-      predictionLabel AS label
+      label
     FROM `{bq_features_table}`
     WHERE
-      predictionLabel = FALSE
+      label = false
       AND RAND() < {num_neg_instances} / (SELECT COUNT(*)
                                         FROM `{bq_features_table}`
-                                        WHERE predictionLabel = false)
+                                        WHERE label = false)
   ),
   PositiveAndNegativeExamples AS (
     SELECT *
