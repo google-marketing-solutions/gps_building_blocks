@@ -8,7 +8,7 @@ This directory contains functions that help to design media experiments.
 pip install gps_building_blocks
 ```
 
-## A/B Testing Experimental Design Component
+## A/B Testing Experimental Design Module
 
 This module contains functions that can be used when designing media experiments
 to activate Propensity Models built using GA360, Firebase or CRM data. That is,
@@ -22,15 +22,15 @@ the right expectations of the campaign outcome.
 ### Calculate Statistical Sample Size for Proportions
 
 `ab_testing_design.calc_chisquared_sample_size()` estimates the minimum sample
-size required for either Test or Control group in an A/B test when the KPI is a
-proportion such as the conversion rate by using the
+size required for either the Test or the Control group in an A/B test when the
+KPI is a proportion such as the conversion rate by using the
 [Chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test) of
 proportions.
 
 **Usage example:**
 
 ```python
-from gps_building_blocks.py.analysis.exp_design import ab_testing_design
+from gps_building_blocks.analysis.exp_design import ab_testing_design
 
 ab_testing_design.calc_chisquared_sample_size(
     baseline_conversion_rate_percentage=5,
@@ -39,12 +39,12 @@ ab_testing_design.calc_chisquared_sample_size(
     confidence_level_percentage=90)
 ```
 
-**Expected output:** minimum statistical sample size required for either Test or
-Control group.
+**Expected output:** minimum statistical sample size required for either the
+Test or the Control group.
 
-### Calculate Statistical Sample Size for Different Bins of Predicted Probabilities
+### Calculate Statistical Sample Sizes for Different Bins of Predicted Probabilities
 
-One way to use the output from a propensity model to optimize marketing is to
+One way to use the output from a Propensity Model to optimize marketing is to
 first define different audience groups based on the predicted probabilities
 (such as `High`, `Medium` and `Low` propensity groups) and then test the same or
 different marketing strategies with those.
@@ -53,14 +53,14 @@ different marketing strategies with those.
 statistical sample sizes required for different groups (bins) of the predicted
 probabilities based on different different combinations of the `expected
 uplift`, `statistical power` and `statistical confidence levels` specified as
-parameters by using the `ab_testing_design.calc_chisquared_sample_size()`
+inout parameters by using the `ab_testing_design.calc_chisquared_sample_size()`
 function.
 
 **Usage example:**
 
 ```python
 import numpy as np
-from gps_building_blocks.py.analysis.exp_design import ab_testing_design
+from gps_building_blocks.analysis.exp_design import ab_testing_design
 
 ab_testing_design.calc_chisquared_sample_sizes_for_bins(
     labels=np.array(prediction_df['label'])
@@ -71,7 +71,7 @@ ab_testing_design.calc_chisquared_sample_sizes_for_bins(
     confidence_level_percentages=(90, 95))
 ```
 
-**Expected output:** a Pandas dataframe with the following columns containing
+**Expected output:** a Pandas Dataframe with the following columns containing
 statistical sample size for each bin for each combination of uplift_percentage,
 statistical power and statistical confidence level.
 
