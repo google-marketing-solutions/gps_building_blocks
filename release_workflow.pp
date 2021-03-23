@@ -15,7 +15,7 @@ import '//releasetools/rapid/workflows/rapid.pp' as rapid
 
 vars = rapid.create_vars() {}
 
-shell_command = 'borgcfg /google_src/head/depot/google3/corp/gtech/ads/building_blocks/meta/version_file_updater/jobs/update_version.borg up --user=cse-tools-devops-jobs --skip-confirmation'
+shell_command = 'borgcfg --user=cse-tools-devops-jobs --skip_confirmation --wait_done /google_src/head/depot/google3/corp/gtech/ads/building_blocks/meta/version_file_updater/jobs/update_version.borg up '
 
 task_deps = [
   'shell-update_version':['start'],
