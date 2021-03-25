@@ -28,7 +28,8 @@ task_properties = [
     'full_job_name=gps_building_blocks/gcp_ubuntu/release',
     'changelist=%(build_changelist)s',
     'wait_for_build=true',
-    'env_vars=RELEASE_TYPE=prod'
+    'env_vars=RELEASE_TYPE=prod',
+    'multi_scm=True',
   ]
 ]
 
