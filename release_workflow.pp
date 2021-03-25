@@ -25,7 +25,7 @@ task_deps = [
 task_properties = [
   'shell-update_version' : ['command=' + shell_command],
   'kokoro.trigger_build' : [
-    'full_job_name=prod:gps_building_blocks/gcp_ubuntu/release',
+    'full_job_name=gps_building_blocks/gcp_ubuntu/release',
     'changelist=%(build_changelist)s',
     'wait_for_build=true',
     'env_vars=RELEASE_TYPE=prod'
