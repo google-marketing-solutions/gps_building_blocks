@@ -47,6 +47,7 @@ dates, their labels and two features, namely, `days_since_first_activity` and
 
 ```python
 from google.cloud import bigquery
+from matplotlib.backends.backend_pdf import PdfPages
 from gps_building_blocks.ml.data_prep.data_visualizer import instance_visualizer
 
 bq_client = bigquery.Client()
@@ -58,8 +59,15 @@ instance_viz = instance_visualizer.InstanceVisualizer(
         positive_class_label=True,
         negative_class_label=False)
 
-instance_viz.plot_instances()
+instance_plots = instance_viz.plot_instances()
+
+# save the plots to a pdf file
+pdf = PdfPages('instance_plots.pdf')
+pdf.savefig(instance_plots[0].get_figure())
+pdf.close()
 ```
+
+**Expected output:**
 
 This generates plots with the number of total instances, number of positive
 instances and proportion of positive instances for each snapshot. These plots
@@ -69,11 +77,15 @@ specific periods of snapshots having any data issues and consider what
 additional features to add to capture the seasonality or any trends of the label
 over time.
 
+<img src="images/instance_plots.png" width="60%">
+
 In addition, this function also produces class specific distribution plots for
 the `days_since_first_activity` and `days_since_latest_activity` features in the
 Instance table. From these plots, we can determine a good lookback window period
 to use to create features and whether it’s worth only using customers having a
 particular history and recency for modeling.
+
+<img src="images/instance_feature_plots.png" width="60%">
 
 ### Fact visualizer
 
@@ -85,6 +97,7 @@ Facts table in BigQuery is created by the `Data Exploration Pipeline` of
 
 ```python
 from google.cloud import bigquery
+from matplotlib.backends.backend_pdf import PdfPages
 from gps_building_blocks.py.ml.data_prep.data_visualizer import fact_visualizer
 
 bq_client = bigquery.Client(
@@ -94,16 +107,36 @@ fact_viz = fact_visualizer.FactVisualizer(
         categorical_facts_table_path='project_id.dataset.categorical_facts',
         number_top_categories=5)
 
-fact_viz.plot_numerical_facts()
+numerical_fact_plots = fact_viz.plot_numerical_facts()
+categorical_fact_plots = fact_viz.plot_categorical_facts()
 
-fact_viz.plot_categorical_facts()
+# save the plots to a pdf files
+pdf = PdfPages('numerical_fact_plots.pdf')
+for num_plots in numerical_fact_plots:
+  pdf.savefig(num_plots[0].get_figure())
+pdf.close()
+
+pdf = PdfPages('categorical_fact_plots.pdf')
+for cat_plots in categorical_fact_plots:
+  pdf.savefig(cat_plots[0].get_figure())
+pdf.close()
 ```
+
+**Expected output:**
 
 `plot_numerical_facts()` and `plot_categorical_facts()` functions produces plots
 of numerical and categorical fact variables, which can be used to explore their
 validity and distribution over time. Based on that we can make decisions such as
 which facts variables (and which levels in categorical fact variables) to use to
 generate features later on.
+
+Expected plots for a numerical fact:
+
+<img src="images/numerical_fact_plots.png" width="60%">
+
+Expected plots for a categorical fact:
+
+<img src="images/categorical_fact_plots.png" width="60%">
 
 ### Feature visualizer
 
@@ -116,6 +149,7 @@ any BigQuery table containing features and a binary label columns.
 ```python
 from google.cloud import bigquery
 from gps_building_blocks.py.ml.data_prep.data_visualizer import feature_visualizer
+from matplotlib.backends.backend_pdf import PdfPages
 
 bq_client = bigquery.Client(
 feature_viz = feature_visualizer.FeatureVisualizer(
@@ -130,11 +164,27 @@ feature_viz = feature_visualizer.FeatureVisualizer(
         num_pos_instances=10000,
         num_neg_instances=10000)
 
-feature_viz.plot_features()
+feqture_plots = feature_viz.plot_features()
+
+# save the plots to a pdf files
+pdf = PdfPages('feature_plots.pdf')
+for plots in feature_plots:
+  pdf.savefig(plots[0].get_figure())
+pdf.close()
 ```
+
+**Expected output:**
 
 This function produces class specific distribution plots of numerical and
 categorical features, which can be used to explore their validity of the
 features and potentially identify issues such as label leakage. Also it produces
 the distribution of these features over time helping us to understand their
 consistency.
+
+Expected plots for a numerical feature:
+
+<img src="images/numerical_feature_plots.png" width="60%">
+
+Expected plots for a categorical feature:
+
+<img src="images/categorical_feature_plots.png" width="60%">
