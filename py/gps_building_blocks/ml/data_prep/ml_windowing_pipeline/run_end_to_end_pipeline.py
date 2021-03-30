@@ -60,7 +60,9 @@ python run_end_to_end_pipeline.py \
 --count_values='geoNetwork_metro:[Providence-New Bedford///,MA",Rochester-Mason City-Austin///,IA]:[Others]' \
 --mode_values='hits_eCommerceAction_action_type:[3]:[Others]' \
 --proportions_values='channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Others]' \
---latest_values='device_isMobile:[false,true]:[Others]'
+--latest_values='device_isMobile:[false,true]:[Others]' \
+--max_values='totals_visits;totals_hits' \
+--min_values='totals_visits;totals_hits'
 """
 
 from absl import app
@@ -139,6 +141,8 @@ flags.DEFINE_string('count_values', '', 'Feature Options for Count')
 flags.DEFINE_string('mode_values', '', 'Feature Options for Mode')
 flags.DEFINE_string('proportions_values', '', 'Feature Options for Proportion')
 flags.DEFINE_string('latest_values', '', 'Feature Options for Recent')
+flags.DEFINE_string('max_values', '', 'Feature Options for Max')
+flags.DEFINE_string('min_values', '', 'Feature Options for Min')
 # Debug flag.
 flags.DEFINE_bool('verbose', False, 'Debug logging.')
 

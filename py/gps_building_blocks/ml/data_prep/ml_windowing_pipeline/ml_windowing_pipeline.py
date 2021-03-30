@@ -81,6 +81,8 @@ count_values: Feature Options for Count.
 mode_values: Feature Options for Mode.
 proportions_values: Feature Options for Proportion.
 latest_values: Feature Options for Recent.
+max_values: Feature Options for Max.
+min_values: Feature Options for Min.
 """
 
 import os
@@ -184,6 +186,10 @@ def _get_feature_options_params(params: Dict[str, Any]) -> Dict[str, Any]:
       params['proportions_values'])
   feature_option_params['latest_feature_options'] = parse_feature_option(
       params['latest_values'])
+  feature_option_params['max_feature_options'] = parse_feature_option(
+      params['max_values'])
+  feature_option_params['min_feature_options'] = parse_feature_option(
+      params['min_values'])
   feature_option_params[
       'count_proportion_feature_options'] = merge_feature_option_list(
           feature_option_params['proportions_feature_options'],
@@ -237,6 +243,8 @@ def update_params_with_defaults(params):
   params.setdefault('mode_values', '')
   params.setdefault('proportions_values', '')
   params.setdefault('latest_values', '')
+  params.setdefault('max_values', '')
+  params.setdefault('min_values', '')
   params.update(_get_output_table_ids(
       params['project_id'], params['dataset_id'], params['run_id']))
   params.setdefault('verbose', False)

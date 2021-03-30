@@ -40,6 +40,16 @@ AS (
       SELECT IFNULL(AVG(value), 0) FROM UNNEST({{feature_option.fact_name}})
     ) AS avg_{{feature_option.fact_name}},
     {% endfor %}
+    {% for feature_option in max_feature_options %}
+    (
+      SELECT MAX(value) FROM UNNEST({{feature_option.fact_name}})
+    ) AS max_{{feature_option.fact_name}},
+    {% endfor %}
+    {% for feature_option in min_feature_options %}
+    (
+      SELECT MIN(value) FROM UNNEST({{feature_option.fact_name}})
+    ) AS min_{{feature_option.fact_name}},
+    {% endfor %}
     {% for feature_option in count_proportion_feature_options %}
     (
       SELECT COUNT(*) FROM UNNEST({{feature_option.fact_name}})
@@ -191,6 +201,14 @@ AS (
     Features.count_{{opt.fact_name}}_others AS count_{{opt.remainder_column_name}},
         {% endif %}
       {% endif %}
+    {% endfor %}
+    # Max features
+    {% for feature_option in max_feature_options %}
+    Features.max_{{feature_option.fact_name}},
+    {% endfor %}
+    # Min features
+    {% for feature_option in min_feature_options %}
+    Features.min_{{feature_option.fact_name}},
     {% endfor %}
   FROM FeaturesWithFactValueCount AS Features
 );
