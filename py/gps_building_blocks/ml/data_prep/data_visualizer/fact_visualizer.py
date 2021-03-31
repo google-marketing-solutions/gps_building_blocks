@@ -39,8 +39,14 @@ from gps_building_blocks.ml.data_prep.data_visualizer import viz_utils
 # code.
 _ROWS_IN_SUBPLOTS_GRID = 3
 _COLS_IN_SUBPLOTS_GRID = 1
-_CALC_NUM_FACT_STATS_SQL_PATH = 'templates/calc_numerical_fact_stats.sql'
-_CALC_CAT_FACT_STATS_SQL_PATH = 'templates/calc_categorical_fact_stats.sql'
+# Path to the file with sql code to calculate stats from the numerical Facts
+# table in BigQuery.
+_CALC_NUM_FACT_STATS_SQL_PATH = viz_utils.get_absolute_path(
+    'calc_numerical_fact_stats.sql')
+# Path to the file with sql code to calculate stats from the categorical Facts
+# table in BigQuery.
+_CALC_CAT_FACT_STATS_SQL_PATH = viz_utils.get_absolute_path(
+    'calc_categorical_fact_stats.sql')
 
 
 class _FactPlotStyles:

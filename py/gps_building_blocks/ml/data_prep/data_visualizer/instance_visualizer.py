@@ -36,10 +36,12 @@ _ROWS_IN_SUBPLOTS_GRID = 5
 _COLS_IN_SUBPLOT_GRID = 1
 # Path to the file with sql code to calculate stats from the Instance table in
 # BigQuery.
-_CALC_INSTANCE_STATS_SQL_PATH = 'templates/calc_instance_stats.sql'
+_CALC_INSTANCE_STATS_SQL_PATH = viz_utils.get_absolute_path(
+    'calc_instance_stats.sql')
 # Path to the file with sql code to extract features from the Instance table in
 # BigQuery.
-_EXTRACT_INSTANCE_FEATURES_SQL_PATH = 'templates/extract_instance_features.sql'
+_EXTRACT_INSTANCE_FEATURES_SQL_PATH = viz_utils.get_absolute_path(
+    'extract_instance_features.sql')
 # Type of the label values
 LabelType = Union[str, bool, int]
 

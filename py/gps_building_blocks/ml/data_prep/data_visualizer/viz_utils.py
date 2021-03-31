@@ -18,10 +18,12 @@
 import logging
 from typing import Dict, Optional, Union
 from google.cloud import bigquery
+import importlib_resources
 import matplotlib
 from matplotlib import pyplot
 import pandas as pd
 from gps_building_blocks.ml import utils
+from gps_building_blocks.ml.data_prep.data_visualizer import templates
 
 
 def patch_sql(sql_path: str, query_params: Dict[str, Union[str, int,
@@ -227,3 +229,16 @@ def plot_line(plot_data: pd.DataFrame,
   line_plot.set_title(title, fontsize=title_fontsize)
   line_plot.tick_params(axis='x', labelsize=xticklabels_fontsize)
   line_plot.tick_params(axis='y', labelsize=yticklabels_fontsize)
+
+
+def get_absolute_path(file_name: str) -> str:
+  """Retruns the absolute path of the input file name in the template directory.
+
+  Args:
+    file_name: File name in template directory of which the absolute path needed
+
+  Returns:
+    Absolute full path of the file name.
+  """
+  with importlib_resources.path(templates, file_name) as absolute_path:
+    return str(absolute_path.absolute())

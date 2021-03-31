@@ -38,16 +38,23 @@ from gps_building_blocks.ml.data_prep.data_visualizer import viz_utils
 # Class FeatureVisualizer utilize these constants to generate  plots and arrange
 # them in a single column. By changing the values of these constants will break
 # the code.
-
 _NUMERICAL_ROWS_IN_SUBPLOTS_GRID = 3
 _NUMERICAL_COLS_IN_SUBPLOTS_GRID = 1
-
 _CATEGORICAL_ROWS_IN_SUBPLOTS_GRID = 3
 _CATEGORICAL_COLS_IN_SUBPLOTS_GRID = 1
 
-_CALC_NUM_FEATURE_STATS_SQL_PATH = 'templates/calc_numerical_feature_stats.sql'
-_EXTRACT_NUM_FEATURE_SAMPLE_SQL_PATH = 'templates/extract_numerical_features_sample.sql'
-_CALC_CAT_FEATURE_STATS_SQL_PATH = 'templates/calc_categorical_feature_stats.sql'
+# Path to the file with sql code to calculate stats from the numerical features
+# in the Features table in BigQuery.
+_CALC_NUM_FEATURE_STATS_SQL_PATH = viz_utils.get_absolute_path(
+    'calc_numerical_feature_stats.sql')
+# Path to the file with sql code to calculate stats from the categorical
+# features in the Features table in BigQuery.
+_CALC_CAT_FEATURE_STATS_SQL_PATH = viz_utils.get_absolute_path(
+    'calc_categorical_feature_stats.sql')
+# Path to the file with sql code to extract a sample of numerical features
+# from the Features table in BigQuery.
+_EXTRACT_NUM_FEATURE_SAMPLE_SQL_PATH = viz_utils.get_absolute_path(
+    'extract_numerical_features_sample.sql')
 
 
 class _FeaturePlotStyles:
