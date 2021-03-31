@@ -63,7 +63,7 @@ class _FactPlotStyles:
                barplot_xlabel_fontsize: Optional[int] = 10,
                barplot_ylabel_fontsize: Optional[int] = 10,
                barplot_xticklabels_fontsize: Optional[int] = 10,
-               barplot_yticklabels_fontsize: Optional[int] = 10):
+               barplot_yticklabels_fontsize: Optional[int] = 10):  # pytype: disable=annotation-type-mismatch
     """Initialises parameters.
 
     Args:
@@ -387,7 +387,7 @@ class FactVisualizer(object):
       barplot_ylabel_fontsize: Optional[int] = 10,
       barplot_xticklabels_fontsize: Optional[int] = 10,
       barplot_yticklabels_fontsize: Optional[int] = 10
-  ) -> List[List[axes.Axes]]:
+  ) -> List[List[axes.Axes]]:  # pytype: disable=annotation-type-mismatch
     """Generates and plots statistics for categorical facts.
 
     Args:
