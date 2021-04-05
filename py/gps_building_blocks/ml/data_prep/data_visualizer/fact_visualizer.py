@@ -56,8 +56,8 @@ class _FactPlotStyles:
                fig_width: Optional[int] = 10,
                fig_height: Optional[int] = 30,
                line_color_record_count: Optional[str] = 'blue',
-               line_color_average: Optional[int] = 'coral',
-               line_color_stddev: Optional[int] = 'lightcoral',
+               line_color_average: Optional[str] = 'coral',
+               line_color_stddev: Optional[str] = 'lightcoral',
                lineplot_title_fontsize: Optional[int] = 15,
                lineplot_legend_fontsize: Optional[int] = 10,
                lineplot_xlabel_fontsize: Optional[int] = 10,
@@ -69,7 +69,7 @@ class _FactPlotStyles:
                barplot_xlabel_fontsize: Optional[int] = 10,
                barplot_ylabel_fontsize: Optional[int] = 10,
                barplot_xticklabels_fontsize: Optional[int] = 10,
-               barplot_yticklabels_fontsize: Optional[int] = 10):  # pytype: disable=annotation-type-mismatch
+               barplot_yticklabels_fontsize: Optional[int] = 10):
     """Initialises parameters.
 
     Args:
@@ -320,9 +320,9 @@ class FactVisualizer(object):
       self,
       fig_width: Optional[int] = 10,
       fig_height: Optional[int] = 30,
-      line_color_record_count: Optional[int] = 'lightblue',
-      line_color_average: Optional[int] = 'coral',
-      line_color_stddev: Optional[int] = 'lightcoral',
+      line_color_record_count: Optional[str] = 'lightblue',
+      line_color_average: Optional[str] = 'coral',
+      line_color_stddev: Optional[str] = 'lightcoral',
       lineplot_title_fontsize: Optional[int] = 15,
       lineplot_legend_fontsize: Optional[int] = 10,
       lineplot_xlabel_fontsize: Optional[int] = 10,
