@@ -150,7 +150,8 @@ def _get_automatic_feature_params(
     Dict from feature option parameter name to value.
   """
   automatic_features_params = {}
-  _run_sql(client, 'rank_categorical_fact_values_by_count.sql', params)
+  if not params['prediction_mode']:
+    _run_sql(client, 'rank_categorical_fact_values_by_count.sql', params)
   # Extract top fact values.
   fact_name_to_value_and_column_suffix = {}
   for (fact_name, fact_value, column_name_suffix) in _run_sql(
@@ -235,6 +236,7 @@ def update_params_with_defaults(params):
   params.setdefault('conversions_sql', 'conversions_google_analytics.sql')
   params.setdefault('sessions_sql', 'sessions_google_analytics.sql')
   params.setdefault('windows_sql', 'sliding_windows.sql')
+  params.setdefault('prediction_mode', False)
   params.setdefault('features_sql', 'automatic_features.sql')
   params.setdefault('top_n_values_per_fact', 3)
   params.setdefault('sum_values', '')
@@ -260,7 +262,7 @@ def check_snapshot_date_params(params: Dict[str, Any]):
   """Runs basic checks on the snapshot date params."""
   assert 'snapshot_start_date' in params
   assert 'snapshot_end_date' in params
-  assert params['snapshot_start_date'] < params['snapshot_end_date']
+  assert params['snapshot_start_date'] <= params['snapshot_end_date']
 
 
 def check_slide_interval_params(params: Dict[str, Any]):
@@ -464,4 +466,39 @@ def run_features_pipeline(params: Dict[str, Any]):
 
   client = bigquery.Client()
   update_fact_params(client, params)
+  generate_features_table(client, params)
+
+
+def run_prediction_pipeline(params: Dict[str, Any]):
+  """Runs the prediction pipeline, generating features for a single window.
+
+  Before running this pipeline, first run the end-to-end windowing pipeline, and
+  then use the data to train an ML model. Once the model is deployed and you
+  want predictions about live customers, run this script to generate features
+  for the customers over a single window of data, and then input the features
+  into the ML model to get it's predictions.
+
+  Args:
+    params: Dict from pipeline parameter names to values.
+  """
+  params['prediction_mode'] = True
+  check_gcp_params(params)
+  assert 'analytics_table' in params
+  check_snapshot_date_params(params)
+  assert params['snapshot_start_date'] == params['snapshot_end_date']
+  check_slide_interval_params(params)
+  check_lookback_window_params(params)
+  check_prediction_window_params(params)
+  fact_value_map_table = params['categorical_fact_value_to_column_name_table']
+  update_params_with_defaults(params)
+  # Overwrite the default categorical_fact_value_to_column_name_table with the
+  # param version, which, if used, should point to the output table from a
+  # historical training run of the end_to_end_pipeline.
+  params['categorical_fact_value_to_column_name_table'] = fact_value_map_table
+
+  client = bigquery.Client()
+  generate_conversions_table(client, params)
+  generate_sessions_table(client, params)
+  update_fact_params(client, params)
+  generate_windows_table(client, params)
   generate_features_table(client, params)

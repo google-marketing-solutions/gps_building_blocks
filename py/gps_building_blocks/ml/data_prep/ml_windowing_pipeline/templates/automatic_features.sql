@@ -22,6 +22,7 @@
 #     per fact value (as a string), with column_suffix as the legal BigQuery column name suffix.
 #     This map can be generated from rank_categorical_fact_values_by_count, which extracts the
 #     top N values by count per categorical fact.
+#   prediction_mode: True for no label output, and False otherwise.
 #   features_table: output BigQuery table name to write the features.
 #
 # Implementation Note:
@@ -111,7 +112,10 @@ CREATE OR REPLACE TABLE `{{features_table}}` AS (
     Features.window_end_ts,
     Features.snapshot_ts,
     Features.user_id,
+    {% if not prediction_mode %}
     Features.label,
+    {% endif %}
+
     # Out-of-window activity features.
     (
       SELECT TIMESTAMP_DIFF(Features.snapshot_ts, MIN(Sessions.session_ts), DAY)

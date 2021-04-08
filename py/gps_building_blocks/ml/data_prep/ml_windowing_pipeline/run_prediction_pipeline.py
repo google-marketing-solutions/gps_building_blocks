@@ -1,0 +1,211 @@
+# python3
+# coding=utf-8
+# Copyright 2021 Google LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+r"""Script to run the end-to-end ML Windowing Pipeline.
+
+Before running this pipeline, first run the end-to-end windowing pipeline, and
+then use the data to train an ML model. Once the model is deployed and you want
+predictions about live customers, run this script to generate features for the
+customers over a single window of data, and then input the features into the
+ML model to get it's predictions.
+
+Example Usage:
+
+python run_prediction_pipeline.py \
+--project_id=<PROJECT_ID> \
+--dataset_id=<DATASET_ID> \
+--analytics_table="bigquery-public-data.google_analytics_sample.ga_sessions_*" \
+--snapshot_date_offset_in_days=1 \
+--lookback_window_size_in_days=30 \
+--lookback_window_gap_in_days=0 \
+--categorical_fact_value_to_column_name_table=<BIGQUERY TABLE from training run>
+
+python run_prediction_pipeline.py \
+--project_id=<PROJECT_ID> \
+--dataset_id=<DATASET_ID> \
+--analytics_table="bigquery-public-data.google_analytics_sample.ga_sessions_*" \
+--snapshot_date_offset_in_days=1 \
+--lookback_window_size_in_days=30 \
+--lookback_window_gap_in_days=0 \
+--features_sql='features_from_input.sql' \
+--sum_values='totals_visits;totals_hits' \
+--avg_values='totals_visits;totals_hits' \
+--count_values='geoNetwork_metro:[Providence-New Bedford///,MA",Rochester-Mason City-Austin///,IA]:[Others]' \
+--mode_values='hits_eCommerceAction_action_type:[3]:[Others]' \
+--proportions_values='channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Others]' \
+--latest_values='device_isMobile:[false,true]:[Others]'
+"""
+
+import base64
+import datetime
+import json
+from typing import Any, Dict
+
+from absl import app
+from absl import flags
+
+from google.cloud import pubsub_v1
+from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import ml_windowing_pipeline
+
+FLAGS = flags.FLAGS
+
+# GCP flags.
+flags.DEFINE_string('project_id', None, 'Google Cloud project to run inside.')
+flags.DEFINE_string('dataset_id', None, 'BigQuery dataset to write the output.')
+flags.DEFINE_string('run_id', None,
+                    'By default, all output tables have the snapshot_date '
+                    'suffix. Use this flag to override the suffix which must '
+                    'be compatible with BigQuery table naming requirements.')
+# BigQuery input flags.
+flags.DEFINE_string('analytics_table', None,
+                    'Full BigQuery id of the Google Analytics/Firebase table.')
+# Windowing flags.
+# Either set the snapshot_date with a specific date or the
+# snapshot_date_offset_in_days with a relative offset from today.
+flags.DEFINE_string('snapshot_date', None,
+                    'YYYY-MM-DD snapshot date to make predictions from.')
+flags.DEFINE_integer('snapshot_date_offset_in_days', None,
+                     'Number of days before today to set the snapshot_date.')
+flags.DEFINE_string('timezone', 'UTC',
+                    'Timezone for the Google Analytics Data, '
+                    'e.g. "Australia/Sydney", or "+11:00"')
+flags.DEFINE_integer('lookback_window_gap_in_days', None,
+                     'The lookback window ends on (snapshot_ts - '
+                     'lookback_window_gap_in_days) days. Sessions '
+                     'outside the lookback window are ignored.',
+                     lower_bound=0)
+flags.DEFINE_integer('lookback_window_size_in_days', None,
+                     'The lookback window starts on (snapshot_ts - '
+                     'lookback_window_size_in_days - '
+                     'lookback_window_gap_in_days) days. Sessions outside the '
+                     'lookback window are ignored.',
+                     lower_bound=0)
+
+# Location of SQL templates that can be overridden by the user.
+flags.DEFINE_string('conversions_sql', 'conversions_google_analytics.sql',
+                    'Name of the conversion extraction SQL file in templates/.')
+flags.DEFINE_string('sessions_sql', 'sessions_google_analytics.sql',
+                    'Name of the session extraction SQL file in templates/.')
+flags.DEFINE_string('windows_sql', 'sliding_windows.sql',
+                    'Name of the windows extraction SQL file in templates/.')
+flags.DEFINE_string('features_sql', 'automatic_features.sql',
+                    'Name of the feature extraction SQL file in templates/.'
+                    'Override default value with `features_from_input.sql` for '
+                    'user-provided Feature Option configurations.')
+# Feature options:
+# Required flag only when using automatic_features.sql.
+flags.DEFINE_string('categorical_fact_value_to_column_name_table', None,
+                    'BigQuery table containing the fact (name, value) to '
+                    'column name mapping from the model\'s training run using '
+                    'automatic_features.sql.')
+# Alternative feature extraction using command line flags.
+flags.DEFINE_string('sum_values', '', 'Feature Options for Sum')
+flags.DEFINE_string('avg_values', '', 'Feature Options for Average')
+flags.DEFINE_string('count_values', '', 'Feature Options for Count')
+flags.DEFINE_string('mode_values', '', 'Feature Options for Mode')
+flags.DEFINE_string('proportions_values', '', 'Feature Options for Proportion')
+flags.DEFINE_string('latest_values', '', 'Feature Options for Recent')
+# Debug flag.
+flags.DEFINE_bool('verbose', False, 'Debug logging.')
+
+
+def run(params: Dict[str, Any]) -> int:
+  """Sets default flag values and runs the features pipeline.
+
+  Side-effect: Updates params with additional normalized parameters.
+
+  Args:
+    params: Mapping of pipeline string parameter names to values.
+  Returns:
+    0 on success and non-zero otherwise.
+  Raises:
+    ValueError: User formatted message on error.
+  """
+  if params.get('snapshot_date') and params.get('snapshot_date_offset_in_days'):
+    raise ValueError(
+        'Specify either snapshot_date or snapshot_date_offset_in_days.')
+  elif params.get('snapshot_date'):
+    params['snapshot_start_date'] = params['snapshot_date']
+    params['snapshot_end_date'] = params['snapshot_date']
+  elif params.get('snapshot_date_offset_in_days'):
+    offset_days = int(params['snapshot_date_offset_in_days'])
+    end_date = (datetime.date.today() - datetime.timedelta(days=offset_days))
+    params['snapshot_start_date'] = end_date.strftime('%Y-%m-%d')
+    params['snapshot_end_date'] = end_date.strftime('%Y-%m-%d')
+  else:
+    raise ValueError('Set snapshot_date or snapshot_date_offset_in_days.')
+  if not params.get('run_id'):
+    params['run_id'] = datetime.datetime.strptime(
+        params['snapshot_end_date'], '%Y-%m-%d').strftime('%Y%m%d')
+  params['slide_interval_in_days'] = 1
+  params['prediction_window_gap_in_days'] = 1
+  params['prediction_window_size_in_days'] = 1
+  ml_windowing_pipeline.run_prediction_pipeline(params)
+  return 0
+
+
+def cloud_function_main(event: Dict[Any, Any], unused_context=None) -> int:
+  """Entry point for Cloud Function.
+
+  Args:
+    event: Input PubSub message. Must contain an attributes dict and data dict.
+           attributes - Contains an optional topic_id to publish the results, as
+                        well as the next_task id to trigger after the pipeline
+                        has finished.
+           data - Dict from prediction pipeline parameter to value. See the
+                  flags in this file for a list of possible parameters.
+    unused_context: Unused.
+  Returns:
+    0 on success, and non-zero otherwise.
+  """
+  # Extract the task parameters from the input PubSub message.
+  task_params = json.loads(
+      base64.b64decode(event['attributes']).decode('utf-8'))
+  # Extract the pipeline parameters from the input PubSub message.
+  params = json.loads(base64.b64decode(event['data']).decode('utf-8'))
+  # Run the Prediction pipeline
+  if run(params):
+    return -1
+  # Publish the results to the PubSub topic_id
+  if 'topic_id' not in task_params:
+    return 0
+  publisher = pubsub_v1.PublisherClient()
+  topic_path = publisher.topic_path(
+      params['project_id'], task_params['topic_id'])
+  data = {
+      'projectId': params['project_id'],
+      'datasetId': params['dataset_id'],
+      'tableId': '{}.{}.features'.format(
+          params['project_id'], params['dataset_id']),
+      'partitionDay': datetime.datetime.strptime(
+          params['snapshot_start_date'], '%Y-%m-%d').strftime('%Y%m%d')
+  }
+  data = json.dumps(data).encode('utf-8')
+  future = publisher.publish(
+      topic_path, data,
+      topicId=task_params['topic_id'], taskId=task_params.get('next_task')
+  )
+  future.result()
+  return 0
+
+
+def main(_):
+  params = FLAGS.flag_values_dict()
+  return run(params)
+
+
+if __name__ == '__main__':
+  app.run(main)

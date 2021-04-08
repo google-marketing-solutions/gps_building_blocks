@@ -15,6 +15,7 @@
 # Sample SQL Jinja template to generate features from windows of facts.
 # Args:
 #   windows_table: input BigQuery table name containing windows, e.g. from sliding_windows.sql
+#   prediction_mode: True for no label output, and False otherwise.
 #   features_table: output BigQuery table name to write the features.
 #
 # We recommend using automatic_feature_generation.sql instead. If you want to manually specify
@@ -37,7 +38,9 @@ CREATE OR REPLACE TABLE `{{features_table}}` AS (
     Windows.window_end_ts,
     Windows.snapshot_ts,
     Windows.user_id,
+    {% if not prediction_mode %}
     Windows.label,
+    {% endif %}
 
     # Out-of-window activity features.
     (

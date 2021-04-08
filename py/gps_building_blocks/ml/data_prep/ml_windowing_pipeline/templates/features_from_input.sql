@@ -24,6 +24,7 @@
 #   fact_name_to_value_and_column_suffix: Mapping[str, Iterable[Tuple[str, str]] map
 #     from fact_name to list of (string_value, column_suffix) pairs.
 #   sessions_table: input BigQuery table name from the output of sessions_sql.
+#   prediction_mode: True for no label output, and False otherwise.
 #   features_table: output BigQuery table name to write the features.
 
 CREATE TEMP TABLE FeaturesWithFactValueCount
@@ -138,7 +139,9 @@ AS (
     Features.window_end_ts,
     Features.snapshot_ts,
     Features.user_id,
+    {% if not prediction_mode %}
     Features.label,
+    {% endif %}
     # Out-of-window activity features.
     (
       SELECT TIMESTAMP_DIFF(Features.snapshot_ts, MIN(Sessions.session_ts), DAY)
