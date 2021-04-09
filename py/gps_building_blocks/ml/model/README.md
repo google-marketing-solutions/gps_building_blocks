@@ -1,3 +1,4 @@
+
 # Beta binomial model where the KPI is a rate [0, 1]
 
 When we have a continuous outcome that is the ratio of successes to trials
@@ -39,7 +40,7 @@ Here is an example how to run the model
 ```python
 import numpy as np
 import tensorflow as tf
-import tfp_beta_binomial
+from google3.third_party.gps_building_blocks.py.ml.model import tfp_beta_binomial
 
 # some dummy data, we have 2 covariates
 X = np.arange(6).reshape((3, 2))

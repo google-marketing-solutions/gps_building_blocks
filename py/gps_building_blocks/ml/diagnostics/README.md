@@ -35,7 +35,7 @@ to use at least 1,000 bootstrap samples, even 10,000 is not uncommon.
 
 ```python
   from sklearn import linear_model
-  from gps_building_blocks.py.ml.diagnostics import bootstrap
+  from google3.third_party.gps_building_blocks.py.ml.diagnostics import bootstrap
 
   # Regressor for the bootstrap
   elastic_net = linear_model.ElasticNet(random_state=18)
@@ -73,7 +73,7 @@ performance metrics related to a binary classification model.
 **Usage example:**
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 binary_classification.calc_performance_metrics(
     labels=df_pred['label'].values,
@@ -124,7 +124,7 @@ Under The Curve) is also printed.
 **Usage example:**
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 binary_classification.plot_roc_curve(
     labels=df_pred['label'].values,
@@ -154,7 +154,7 @@ also printed for the evaluation of precision recall curve.
 **Usage example:**
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 binary_classification.plot_precision_recall_curve(
     labels=df_pred['label'].values,
@@ -177,7 +177,7 @@ the predicted probabilities for different classes are.
 **Usage example:**
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 binary_classification.plot_predicted_probabilities(
     labels=df_pred['label'].values,
@@ -208,7 +208,7 @@ bins of the predicted probabilities. It does following:
 **Usage example:**
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 bin_metrics = binary_classification.calc_bin_metrics(
     labels=df_pred['label'].values,
@@ -248,7 +248,7 @@ metrics for cumulative bins of the predicted probabilities. It does following:
 **Usage example:**
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 cumulative_bin_metrics = binary_classification.calc_cumulative_bin_metrics(
     labels=df_pred['label'].values,
@@ -282,7 +282,7 @@ NOTE: Following functions require a Pandas DataFrame with columns containing the
 predicted probabilities (between 0.0 and 1.0) and features.
 
 ```python
-from gps_building_blocks.ml.diagnostics import binary_classification
+from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
 
 feature_names = ('recency', 'history', 'channel', 'zip_code')
 feature_types = ('numerical', 'numerical', 'categorical', 'categorical')

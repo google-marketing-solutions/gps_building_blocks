@@ -22,7 +22,7 @@ learning data.
 Function to calculate the VIFs for the columns in pandas DataFrame.
 
 ```python
-from gps_building_blocks.py.ml.preprocessing import vif
+from google3.third_party.gps_building_blocks.py.ml.preprocessing import vif
 
 vif_df = vif.calculate_vif(data_df, sort=False)
 ```
@@ -43,7 +43,7 @@ All pretrained TF embedding models can be found in [TF hub] (https://tfhub.dev/s
 import re
 import tensorflow_hub as hub
 
-from gps_building_blocks.py.ml.preprocessing.keyword_clustering import KeywordClustering
+from google3.third_party.gps_building_blocks.py.ml.preprocessing.keyword_clustering import KeywordClustering
 
 embed = hub.load("https://tfhub.dev/google/nnlm-en-dim50/2")
 kwrd_clustering = KeywordClustering()
@@ -56,9 +56,13 @@ tst_df = pd.DataFrame({'keyword':['car', 'engine', 'windshield wipers',
                                   'goal post']})
 tst_df['phase_embed'] = tst_df.keyword.apply(kwrd_clustering.extract_embedding)
 tst_df['avg_embed'] = tst_df.phase_embed.apply(
-    kwrd_clustering.get_average_embedding
-    )
-tst_df_w_clusters, cluster_desc = kwrd_clustering.cluster_keywords(data=tst_df, colname_real='keyword', colname_mean_embed='avg_embed', n_clusters=2, num_of_closest_words=3)
+    kwrd_clustering.get_average_embedding)
+tst_df_w_clusters, cluster_desc = kwrd_clustering.cluster_keywords(
+    data=tst_df,
+    colname_real='keyword',
+    colname_mean_embed='avg_embed',
+    n_clusters=2,
+    num_of_closest_words=3)
 ```
 
 ### 3. Cramer's V
@@ -75,7 +79,7 @@ See [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V)
 
 ```python
 import numpy as np
-from gps_building_blocks.py.ml.preprocessing import cramer_v
+from google3.third_party.gps_building_blocks.py.ml.preprocessing import cramer_v
 
 N = 200
 x1 = np.random.poisson(10, size=N)
