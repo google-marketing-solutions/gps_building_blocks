@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn import datasets
+from sklearn import model_selection
 
 from absl.testing import absltest
 from gps_building_blocks.ml.statistical_inference import data_preparation
@@ -290,8 +291,96 @@ class InferenceTest(parameterized.TestCase):
     result = data.discretize_numeric_covariate(
         'variable', equal_sized_bins=equal_sized_bins, bins=5, numeric=numeric)
 
-    pd.testing.assert_frame_equal(
-        result, expected_result, check_dtype=False)
+    pd.testing.assert_frame_equal(result, expected_result, check_dtype=False)
+
+  @parameterized.named_parameters(
+      ('with_groups_kfold_as_int',
+       3,
+       np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3]),
+       [pd.DataFrame({'variable': [0, 1, 2, 3, 4, 5]}),
+        pd.DataFrame({'variable': [2, 3, 6, 7, 8, 9]},
+                     index=[2, 3, 6, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 4, 5, 6, 7, 8, 9]},
+                     index=[0, 1, 4, 5, 6, 7, 8, 9])],
+       [pd.DataFrame({'variable': [6, 7, 8, 9]}, index=[6, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 4, 5]}, index=[0, 1, 4, 5]),
+        pd.DataFrame({'variable': [2, 3]}, index=[2, 3])]),
+      ('with_groups_kfold_as_object',
+       model_selection.GroupKFold(n_splits=3),
+       np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3]),
+       [pd.DataFrame({'variable': [0, 1, 2, 3, 4, 5]}),
+        pd.DataFrame({'variable': [2, 3, 6, 7, 8, 9]},
+                     index=[2, 3, 6, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 4, 5, 6, 7, 8, 9]},
+                     index=[0, 1, 4, 5, 6, 7, 8, 9])],
+       [pd.DataFrame({'variable': [6, 7, 8, 9]}, index=[6, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 4, 5]}, index=[0, 1, 4, 5]),
+        pd.DataFrame({'variable': [2, 3]}, index=[2, 3])]),
+  )
+  def test_split_with_groups_yields_expected_folds_with_non_overlaping_groups(
+      self,
+      cross_validation,
+      groups,
+      expected_trains,
+      expected_tests):
+    data = data_preparation.InferenceData(
+        pd.DataFrame({
+            'variable': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        }))
+
+    iterator = zip(data.split(cross_validation=cross_validation, groups=groups),
+                   expected_trains,
+                   expected_tests)
+    for (train_data, test_data), expected_train, expected_test in iterator:
+      train_groups = set(groups[train_data.data.index.tolist()])
+      test_groups = set(groups[test_data.data.index.tolist()])
+
+      pd.testing.assert_frame_equal(
+          train_data.data, expected_train, check_dtype=False)
+      pd.testing.assert_frame_equal(
+          test_data.data, expected_test, check_dtype=False)
+      self.assertEmpty(train_groups.intersection(test_groups))
+
+  @parameterized.named_parameters(
+      ('without_groups_kfold_as_int', 3,
+       [pd.DataFrame({'variable': [4, 5, 6, 7, 8, 9]},
+                     index=[4, 5, 6, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 2, 3, 7, 8, 9]},
+                     index=[0, 1, 2, 3, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 2, 3, 4, 5, 6]},
+                     index=[0, 1, 2, 3, 4, 5, 6])],
+       [pd.DataFrame({'variable': [0, 1, 2, 3]}, index=[0, 1, 2, 3]),
+        pd.DataFrame({'variable': [4, 5, 6]}, index=[4, 5, 6]),
+        pd.DataFrame({'variable': [7, 8, 9]}, index=[7, 8, 9])]),
+      ('without_groups_kfold_as_object',
+       model_selection.KFold(n_splits=3),
+       [pd.DataFrame({'variable': [4, 5, 6, 7, 8, 9]},
+                     index=[4, 5, 6, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 2, 3, 7, 8, 9]},
+                     index=[0, 1, 2, 3, 7, 8, 9]),
+        pd.DataFrame({'variable': [0, 1, 2, 3, 4, 5, 6]},
+                     index=[0, 1, 2, 3, 4, 5, 6])],
+       [pd.DataFrame({'variable': [0, 1, 2, 3]}, index=[0, 1, 2, 3]),
+        pd.DataFrame({'variable': [4, 5, 6]}, index=[4, 5, 6]),
+        pd.DataFrame({'variable': [7, 8, 9]}, index=[7, 8, 9])]),
+  )
+  def test_split_without_groups_yields_expected_folds(self,
+                                                      cross_validation,
+                                                      expected_trains,
+                                                      expected_tests):
+    data = data_preparation.InferenceData(
+        pd.DataFrame({
+            'variable': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        }))
+
+    iterator = zip(data.split(cross_validation=cross_validation),
+                   expected_trains,
+                   expected_tests)
+    for (train_data, test_data), expected_train, expected_test in iterator:
+      pd.testing.assert_frame_equal(
+          train_data.data, expected_train, check_dtype=False)
+      pd.testing.assert_frame_equal(
+          test_data.data, expected_test, check_dtype=False)
 
 
 if __name__ == '__main__':

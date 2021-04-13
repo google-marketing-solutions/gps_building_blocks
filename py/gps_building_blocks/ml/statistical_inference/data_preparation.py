@@ -14,13 +14,15 @@
 
 """Module containing the InferenceData class."""
 
+import copy
 import functools
 import operator
-from typing import Iterable, List, Optional, Text, Tuple
+from typing import Iterable, Iterator, List, Optional, Text, Tuple, Union
 import warnings
 
 import numpy as np
 import pandas as pd
+from sklearn import model_selection
 from sklearn import preprocessing
 from gps_building_blocks.ml.preprocessing import vif
 
@@ -586,6 +588,55 @@ class InferenceData():
     target = self.data[self.target_column]
     data = self.data.drop(self.target_column, axis=1)
     return data, target
+
+  def _copy_and_index_inference_data(self,
+                                     indices: np.ndarray) -> 'InferenceData':
+    """Deep-Copies an InferenceData object on indices provided.
+
+    It does a deepcopy of the current object and indexes both self.data and
+    self.initial_data.
+
+    Args:
+      indices: List of indices to keep in the data.
+
+    Returns:
+      InferenceData with the data indicated by indices.
+    """
+    subset_copy = copy.deepcopy(self)
+    subset_copy.initial_data = self.initial_data.loc[indices, :]
+    subset_copy.data = self.data.loc[indices, :]
+    return subset_copy
+
+  def split(
+      self,
+      cross_validation: Union[int, model_selection.BaseCrossValidator],
+      groups: Optional[np.ndarray] = None,
+      ) -> Iterator[Tuple['InferenceData', 'InferenceData']]:
+    """Splits the data using the indicated cross validator.
+
+    Args:
+      cross_validation: Cross validation to be applied. If an int is passed
+        and groups is None a sklearn Kfold is used with cross_validation as
+        the number of splits. If an int is passed and groups is not None,
+        sklearn GroupKFold will be used. Whena a cross validator is passed it
+        is used directly.
+      groups: If cross validating for non overlaping groups, this array
+        indicates to which group each row belongs.
+
+    Yields:
+      A tuple with train and test InferenceDatas.
+    """
+    if isinstance(cross_validation, int):
+      if groups is not None:
+        cross_validation = model_selection.GroupKFold(n_splits=cross_validation)
+      else:
+        cross_validation = model_selection.KFold(n_splits=cross_validation)
+
+    for train_index, test_index in cross_validation.split(self.data,
+                                                          groups=groups):
+      train_inference_data = self._copy_and_index_inference_data(train_index)
+      test_inference_data = self._copy_and_index_inference_data(test_index)
+      yield train_inference_data, test_inference_data
 
 
 def _input_mock(promp_message: str) -> str:
