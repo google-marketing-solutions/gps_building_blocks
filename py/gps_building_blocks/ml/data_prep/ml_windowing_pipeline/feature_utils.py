@@ -59,7 +59,7 @@ def parse_feature_option(param_str: str) -> List[feature_option.FeatureOption]:
   for param in split(param_str, ';'):
     components = split(param, ':')
     assert len(components) in (
-        1, 3), 'Feature option parameter cannot be parsed: ' + param_str
+        1, 3), 'Feature option parameter cannot be parsed: ' + param
     fact_name = components[0]
     if len(components) == 1:
       features.append(feature_option.FeatureOption(fact_name, {}, None))
