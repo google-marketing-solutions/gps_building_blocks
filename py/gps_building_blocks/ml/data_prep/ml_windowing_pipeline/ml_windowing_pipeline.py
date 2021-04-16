@@ -489,12 +489,15 @@ def run_prediction_pipeline(params: Dict[str, Any]):
   check_slide_interval_params(params)
   check_lookback_window_params(params)
   check_prediction_window_params(params)
-  fact_value_map_table = params['categorical_fact_value_to_column_name_table']
+  # Save the user-specified fact_value_map_table.
+  fact_value_map_table = params.get(
+      'categorical_fact_value_to_column_name_table', None)
   update_params_with_defaults(params)
   # Overwrite the default categorical_fact_value_to_column_name_table with the
   # param version, which, if used, should point to the output table from a
   # historical training run of the end_to_end_pipeline.
-  params['categorical_fact_value_to_column_name_table'] = fact_value_map_table
+  if fact_value_map_table:
+    params['categorical_fact_value_to_column_name_table'] = fact_value_map_table
 
   client = bigquery.Client()
   generate_conversions_table(client, params)
