@@ -68,8 +68,8 @@ CREATE OR REPLACE TABLE `{{features_table}}` AS (
       AS sum_totals_hits,
     (SELECT IFNULL(SUM(Fact.value), 0) FROM UNNEST(Windows.totals_timeOnScreen) AS Fact)
       AS sum_totals_timeOnScreen,
-    (SELECT IFNULL(SUM(Fact.value), 0) FROM UNNEST(Windows.totals_transactionRevenue) AS Fact)
-      AS sum_totals_transactionRevenue,
+    (SELECT IFNULL(SUM(Fact.value), 0) FROM UNNEST(Windows.totals_totalTransactionRevenue) AS Fact)
+      AS sum_totals_totalTransactionRevenue,
 
     (SELECT IFNULL(AVG(Fact.value), 0) FROM UNNEST(Windows.totals_timeOnScreen) AS Fact)
       AS avg_totals_timeOnScreen,
