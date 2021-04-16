@@ -49,15 +49,12 @@ python run_prediction_pipeline.py \
 --latest_values='device_isMobile:[false,true]:[Others]'
 """
 
-import base64
 import datetime
-import json
 from typing import Any, Dict
 
 from absl import app
 from absl import flags
 
-from google.cloud import pubsub_v1
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import ml_windowing_pipeline
 
 FLAGS = flags.FLAGS
@@ -154,51 +151,6 @@ def run(params: Dict[str, Any]) -> int:
   params['prediction_window_gap_in_days'] = 1
   params['prediction_window_size_in_days'] = 1
   ml_windowing_pipeline.run_prediction_pipeline(params)
-  return 0
-
-
-def cloud_function_main(event: Dict[Any, Any], unused_context=None) -> int:
-  """Entry point for Cloud Function.
-
-  Args:
-    event: Input PubSub message. Must contain an attributes dict and data dict.
-           attributes - Contains an optional topic_id to publish the results, as
-                        well as the next_task id to trigger after the pipeline
-                        has finished.
-           data - Dict from prediction pipeline parameter to value. See the
-                  flags in this file for a list of possible parameters.
-    unused_context: Unused.
-  Returns:
-    0 on success, and non-zero otherwise.
-  """
-  # Extract the task parameters from the input PubSub message.
-  task_params = json.loads(
-      base64.b64decode(event['attributes']).decode('utf-8'))
-  # Extract the pipeline parameters from the input PubSub message.
-  params = json.loads(base64.b64decode(event['data']).decode('utf-8'))
-  # Run the Prediction pipeline
-  if run(params):
-    return -1
-  # Publish the results to the PubSub topic_id
-  if 'topic_id' not in task_params:
-    return 0
-  publisher = pubsub_v1.PublisherClient()
-  topic_path = publisher.topic_path(
-      params['project_id'], task_params['topic_id'])
-  data = {
-      'projectId': params['project_id'],
-      'datasetId': params['dataset_id'],
-      'tableId': '{}.{}.features'.format(
-          params['project_id'], params['dataset_id']),
-      'partitionDay': datetime.datetime.strptime(
-          params['snapshot_start_date'], '%Y-%m-%d').strftime('%Y%m%d')
-  }
-  data = json.dumps(data).encode('utf-8')
-  future = publisher.publish(
-      topic_path, data,
-      topicId=task_params['topic_id'], taskId=task_params.get('next_task')
-  )
-  future.result()
   return 0
 
 
