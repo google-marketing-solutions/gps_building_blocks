@@ -49,13 +49,13 @@ class ABTestingExperimentalDesignTest(absltest.TestCase):
         labels=LABELS, probability_predictions=PREDICTIONS, number_bins=3)
 
     self.assertEqual(results.shape, (24, 7))
-    self.assertEqual(
+    self.assertListEqual(
         list(results.columns), [
             'bin_number', 'bin_size', 'conv_rate_percentage',
             'uplift_percentage', 'power_percentage',
             'confidence_level_percentage', 'sample_size'
         ])
-    self.assertEqual(
+    self.assertListEqual(
         list(results['sample_size']), [
             248.0, 314.0, 343.0, 421.0, 62.0, 79.0, 86.0, 106.0, 928.0, 1178.0,
             1285.0, 1577.0, 232.0, 295.0, 322.0, 395.0, 1031.0, 1309.0, 1428.0,
@@ -67,6 +67,27 @@ class ABTestingExperimentalDesignTest(absltest.TestCase):
         labels=LABELS, probability_predictions=PREDICTIONS, number_bins=3)
 
     self.assertFalse(results.isna().values.any())
+
+  def test_calc_chisquared_sample_sizes_for_cumulative_bins_returns_right_vals(
+      self):
+    results = ab_testing_design.calc_chisquared_sample_sizes_for_cumulative_bins(
+        labels=LABELS, probability_predictions=PREDICTIONS, number_bins=5)
+
+    self.assertEqual(results.shape, (40, 8))
+    self.assertListEqual(
+        list(results.columns), [
+            'cumulative_bin_number', 'bin_size', 'bin_size_percentage',
+            'conv_rate_percentage', 'uplift_percentage', 'power_percentage',
+            'confidence_level_percentage', 'sample_size'
+        ])
+    self.assertListEqual(
+        list(results['sample_size']), [
+            207.0, 262.0, 286.0, 351.0, 52.0, 66.0, 72.0, 88.0, 371.0, 471.0,
+            514.0, 631.0, 93.0, 118.0, 129.0, 158.0, 442.0, 561.0, 612.0, 751.0,
+            111.0, 141.0, 153.0, 188.0, 371.0, 471.0, 514.0, 631.0, 93.0, 118.0,
+            129.0, 158.0, 619.0, 785.0, 857.0, 1051.0, 155.0, 197.0, 215.0,
+            263.0
+        ])
 
 
 if __name__ == '__main__':

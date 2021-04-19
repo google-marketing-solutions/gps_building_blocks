@@ -87,22 +87,22 @@ def calc_chisquared_sample_sizes_for_bins(
     estimated using the Chi-squared test of proportions for each combination
     of uplift_percentage, power_percentage and confidence_level_percentage.
     These sizes could be used as the minimum required size for each Test or
-    Control group when designing an experiment to target users from ech of these
-    bins of predictions.
+    Control group when designing an experiment to target users from each of
+    these bins of predictions.
 
   Args:
     labels: An array of true binary labels represented by 1.0 and 0.0.
     probability_predictions: An array of predicted probabilities between 0.0 and
       1.0.
     number_bins: Number of bins that we want to divide the ranked predictions
-      into. Default is deciles (3 bins) such that the 1st bin contains the
+      into. Default is 3 bins such that the 1st bin contains the
       highest 1/3rd of the predictions (High Propensity group), the 2nd bin
       contains the next 1/3rd of the predictions (Medium Propensity group) and
       the last bin contains the lowest 1/3rd of the predictions (Lowest
       Propensity group).
-    uplift_percentages: List of different expected uplift percentages.
-    power_percentages: List of different statistical powers for the test.
-    confidence_level_percentages: List of different statistical confidence
+    uplift_percentages: Sequence of different expected uplift percentages.
+    power_percentages: Sequence of different statistical powers for the test.
+    confidence_level_percentages: Sequence of different statistical confidence
       levels for the test.
 
   Returns:
@@ -171,4 +171,93 @@ def calc_chisquared_sample_sizes_for_bins(
       columns=[
           'bin_number', 'bin_size', 'conv_rate_percentage', 'uplift_percentage',
           'power_percentage', 'confidence_level_percentage', 'sample_size'
+      ])
+
+
+def calc_chisquared_sample_sizes_for_cumulative_bins(
+    labels: np.ndarray,
+    probability_predictions: np.ndarray,
+    number_bins: Optional[int] = 10,
+    uplift_percentages: Optional[Sequence[float]] = (10, 20),
+    power_percentages: Optional[Sequence[float]] = (80, 90),
+    confidence_level_percentages: Optional[Sequence[float]] = (90, 95)
+) -> pd.DataFrame:
+  """Calculates statistical sample sizes for the cumulative bins of predictions.
+
+  These sample sizes for the cumulative bins of predicted probabilities are
+  estimated using the Chi-squared test of proportions for each combination of
+  uplift_percentage, power_percentage and confidence_level_percentage. These
+  sizes could be used as the minimum required sizes for each Test or Control
+  group when designing an experiment to target users having the top X% of
+  predicted probabilities.
+
+  Args:
+    labels: An array of true binary labels represented by 1.0 and 0.0.
+    probability_predictions: An array of predicted probabilities between 0.0 and
+      1.0.
+    number_bins: Number of cumulative bins that we want to divide the ranked
+      predictions into. Default is deciles (10 bins) such that the 1st bin
+      contains the highest 10% of the predictions, the 2nd bin contains the
+      highest 20% of the predictions and so on.
+    uplift_percentages: Sequence of different expected uplift percentages.
+    power_percentages: Sequence of different statistical powers for the test.
+    confidence_level_percentages: Sequence of different statistical confidence
+      levels for the test.
+
+  Returns:
+    bin_metrics: Following metrics calculated for each cumulative bin.
+      cumulative_bin_number: Bin number starting from 1.
+      bin_size: Total numbers of instances in the bin.
+      bin_size_percentage: Percentage of instances in the bin out of all the
+        instances in the labels.
+      conversion_rate: Proportion of positive instances out of all the instances
+        in the bin (precision).
+      expected_uplift: Expected uplift_percentage.
+      power_percentage: Statistical power of the test.
+      confidence_level_percentage: Statistical confidence level of the test.
+      sample_size: Statistical sample size required.
+  """
+  utils.assert_label_values_are_valid(labels)
+  utils.assert_prediction_values_are_valid(probability_predictions)
+  utils.assert_label_and_prediction_length_match(labels,
+                                                 probability_predictions)
+
+  # Separate the probability_predictions into bins.
+  label_predictions = pd.DataFrame(
+      list(zip(labels, probability_predictions)),
+      columns=['label', 'prediction'])
+  label_predictions = label_predictions.sort_values(
+      by='prediction', ascending=False)
+  number_total_instances = label_predictions.shape[0]
+  equal_bin_size = number_total_instances / number_bins
+
+  cumulative_bin_metrics_list = []
+
+  for bin_number in range(1, (number_bins + 1)):
+    current_bin_size = round(equal_bin_size * bin_number)
+    bin_size_percentage = round(current_bin_size / number_total_instances * 100,
+                                2)
+    bin_instances = label_predictions.head(current_bin_size)
+    positive_instance_indeces = bin_instances['label'] > 0.0
+    number_bin_positive_instances = bin_instances[
+        positive_instance_indeces].shape[0]
+    conv_rate = round(number_bin_positive_instances / current_bin_size * 100, 2)
+
+    for uplift_percentage in uplift_percentages:
+      for power_percentage in power_percentages:
+        for confidence_level_percentage in confidence_level_percentages:
+          sample_size = calc_chisquared_sample_size(
+              conv_rate, uplift_percentage, power_percentage,
+              confidence_level_percentage)
+          cumulative_bin_metrics_list.append(
+              (bin_number, current_bin_size, bin_size_percentage, conv_rate,
+               uplift_percentage, power_percentage, confidence_level_percentage,
+               sample_size))
+
+  return pd.DataFrame(
+      cumulative_bin_metrics_list,
+      columns=[
+          'cumulative_bin_number', 'bin_size', 'bin_size_percentage',
+          'conv_rate_percentage', 'uplift_percentage', 'power_percentage',
+          'confidence_level_percentage', 'sample_size'
       ])
