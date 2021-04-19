@@ -163,7 +163,7 @@ Parameters:
 |------------|-------------|---------|
 | project_id  | Required. Google Cloud project to run on. | *'my_gcp_project'* |
 | dataset_id  | Required. BigQuery dataset to write the output. Make sure this BigQuery dataset already exist. | *'mlwp_data'* |
-| analytics_table | Required. Full BigQuery id of the Google Analytics/Firebase table. | *'bigquery-public-data.google_analytics_sample.ga_sessions_*'* |
+| analytics_table | Required. Full BigQuery id of the Google Analytics/Firebase table. | *'bigquery-public-data.google_analytics_sample.ga_sessions_\*'* |
 | conversions_sql | Optional. Name of the conversion extraction SQL file in templates/ directory. Default value is 'conversions_google_analytics.sql'. | *'my_analytics_conversions.sql'* |
 | sessions_sql | Optional. Name of the session extraction SQL file in templates/ directory. Default value is 'sessions_google_analytics.sql'. | *'my_analytics_sessions.sql'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
@@ -233,7 +233,7 @@ Parameters:
 |------------|-------------|---------|
 | project_id  | Required. Google Cloud project to run on. | *'my_gcp_project'* |
 | dataset_id  | Required. BigQuery dataset to write the output. Make sure this BigQuery dataset already exist. | *'mlwp_data'* |
-| analytics_table | Required. Full BigQuery id of the Google Analytics/Firebase table. | *'bigquery-public-data.google_analytics_sample.ga_sessions_*'* |
+| analytics_table | Required. Full BigQuery id of the Google Analytics/Firebase table. | *'bigquery-public-data.google_analytics_sample.ga_sessions_\*'* |
 | snapshot_start_date  | Required. The date of the first data snapshot. Format is YYYY-MM-DD. | *'2016-11-17'* |
 | snapshot_end_date  | Required. The date of the last data snapshot. Format is YYYY-MM-DD. | *'2017-07-01'* |
 | slide_interval_in_days | Required. Required. Number of days between successive snapshots. | *7* |
