@@ -168,6 +168,7 @@ Parameters:
 | sessions_sql | Optional. Name of the session extraction SQL file in templates/ directory. Default value is 'sessions_google_analytics.sql'. | *'my_analytics_sessions.sql'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
 
 To run in jupyter notebook:
 
@@ -243,7 +244,6 @@ Parameters:
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
 
-
 To run in jupyter Notebook:
 
 ```python
@@ -307,6 +307,7 @@ The windows can be defined in two ways:
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
 
 To run in jupyter Notebook:
 
@@ -374,6 +375,7 @@ Parameters:
 | mode_values | Optional. A semi-colon separated list of categorical Feature Options to create Mode Value feature (the most frequent category value): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
 
 To run in jupyter notebook:
 
@@ -431,6 +433,7 @@ python run_features_pipeline.py \
 | top_n_values_per_fact | Optional. Extract the top n values by count for each categorical fact to turn into features in automatic feature extraction. Default value is 3. | *5* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
 
 To run in jupyter notebook:
 

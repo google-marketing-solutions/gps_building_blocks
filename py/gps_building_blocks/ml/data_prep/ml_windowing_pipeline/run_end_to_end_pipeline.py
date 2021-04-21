@@ -127,6 +127,7 @@ flags.DEFINE_string('features_sql', 'automatic_features.sql',
                     'Name of the feature extraction SQL file in templates/.'
                     'Override default value with `features_from_input.sql` for '
                     'user-provided Feature Option configurations.')
+flags.DEFINE_string('templates_dir', '', 'Alternative templates directory.')
 # Feature options:
 # Automatic feature extraction.
 flags.DEFINE_integer('top_n_values_per_fact', 3,

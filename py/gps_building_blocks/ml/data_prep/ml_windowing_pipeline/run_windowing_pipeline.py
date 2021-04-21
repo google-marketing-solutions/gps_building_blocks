@@ -95,6 +95,7 @@ flags.DEFINE_bool('stop_on_first_positive', False,
 # Location of SQL templates that can be overridden by the user.
 flags.DEFINE_string('windows_sql', 'sliding_windows.sql',
                     'Name of the windows extraction SQL file in templates/.')
+flags.DEFINE_string('templates_dir', '', 'Alternative templates directory.')
 # Debug flag.
 flags.DEFINE_bool('verbose', False, 'Debug logging.')
 

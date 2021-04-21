@@ -107,12 +107,29 @@ _TABLE_NAME_TO_ID = {
     'features_table': 'features',
 }
 
-_jinja_env = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(
-        os.path.join(os.path.dirname(__file__), 'templates')),
-    keep_trailing_newline=True,
-    lstrip_blocks=True,
-    trim_blocks=True)
+_jinja_env = None
+
+
+def _set_jinja_env(params: Dict[str, Any]):
+  """Sets up the Jinja environment.
+
+  Args:
+    params: Dict from ml_windowing_pipeline parameter names to values.
+  """
+
+  loaders = []
+  if params['templates_dir']:
+    loaders.append(
+        jinja2.FileSystemLoader(os.path.normpath(params['templates_dir'])))
+  loaders.append(
+      jinja2.FileSystemLoader(
+          os.path.join(os.path.dirname(__file__), 'templates')))
+  jinja_env = jinja2.Environment(
+      loader=jinja2.ChoiceLoader(loaders),
+      keep_trailing_newline=True,
+      lstrip_blocks=True,
+      trim_blocks=True)
+  params['jinja_env'] = jinja_env
 
 
 def _get_table_id(project_id, dataset, table_name, run_id):
@@ -130,7 +147,7 @@ def _get_output_table_ids(project_id, dataset, run_id):
 def _run_sql(client: bigquery.client.Client,
              template_sql: str,
              params: Dict[str, Any]) -> bigquery.table.RowIterator:
-  sql = _jinja_env.get_template(template_sql).render(params)
+  sql = params['jinja_env'].get_template(template_sql).render(params)
   if params['verbose']:
     # Including a print here for easier debugging and to show pipeline progress.
     print(sql)
@@ -250,6 +267,7 @@ def update_params_with_defaults(params):
   params.update(_get_output_table_ids(
       params['project_id'], params['dataset_id'], params['run_id']))
   params.setdefault('verbose', False)
+  _set_jinja_env(params)
 
 
 def check_gcp_params(params: Dict[str, Any]):
