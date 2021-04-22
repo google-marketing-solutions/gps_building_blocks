@@ -240,8 +240,8 @@ def _get_value_to_column_suffix_mapping_params(
         fact_name_to_value_and_column_suffix[fact_name] = []
       fact_name_to_value_and_column_suffix[fact_name].append(
           (fact_value, column_name_suffix))
-    new_params['fact_name_to_value_and_column_suffix'] = (
-        fact_name_to_value_and_column_suffix)
+  new_params['fact_name_to_value_and_column_suffix'] = (
+      fact_name_to_value_and_column_suffix)
   return new_params
 
 
@@ -485,6 +485,37 @@ def run_features_pipeline(params: Dict[str, Any]):
   client = bigquery.Client()
   update_fact_params(client, params)
   generate_features_table(client, params)
+
+
+def generate_features_sql_template(params: Dict[str, Any]) -> str:
+  """Returns a SQL template string equivalent to the input feature parameters.
+
+  Feature generation using features_from_input.sql allows the user to specify
+  features using params like sum_values, max_values, etc. These string params
+  can be very long. This pipeline generates a SQL template string equivalent
+  to the feature params specified.
+
+  Args:
+    params: Dict from pipeline parameter names to values.
+
+  Returns:
+    SQL Jinja template string for generating features.
+  """
+  params.update({
+      'templates_dir': None,
+      'verbose': False,
+      'features_sql': 'features_from_input.sql',
+      # The template params must remain as params after substitution.
+      'windows_table': '{{windows_table}}',
+      'sessions_table': '{{sessions_table}}',
+      'prediction_mode': '{{prediction_mode}}',
+      'features_table': '{{features_table}}',
+  })
+  _set_jinja_env(params)
+  client = bigquery.Client()
+  params.update(_get_feature_options_params(params))
+  params.update(_get_value_to_column_suffix_mapping_params(client, params))
+  return params['jinja_env'].get_template(params['features_sql']).render(params)
 
 
 def run_prediction_pipeline(params: Dict[str, Any]):
