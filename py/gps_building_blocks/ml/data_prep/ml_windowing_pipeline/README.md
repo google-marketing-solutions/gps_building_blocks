@@ -168,7 +168,7 @@ Parameters:
 | sessions_sql | Optional. Name of the session extraction SQL file in templates/ directory. Default value is 'sessions_google_analytics.sql'. | *'my_analytics_sessions.sql'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
-| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_templates_folder* |
 
 To run in jupyter notebook:
 
@@ -193,7 +193,7 @@ python run_data_extraction_pipeline.py \
 --analytics_table='bigquery-public-data.google_analytics_sample.ga_sessions_*' \
 --conversions_sql='conversions_google_analytics.sql' \
 --sessions_sql='sessions_google_analytics.sql' \
---run_id='01' \
+--run_id='01'
 ```
 
 ### Step 2: Run Data Exploration pipeline (Optional)
@@ -307,7 +307,7 @@ The windows can be defined in two ways:
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
-| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_templates_folder* |
 
 To run in jupyter Notebook:
 
@@ -369,13 +369,15 @@ Parameters:
 | features_sql | Required. Name of the feature extraction SQL file in templates/ directory. Use 'features_from_input.sql' for  extracting features based on input operation parameters. | *'features_from_input.sql'* |
 | sum_values | Optional. A semi-colon separated list of numerical fact names to create Sum features (sum of all the values over the lookback window). | *'totals_visits;totals_hits'* |
 | avg_values | Optional. A semi-colon separated list of numerical fact names to create Average features (average of all the values over the lookback window). | *'totals_visits;totals_hits'* |
+| min_values | Optional. A semi-colon separated list of numerical fact names to create Minimum features (minimum of all the values over the lookback window). | *'totals_visits;totals_hits'* |
+| max_values | Optional. A semi-colon separated list of numerical fact names to create Maximum features (maximum of all the values over the lookback window). | *'totals_visits;totals_hits'* |
 | count_values | Optional. A semi-colon separated list of categorical Feature Options to create Count feature (total occurance of each category): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | proportions_values | Optional. A semi-colon separated list of categorical Feature Options to create Proportion feature (proportion of occurance of each category): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | latest_values | Optional. A semi-colon separated list of categorical Feature Options to create Latest Value feature (the latest category value): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | mode_values | Optional. A semi-colon separated list of categorical Feature Options to create Mode Value feature (the most frequent category value): `<feature_option1>;<feature_option2>;<feature_option3>`. Each Feature Option should contain a categorical fact name, a list of values to consider and a default value. The default value is specified to use the as the common value for any value not on the provided list. Feature Option = `<fact_name>:[<value1>, …,<valueN>]:[<default_value>]` | *'channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other];device_isMobile:[false,true]:[Other]'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'* |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
-| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_templates_folder* |
 
 To run in jupyter notebook:
 
@@ -386,6 +388,8 @@ params = {
  'features_sql':'features_from_input.sql',
  'sum_values':'totals_visits;totals_pageviews',
  'avg_values':'totals_visits;totals_pageviews',
+ 'min_values':'totals_visits;totals_pageviews',
+ 'max_values':'totals_visits;totals_pageviews',
  'count_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
  'latest_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
  'proportions_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
@@ -404,6 +408,8 @@ python run_features_pipeline.py \
 --features_sql='features_from_input.sql'\
 --sum_values='totals_visits;totals_hits' \
 --avg_values='totals_visits;totals_hits' \
+--min_values='totals_visits;totals_hits' \
+--max_values='totals_visits;totals_hits' \
 --count_values='trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]' \
 --proportions_values='trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]' \
 --latest_values='trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]' \
@@ -433,7 +439,7 @@ python run_features_pipeline.py \
 | top_n_values_per_fact | Optional. Extract the top n values by count for each categorical fact to turn into features in automatic feature extraction. Default value is 3. | *5* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
-| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_template_folder* |
+| templates_dir | Optional. The path of the folder containing the user-overridden SQL templates. If a template is not found in the specified folder path, it will look at the MLWP templates folder. | */path/my_templates_folder* |
 
 To run in jupyter notebook:
 
@@ -459,7 +465,7 @@ python run_features_pipeline.py \
 --run_id='01'
 ```
 
-### To Running End to End:
+### Running End to End:
 
 Alternatively, the four pipelines can be run end to end in command line as follows:
 
@@ -482,6 +488,8 @@ python3 run_end_to_end_pipeline.py \
 --features_sql='features_from_input.sql' \
 --sum_values='totals_visits;totals_hits' \
 --avg_values='totals_visits;totals_hits' \
+--min_values='totals_visits;totals_hits' \
+--max_values='totals_visits;totals_hits' \
 --count_values='channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Other]'
 --mode_values='hits_eCommerceAction_action_type:[3]:[Others]' \
 --proportions_values='channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Others]'
@@ -505,4 +513,76 @@ python3 run_end_to_end_pipeline.py \
 --prediction_window_size_in_days=14 \
 --stop_on_first_positive=True \
 --top_n_values_per_fact=5
+```
+
+### Customizing MLWP for your Application:
+MLWP uses several SQL templates and you might want to modify these templates
+based on your label definition, label value, custom features, etc. You can
+maintain your own copy of the templates in your own template directory outside
+MLWP library.
+
+- Execute `pip show gps_building_blocks` to get the location (\<location\>) of the package.
+- Copy the templates you want to modify to your template folder (e.g. /path/my_templates_folder/)
+- Modify the templates as you see fit and instructed in the steps below.
+- Remember to provide the `template_dir` parameter in the MLWP pipelines. Example:
+
+```python
+params = {
+ 'project_id':'my_gcp_project',
+ 'dataset_id':'mlwp_data',
+ 'features_sql':'features_from_input.sql',
+ 'sum_values':'totals_visits;totals_pageviews',
+ 'avg_values':'totals_visits;totals_pageviews',
+ 'min_values':'totals_visits;totals_pageviews',
+ 'max_values':'totals_visits;totals_pageviews',
+ 'count_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
+ 'latest_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
+ 'proportions_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
+ 'mode_values':'trafficSource_medium:[cpm,cpc,referral,affiliate,organic]:[Other];device_isMobile:[false,true]:[Other]',
+ 'run_id':'01',
+ 'templates_dir':'/path/my_templates_folder',
+}
+ml_windowing_pipeline.run_features_pipeline(params)
+```
+
+### Running Prediction Pipeline:
+
+Before running this pipeline, first run the end-to-end windowing pipeline, and
+then use the data to train an ML model. Once the model is deployed and you want
+predictions about live customers, run this pipeline to generate features for the
+customers over a single window of data, and then input the features into the
+ML model to get it's predictions.
+
+With manual feature generation:
+
+```python
+python run_prediction_pipeline.py \
+--project_id=<PROJECT_ID> \
+--dataset_id=<DATASET_ID> \
+--analytics_table="bigquery-public-data.google_analytics_sample.ga_sessions_*" \
+--snapshot_date_offset_in_days=1 \
+--lookback_window_size_in_days=30 \
+--lookback_window_gap_in_days=0 \
+--features_sql='features_from_input.sql' \
+--sum_values='totals_visits;totals_hits' \
+--avg_values='totals_visits;totals_hits' \
+--min_values='totals_visits;totals_hits' \
+--max_values='totals_visits;totals_hits' \
+--count_values='geoNetwork_metro:[Providence-New Bedford///,MA",Rochester-Mason City-Austin///,IA]:[Others]' \
+--mode_values='hits_eCommerceAction_action_type:[3]:[Others]' \
+--proportions_values='channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Others]' \
+--latest_values='device_isMobile:[false,true]:[Others]'
+```
+
+With automated feature generation:
+
+```python
+python run_prediction_pipeline.py \
+--project_id=<PROJECT_ID> \
+--dataset_id=<DATASET_ID> \
+--analytics_table="bigquery-public-data.google_analytics_sample.ga_sessions_*" \
+--snapshot_date_offset_in_days=1 \
+--lookback_window_size_in_days=30 \
+--lookback_window_gap_in_days=0 \
+--categorical_fact_value_to_column_name_table=<BIGQUERY TABLE from training run>
 ```
