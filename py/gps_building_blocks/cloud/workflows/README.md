@@ -24,15 +24,17 @@ task1 --> task2 --> task4
 
 The four tasks will be scheduled according to the dependencies defined in the @task decorator.
 
+File: `main.py`
+
 ```python
 import json
 import logging
 from typing import Dict
 
-from workflows import futures
-from workflows import tasks
-from google.cloud import bigquery
 import google.auth
+from google.cloud import bigquery
+from gps_building_blocks.cloud.workflows import futures
+from gps_building_blocks.cloud.workflows import tasks
 
 # Create this BQ table to run the example. See `Deployment` section for details.
 TEST_BQ_TABLE_NAME = 'test_dataset.test_table'
@@ -93,15 +95,25 @@ def start(unused_request: 'flask.Request') -> str:
   return json.dumps({'id': example_job.id})
 ```
 
-## Deployment
-To run the example, first create a table called `test_dataset.test_table` in your BigQuery, and add some fake data.
-The table schema should be `(id: String, content: String)`.
-To deploy the previous example, save the code as `main.py` and run the following commands:
+File: `requirements.txt`
 
 ```
-gcloud functions deploy start --runtime python37 --trigger-http --source workflow
-gcloud functions deploy scheduler --runtime python37 --trigger-topic SCHEDULE --source workflow
-gcloud functions deploy external_event_listener --runtime python37 --trigger-topic SCHEDULE_EXTERNAL_EVENTS --source workflow
+gps-building-blocks
+```
+
+## Deployment
+To run the example:
+
+1. Create a table called `test_dataset.test_table` in your BigQuery, and add some fake data.
+   The table schema should be `(id: String, content: String)`.
+1. Create new folder and cd into it.
+1. Add the files `main.py` and `requirements.txt` with the contents above.
+1. Deploy the cloud functions by running the following commands:
+
+```
+gcloud functions deploy start --runtime python37 --trigger-http
+gcloud functions deploy scheduler --runtime python37 --trigger-topic SCHEDULE
+gcloud functions deploy external_event_listener --runtime python37 --trigger-topic SCHEDULE_EXTERNAL_EVENTS
 ```
 
 The workflow can then be started by calling the `start` Cloud Function. (Cloud
