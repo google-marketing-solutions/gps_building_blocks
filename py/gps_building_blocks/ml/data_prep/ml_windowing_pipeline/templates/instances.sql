@@ -25,9 +25,8 @@
 #   prediction_window_size_in_days:
 #       ignore conversion after this many days following the snapshot summary date +
 #       prediction_window_gap_in_days
-#   prediction_window_conversions_to_label.sql: SQL file that converts an array of conversions into
-#       a label. This file is included automatically. However, it needs to be edited to include
-#       the specific logic for converting conversions into labels.
+#   prediction_window_conversions_to_label_sql: SQL file that converts an array of conversions into
+#       a label. Default is `prediction_window_conversions_to_label_binary.sql`.
 #   instances_table: output BigQuery tablename to write the instances.
 #
 # Each row in the output is an instance based on all the activity for one user up to the snapshot
@@ -74,7 +73,7 @@ AS (
   )
   SELECT
     UserSessionSnapshots.*,
-    {% include 'prediction_window_conversions_to_label.sql' %}
+    {% include '%s' % prediction_window_conversions_to_label_sql %}
       # Column name on a newline in case the last line of the SQL injection is a comment
       AS label,
   FROM UserSessionSnapshots

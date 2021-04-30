@@ -267,6 +267,9 @@ def update_params_with_defaults(params):
   params.update(_get_output_table_ids(
       params['project_id'], params['dataset_id'], params['run_id']))
   params.setdefault('verbose', False)
+  params.setdefault(
+      'prediction_window_conversions_to_label_sql',
+      'prediction_window_conversions_to_label_binary.sql')
   _set_jinja_env(params)
 
 
@@ -418,9 +421,11 @@ def run_data_exploration_pipeline(params: Dict[str, Any]):
   extracts instances, which can help in determining the best
   window size etc.
 
-  Note that prediction_window_conversions_to_label.sql must be overridden with
-  the logic to transform prediction window conversions into a machine learning
-  label. See the file for details.
+  Note that you must specify `prediction_window_conversions_to_label_sql`
+  parameter if you are not using binary classification. Set it to
+  `prediction_window_conversions_to_label_regression.sql` for Regression. For
+  other methods (e.g multi-class), set it to the name of the template you have
+  created (e.g. prediction_window_conversions_to_label_multi_class.sql).
 
   Args:
     params: Dict from pipeline parameter names to values.
@@ -447,9 +452,11 @@ def run_windowing_pipeline(params: Dict[str, Any]):
   to replace this with a different algorithm, like session based windowing in
   session_windows.sql.
 
-  Note that prediction_window_conversions_to_label.sql must be overridden with
-  the logic to transform prediction window conversions into a machine learning
-  label. See the file for details.
+  Note that you must specify `prediction_window_conversions_to_label_sql`
+  parameter if you are not using binary classification. Set it to
+  `prediction_window_conversions_to_label_regression.sql` for Regression. For
+  other methods (e.g multi-class), set it to the name of the template you have
+  created (e.g. prediction_window_conversions_to_label_multi_class.sql).
 
   Args:
     params: Dict from pipeline parameter names to values.

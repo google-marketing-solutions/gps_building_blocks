@@ -22,9 +22,11 @@ default, the sliding_windows.sql algorithm is used. Use the flag --windows_sql
 to replace this with a different algorithm, like session based windowing in
 session_windows.sql.
 
-Note that prediction_window_conversions_to_label.sql must be overridden with the
-logic to transform prediction window conversions into a machine learning label.
-See the file for details.
+Note that you must specify `prediction_window_conversions_to_label_sql`
+parameter if you are not using binary classification. Set it to
+`prediction_window_conversions_to_label_regression.sql` for Regression. For
+other methods (e.g multi-class), set it to the name of the template you have
+created (e.g. prediction_window_conversions_to_label_multi_class.sql).
 
 Example Usage:
 
@@ -95,6 +97,10 @@ flags.DEFINE_bool('stop_on_first_positive', False,
 # Location of SQL templates that can be overridden by the user.
 flags.DEFINE_string('windows_sql', 'sliding_windows.sql',
                     'Name of the windows extraction SQL file in templates/.')
+flags.DEFINE_string('prediction_window_conversions_to_label_sql',
+                    'prediction_window_conversions_to_label_binary.sql',
+                    'Name of the mapping label to prediction window SQL file '
+                    'in templates/.')
 flags.DEFINE_string('templates_dir', '', 'Alternative templates directory.')
 # Debug flag.
 flags.DEFINE_bool('verbose', False, 'Debug logging.')

@@ -21,9 +21,11 @@ and analysis. This can help find anomolous data and facts that might decrease
 the performance of the machine learning algorithm. Also extracts user activity
 snapshots, which can help in determining the best window size etc.
 
-Note that prediction_window_conversions_to_label.sql must be overridden with the
-logic to transform prediction window conversions into a machine learning label.
-See the file for details.
+Note that you must specify `prediction_window_conversions_to_label_sql`
+parameter if you are not using binary classification. Set it to
+`prediction_window_conversions_to_label_regression.sql` for Regression. For
+other methods (e.g multi-class), set it to the name of the template you have
+created (e.g. prediction_window_conversions_to_label_multi_class.sql).
 
 Example Usage:
 
@@ -51,6 +53,13 @@ flags.DEFINE_string('run_id', '',
                     'Optional suffix for the output tables. Must be compatible '
                     'with BigQuery table naming requirements. Note the same '
                     'run_id must be used for all pipelines in the same run.')
+
+# Location of SQL templates that can be overridden by the user.
+flags.DEFINE_string('prediction_window_conversions_to_label_sql',
+                    'prediction_window_conversions_to_label_binary.sql',
+                    'Name of the mapping label to prediction window SQL file '
+                    'in templates/.')
+
 # Windowing flags.
 flags.DEFINE_string('snapshot_start_date', None,
                     'YYYY-MM-DD date of the first window snapshot.')

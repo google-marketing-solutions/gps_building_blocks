@@ -117,12 +117,17 @@ AS (
 ```
 
 #### B. Selection of an aggregate function over the prediction window
-In prediction_window_conversions_to_label.sql you can specify the aggregation
-function used to calculate the ML label value over the prediction window period.
-For example, the following SQL code (the default setting) can be used to create
-a binary label for the prediction window where the label is assigned the value
-True whenever one or more purchases occurred in the prediction window and False
-otherwise.
+Set `prediction_window_conversions_to_label_sql` with the filename of the SQL
+file that contains the aggregation function used to calculate the ML label value 
+over the prediction window period.
+
+##### B.1 Binary Classification
+
+Use `'prediction_window_conversions_to_label_binary.sql'`. This is the default
+method. For example, the following SQL code (the default setting) can be used to
+create a binary label for the prediction window where the label is assigned the 
+value True whenever one or more purchases occurred in the prediction window and 
+False otherwise.
 
 ```sql
 IFNULL(
@@ -132,8 +137,29 @@ IFNULL(
   ), FALSE)
 ```
 
-More examples are given in the `templates/prediction_window_conversions_to_label.sql` file
-on how to create regression labels.
+##### B.2 Regression
+Use `'prediction_window_conversions_to_label_regression.sql'`.  For example, the 
+following SQL code (the default setting) can be used to create a regression 
+label for the prediction window where the label is assigned the sum of all the 
+purchases occurred in the prediction window.
+
+```sql
+IFNULL(
+  (
+    SELECT SUM(Conversions.label)
+    FROM UNNEST(PredictionWindowConversions.conversions) AS Conversions
+  ), 0)
+```
+More examples are given in the 
+`templates/prediction_window_conversions_to_label_regression.sql` file on how to
+create regression labels.
+
+##### B.3 Other Methods
+
+For other classification methods (e.g. multi-class), create a new template file
+(e.g. prediction_window_conversions_to_label_multi_class.sql) and specify the
+SQL fragment to assign label to a prediction window. Set 
+`prediction_window_conversions_to_label_sql` to the template filename.
 
 ### 1.2. Defining session variable to extract
 `templates/sessions_google_analytics.sql` file specifies how to extract the
@@ -240,6 +266,7 @@ Parameters:
 | slide_interval_in_days | Required. Required. Number of days between successive snapshots. | *7* |
 | prediction_window_gap_in_days | Required. The gap between the snapshot date and the prediction window start date in days. The prediction window starts on (snapshot date + prediction_window_gap_in_days). Conversions outside the prediction window are ignored. Minimum value is 1. | *1* |
 | prediction_window_size_in_days | Required. Duration of the prediction window in days. The prediction window ends on (snapshot date + prediction_window_gap_in_days + prediction_window_size_in_days). Conversions outside the prediction window are ignored. Minimum value is 1. | 14 |
+| prediction_window_conversions_to_label_sql | Optional. Default value is prediction_window_conversions_to_label_binary.sql. Name of the SQL file that converts an array of conversions into a label extraction SQL file in templates directory . | *'prediction_window_conversions_to_label_regression.sql'* |
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |
@@ -304,6 +331,7 @@ The windows can be defined in two ways:
 | lookback_window_size_in_days | Required. Duration of the prediction window in days. The lookback window starts on (snapshot date - lookback_window_size_in_days - lookback_window_gap_in_days). Sessions outside the feature window are ignored. | *30* |
 | stop_on_first_positive | Optional. Stop considering the user for future snapshots after the first positive label. Default value is False. | *True* |
 | windows_sql | Optional. Name of the windows extraction SQL file in templates/ directory. Default value is 'sliding_windows.sql'. Set this to 'session_windows.sql' to window data based on user session. | *'sliding_windows.sql'* |
+| prediction_window_conversions_to_label_sql | Optional. Default value is prediction_window_conversions_to_label_binary.sql. Name of the SQL file that converts an array of conversions into a label extraction SQL file in templates directory . | *'prediction_window_conversions_to_label_regression.sql'* |
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |

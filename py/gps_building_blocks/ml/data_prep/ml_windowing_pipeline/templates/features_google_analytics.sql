@@ -27,7 +27,7 @@
 #   window_end_ts: TIMESTAMP,
 #   snapshot_ts: TIMESTAMP,
 #   user_id: STRING
-#   label: type defined in prediction_window_conversions_to_label.sql
+#   label: type defined in `prediction_window_conversions_to_label_sql`
 #   <FeatureName1>: <FeatureType1>
 #   <FeatureName2>: <FeatureType2>
 #   ...

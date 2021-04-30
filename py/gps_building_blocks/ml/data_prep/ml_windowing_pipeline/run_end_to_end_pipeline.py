@@ -127,6 +127,10 @@ flags.DEFINE_string('features_sql', 'automatic_features.sql',
                     'Name of the feature extraction SQL file in templates/.'
                     'Override default value with `features_from_input.sql` for '
                     'user-provided Feature Option configurations.')
+flags.DEFINE_string('prediction_window_conversions_to_label_sql',
+                    'prediction_window_conversions_to_label_binary.sql',
+                    'Name of the mapping label to prediction window SQL file '
+                    'in templates/.')
 flags.DEFINE_string('templates_dir', '', 'Alternative templates directory.')
 # Feature options:
 # Automatic feature extraction.
