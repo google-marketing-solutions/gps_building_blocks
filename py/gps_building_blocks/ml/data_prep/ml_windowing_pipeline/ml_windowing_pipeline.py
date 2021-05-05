@@ -270,6 +270,7 @@ def update_params_with_defaults(params):
   params.setdefault(
       'prediction_window_conversions_to_label_sql',
       'prediction_window_conversions_to_label_binary.sql')
+  params.setdefault('templates_dir', '')
   _set_jinja_env(params)
 
 
