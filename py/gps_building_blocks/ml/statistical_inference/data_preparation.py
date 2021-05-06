@@ -609,7 +609,10 @@ class InferenceData():
 
   def split(
       self,
-      cross_validation: Union[int, model_selection.BaseCrossValidator],
+      cross_validation: Union[int,
+                              model_selection.BaseCrossValidator,
+                              model_selection.ShuffleSplit,
+                              model_selection.StratifiedShuffleSplit],
       groups: Optional[np.ndarray] = None,
       ) -> Iterator[Tuple['InferenceData', 'InferenceData']]:
     """Splits the data using the indicated cross validator.
