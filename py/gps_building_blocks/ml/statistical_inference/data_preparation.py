@@ -603,8 +603,8 @@ class InferenceData():
       InferenceData with the data indicated by indices.
     """
     subset_copy = copy.deepcopy(self)
-    subset_copy.initial_data = self.initial_data.loc[indices, :]
-    subset_copy.data = self.data.loc[indices, :]
+    subset_copy.initial_data = self.initial_data.take(indices)
+    subset_copy.data = self.data.take(indices)
     return subset_copy
 
   def split(

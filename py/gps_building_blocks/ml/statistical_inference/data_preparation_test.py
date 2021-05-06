@@ -382,6 +382,31 @@ class InferenceTest(parameterized.TestCase):
       pd.testing.assert_frame_equal(
           test_data.data, expected_test, check_dtype=False)
 
+  def test_split_can_use_non_integer_indices(self):
+    expected_trains = [
+        pd.DataFrame(data={'variable': [4, 5, 6, 7, 8, 9]},
+                     index=['4', '5', '6', '7', '8', '9']),
+        pd.DataFrame(data={'variable': [0, 1, 2, 3, 7, 8, 9]},
+                     index=['0', '1', '2', '3', '7', '8', '9']),
+        pd.DataFrame(data={'variable': [0, 1, 2, 3, 4, 5, 6]},
+                     index=['0', '1', '2', '3', '4', '5', '6'])]
+    expected_tests = [
+        pd.DataFrame({'variable': [0, 1, 2, 3]}, index=['0', '1', '2', '3']),
+        pd.DataFrame({'variable': [4, 5, 6]}, index=['4', '5', '6']),
+        pd.DataFrame({'variable': [7, 8, 9]}, index=['7', '8', '9'])]
+    data = data_preparation.InferenceData(
+        pd.DataFrame(data={'variable': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],},
+                     index=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']))
+
+    iterator = zip(data.split(cross_validation=3),
+                   expected_trains,
+                   expected_tests)
+    for (train_data, test_data), expected_train, expected_test in iterator:
+      pd.testing.assert_frame_equal(
+          train_data.data, expected_train, check_dtype=False)
+      pd.testing.assert_frame_equal(
+          test_data.data, expected_test, check_dtype=False)
+
 
 if __name__ == '__main__':
   absltest.main()
