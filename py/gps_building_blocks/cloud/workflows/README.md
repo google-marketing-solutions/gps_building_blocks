@@ -104,6 +104,7 @@ gps-building-blocks
 ## Deployment
 To run the example:
 
+1. Enable Firestore by visiting [this page](https://console.cloud.google.com/firestore). Select 'Native' mode when asked.
 1. Create a table called `test_dataset.test_table` in your BigQuery, and add some fake data.
    The table schema should be `(id: String, content: String)`.
 1. Create new folder and cd into it.
