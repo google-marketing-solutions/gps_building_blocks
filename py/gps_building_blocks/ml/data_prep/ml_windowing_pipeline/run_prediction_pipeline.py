@@ -54,6 +54,7 @@ from typing import Any, Dict
 
 from absl import app
 from absl import flags
+import pytz
 
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import ml_windowing_pipeline
 
@@ -140,7 +141,9 @@ def run(params: Dict[str, Any]) -> int:
     params['snapshot_end_date'] = params['snapshot_date']
   elif params.get('snapshot_date_offset_in_days'):
     offset_days = int(params['snapshot_date_offset_in_days'])
-    end_date = (datetime.date.today() - datetime.timedelta(days=offset_days))
+    end_date = (
+        datetime.datetime.now(pytz.timezone(params['timezone']))
+        - datetime.timedelta(days=offset_days))
     params['snapshot_start_date'] = end_date.strftime('%Y-%m-%d')
     params['snapshot_end_date'] = end_date.strftime('%Y-%m-%d')
   else:
