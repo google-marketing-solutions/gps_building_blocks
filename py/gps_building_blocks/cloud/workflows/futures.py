@@ -253,7 +253,7 @@ class GCSPoller:
                event_topic: str,
                db: Optional[firestore.Client] = None,
                pubsub: Optional[pubsub_v1.PublisherClient] = None,
-               project: str = None):
+               project: Optional[str] = None):
     """Initializes the object.
 
     Args:

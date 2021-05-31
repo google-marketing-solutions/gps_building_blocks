@@ -22,7 +22,7 @@ operators.
 """
 import enum
 
-from typing import List, Text, Dict, Any
+from typing import Any, Dict, List, Optional, Text
 
 
 class BlobStatus(enum.Enum):
@@ -51,11 +51,17 @@ class Blob(object):
     num_events: Number of events in blob. Defaults to length of events list.
   """
 
-  def __init__(self, events: List[Dict[Text, Any]], blob_id: Text,
-               platform: Text, source: Text, location: Text, position: int = 0,
+  def __init__(self,
+               events: List[Dict[Text, Any]],
+               blob_id: Text,
+               platform: Text,
+               source: Text,
+               location: Text,
+               position: int = 0,
                status: BlobStatus = BlobStatus.UNPROCESSED,
-               status_desc: Text = '', unsent_events_indexes: List[int] = None,
-               num_events: int = None) -> None:
+               status_desc: Text = '',
+               unsent_events_indexes: Optional[List[int]] = None,
+               num_events: Optional[int] = None) -> None:
     """Initiates Blob with events and location metadata."""
     self.events = events
     self.blob_id = blob_id

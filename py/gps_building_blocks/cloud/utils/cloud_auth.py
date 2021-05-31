@@ -19,7 +19,7 @@ import base64
 import json
 import os
 import textwrap
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 from absl import logging
 import google.auth
@@ -363,7 +363,7 @@ def get_auth_session(
 
 def impersonate_service_account(
     service_account_name: str,
-    target_scopes: Sequence[str] = None
+    target_scopes: Optional[Sequence[str]] = None
 ) -> impersonated_credentials.Credentials:
   """Impersonates a service account.
 
@@ -398,7 +398,7 @@ def build_impersonated_client(
     service_name: str,
     service_account_name: str,
     version: str = 'v1',
-    target_scopes: Sequence[str] = None
+    target_scopes: Optional[Sequence[str]] = None
 ) -> discovery.Resource:
   """Constructs a Resource for interacting with GCP service APIs.
 

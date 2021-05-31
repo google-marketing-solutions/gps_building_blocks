@@ -15,7 +15,7 @@
 
 """Beta binomial model in Tensorflow Probability."""
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 import numpy as np
 import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
@@ -119,7 +119,7 @@ def _trace_fn(state: Any,
 
 def initialize(pinned: Any,
                nchains: int,
-               seed: List[int] = None) -> Any:
+               seed: Optional[List[int]] = None) -> Any:
   """Return initialized state.
 
   Args:
@@ -147,7 +147,7 @@ def fit_dataset(covariate_matrix: tf.Tensor,
                 nadapt: int,
                 nburn: int,
                 npost: int,
-                seed: List[int] = None) -> Any:
+                seed: Optional[List[int]] = None) -> Any:
   """Estimate the model given the data.
 
   Args:
@@ -237,7 +237,7 @@ class BetaBinomialModel():
           covariate_matrix: np.ndarray,
           successes: np.ndarray,
           trials: np.ndarray,
-          seed: List[int] = None) -> None:
+          seed: Optional[List[int]] = None) -> None:
     """Fit the model given the data.
 
     Note that this takes numpy arrays and converts them to tensors.

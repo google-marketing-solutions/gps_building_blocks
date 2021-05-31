@@ -24,7 +24,7 @@
                                              output_key='predict_output')
 """
 
-from typing import Any, Mapping, Text
+from typing import Any, Mapping, Optional, Text
 from airflow import models
 from gps_building_blocks.airflow.hooks import automl_tables_hook
 
@@ -37,9 +37,9 @@ class AutoMLTablesBatchPredictionOperator(models.BaseOperator):
   def __init__(self,
                model_id: Text,
                output_path: Text,
-               input_key: Text = None,
-               input_path: Text = None,
-               output_key: Text = None,
+               input_key: Optional[Text] = None,
+               input_path: Optional[Text] = None,
+               output_key: Optional[Text] = None,
                conn_id: Text = 'google_cloud_default',
                **kwargs):
     """Constructor.

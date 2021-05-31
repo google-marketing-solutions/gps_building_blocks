@@ -42,7 +42,7 @@ class CloudStorageUtils(object):
 
   def __init__(self,
                project_id: str,
-               service_account_info: Mapping[str, str] = None,
+               service_account_info: Optional[Mapping[str, str]] = None,
                service_account_name: Optional[str] = None,
                service_account_key_file: Optional[str] = None) -> None:
     """Initialize new instance of CloudStorageUtils.

@@ -21,7 +21,7 @@
 All exceptions defined by the library should be in this file.
 """
 
-from typing import Text
+from typing import Optional, Text
 
 
 class Error(Exception):
@@ -31,7 +31,7 @@ class Error(Exception):
   details and stack tracing use.
   """
 
-  def __init__(self, msg: Text = '', error: Exception = None) -> None:
+  def __init__(self, msg: Text = '', error: Optional[Exception] = None) -> None:
     super(Error, self).__init__()
     self.msg = msg
     self.prev_error = error

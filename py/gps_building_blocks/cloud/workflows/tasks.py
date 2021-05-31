@@ -144,7 +144,7 @@ class Job:
                schedule_topic: str = 'SCHEDULE',
                external_event_topic: str = 'SCHEDULE_EXTERNAL_EVENTS',
                max_parallel_tasks: int = 5,
-               project: str = None):
+               project: Optional[str] = None):
     """Initializes the job instance.
 
     Args:
@@ -304,7 +304,7 @@ class Job:
   def _finish_task(
       self,
       task_ref: firestore.DocumentReference,
-      result: Any = None) -> bool:
+      result: Optional[Any] = None) -> bool:
     """Marks a running task as finished in the database.
 
     Args:
@@ -458,7 +458,7 @@ class Job:
 
   def task(self,
            task_id: str,
-           deps: List[str] = None) -> Callable[..., Any]:
+           deps: Optional[List[str]] = None) -> Callable[..., Any]:
     """Task wrapper for creating tasks in this job.
 
     Args:

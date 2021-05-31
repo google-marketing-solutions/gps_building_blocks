@@ -105,7 +105,7 @@ class CloudComposerUtils(object):
                          zone: str = 'b',
                          disk_size_gb: int = _DISC_SIZE,
                          machine_type: str = _MACHINE_TYPE,
-                         image_version: str = None,
+                         image_version: Optional[str] = None,
                          python_version: str = _PYTHON_VERSION) -> None:
     """Creates new Cloud Composer environment.
 
