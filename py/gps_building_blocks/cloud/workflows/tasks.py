@@ -345,15 +345,22 @@ class Job:
                                        updates={'error': error})
 
   def _publish_schedule_message(self,
-                                count: int = 1):
+                                count: Optional[int] = None):
     """Publish scheduling messages to initiate following tasks.
 
     Args:
       count: The number of messages to publish. A count of more than 1 allows
-             multiple tasks to be scheduled.
+             multiple tasks to be scheduled. A none value means sending
+             according to max parallel task settings.
     """
+    if count is None:
+      num_running_tasks = len(
+          [t for t in self.tasks if t.status == TaskStatus.RUNNING])
+      count = self.max_parallel_tasks - num_running_tasks
+
     if count <= 0:
       return
+
     message = {'id': self.id}
     data = json.dumps(message).encode('utf-8')
     for _ in range(count):
@@ -395,10 +402,7 @@ class Job:
         else:
           # set task as finished
           self._finish_task(task_ref, result)
-          num_running_tasks = len(
-              [t for t in self.tasks if t.status == TaskStatus.RUNNING])
-          self._publish_schedule_message(self.max_parallel_tasks -
-                                         num_running_tasks)
+          self._publish_schedule_message()
       except:
         # Intentionally catches all exceptions during the execution of the task,
         # so that errors can be saved in the task status.
@@ -452,7 +456,7 @@ class Job:
 
         if result.is_success:
           self._finish_task(task_ref, result=result.result)
-          self._schedule()
+          self._publish_schedule_message()
         else:
           self._fail_task(task_ref, error=result.error)
 
@@ -507,7 +511,7 @@ class Job:
           'status': TaskStatus.READY,
       })
 
-    self._publish_schedule_message(self.max_parallel_tasks)
+    self._publish_schedule_message()
 
   def get_arguments(self):
     """Gets start arguments of this job.
