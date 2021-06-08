@@ -69,6 +69,8 @@ def plot_bar(plot_data: pd.DataFrame,
              subplot_index: int,
              x_label: Optional[str] = None,
              y_label: Optional[str] = None,
+             group_variable: Optional[str] = None,
+             stacked_bars: Optional[bool] = False,
              bar_color: Optional[str] = 'lightcoral',
              title_fontsize: Optional[int] = 15,
              xlabel_fontsize: Optional[int] = 10,
@@ -87,7 +89,11 @@ def plot_bar(plot_data: pd.DataFrame,
     subplot_index: Position (index) of this plot in a column of subplots.
     x_label: Label for X-axis.
     y_label: Label for Y-axis.
-    bar_color: Color of bars in the plot.
+    group_variable: Variable containing the group values when plotting a
+      a bar plot per group on the same chart.
+    stacked_bars: Flag indicating to stack the bars or not when plotting
+      a bar plot per group on the same chart.
+    bar_color: Color of bars when plotting a bar plot for one category.
     title_fontsize: Font size of plot title.
     xlabel_fontsize: Font size of X-axis label.
     ylabel_fontsize: Font size of Y-axis label.
@@ -95,13 +101,20 @@ def plot_bar(plot_data: pd.DataFrame,
     yticklabels_fontsize: Font size of Y-axis tick labels.
     xticklabels_rotation: Degrees of rotation for X-axis tick labels.
   """
-  bar_plot = plot_data.plot.bar(
-      x=x_variable,
-      y=y_variable,
-      ax=axes[subplot_index],
-      color=str(bar_color).lower(),
-      legend=False,
-      rot=xticklabels_rotation)
+  if group_variable is not None:
+    plot_data_pivoted = plot_data.pivot(
+        index=x_variable, columns=group_variable, values=y_variable)
+    bar_plot = plot_data_pivoted.plot.bar(ax=axes[subplot_index],
+                                          stacked=stacked_bars,
+                                          rot=xticklabels_rotation)
+  else:
+    bar_plot = plot_data.plot.bar(
+        x=x_variable,
+        y=y_variable,
+        ax=axes[subplot_index],
+        color=str(bar_color).lower(),
+        legend=False,
+        rot=xticklabels_rotation)
 
   if x_label is None:
     x_label = x_variable
@@ -112,6 +125,8 @@ def plot_bar(plot_data: pd.DataFrame,
   bar_plot.set_ylabel(y_label, fontsize=ylabel_fontsize)
   bar_plot.tick_params(axis='x', which='both', labelsize=xticklabels_fontsize)
   bar_plot.tick_params(axis='y', which='both', labelsize=yticklabels_fontsize)
+  bar_plot.yaxis.grid(True, linestyle='dashed')
+  bar_plot.set_axisbelow(True)
 
 
 def plot_class_densities(plot_data: pd.DataFrame,
@@ -122,8 +137,8 @@ def plot_class_densities(plot_data: pd.DataFrame,
                          title: str,
                          axes: matplotlib.axes.Axes,
                          subplot_index: int,
-                         class1_color: Optional[str] = 'green',
-                         class2_color: Optional[str] = 'blue',
+                         class1_color: Optional[str] = 'limegreen',
+                         class2_color: Optional[str] = 'cornflowerblue',
                          title_fontsize: Optional[int] = 15,
                          ticklabels_fontsize: Optional[int] = 10,
                          legend_fontsize: Optional[int] = 10) -> None:
@@ -173,13 +188,13 @@ def plot_line(plot_data: pd.DataFrame,
               subplot_index: int,
               x_label: Optional[str] = None,
               y_label: Optional[str] = None,
-              line_color: Optional[str] = 'lightblue',
+              line_color: Optional[str] = 'cornflowerblue',
               category_variable: Optional[str] = None,
               title_fontsize: Optional[int] = 15,
               xlabel_fontsize: Optional[int] = 10,
-              ylabel_fontsize: Optional[int] = 10,
+              ylabel_fontsize: Optional[int] = 12,
               xticklabels_fontsize: Optional[int] = 10,
-              yticklabels_fontsize: Optional[int] = 10,
+              yticklabels_fontsize: Optional[int] = 12,
               legend_fontsize: Optional[int] = 10,
               xticklabels_rotation: Optional[int] = 0) -> None:
   """Generates a line plot attaches to the axes object.
@@ -229,6 +244,8 @@ def plot_line(plot_data: pd.DataFrame,
   line_plot.set_title(title, fontsize=title_fontsize)
   line_plot.tick_params(axis='x', labelsize=xticklabels_fontsize)
   line_plot.tick_params(axis='y', labelsize=yticklabels_fontsize)
+  line_plot.yaxis.grid(True, linestyle='dashed')
+  line_plot.set_axisbelow(True)
 
 
 def get_absolute_path(file_name: str) -> str:

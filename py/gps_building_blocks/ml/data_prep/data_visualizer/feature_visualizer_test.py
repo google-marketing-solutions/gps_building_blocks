@@ -101,9 +101,8 @@ class FeatureVisualizerTest(absltest.TestCase):
     ]
 
   def test_plot_features_returns_correct_plots(self):
-    num_feature = 'num_feature1'
     num_feature1_data = NUMERICAL_FEATURES_STATS[
-        NUMERICAL_FEATURES_STATS['feature'] == num_feature]
+        NUMERICAL_FEATURES_STATS['feature'] == 'num_feature1']
     num_feature1_average_true = list(
         num_feature1_data[num_feature1_data['label']]['average'])
     num_feature1_average_false = list(
@@ -123,7 +122,7 @@ class FeatureVisualizerTest(absltest.TestCase):
       self.assertLen(cat_feature_1_plots, 3)
 
     with self.subTest(name='test the title of the distribution by label'):
-      self.assertEqual(f'Class distribution of {num_feature}',
+      self.assertEqual('Distribution of [num_feature1]',
                        num_feature_1_plots[0].get_title())
 
     with self.subTest(
@@ -144,7 +143,7 @@ class FeatureVisualizerTest(absltest.TestCase):
           cat_feature1_category_values1,
           sorted([
               tick.get_text()
-              for tick in cat_feature_1_plots[0].get_yticklabels()
+              for tick in cat_feature_1_plots[0].get_xticklabels()
           ]))
 
     with self.subTest(
@@ -157,7 +156,7 @@ class FeatureVisualizerTest(absltest.TestCase):
           ]))
 
     with self.subTest(name='test title of the distribution of cat_feature_1'):
-      self.assertEqual('Distribution of cat_feature1',
+      self.assertEqual('Distribution of [cat_feature1]',
                        cat_feature_1_plots[0].get_title())
 
 
