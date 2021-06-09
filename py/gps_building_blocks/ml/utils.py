@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common utility functions for ML modules."""
-from typing import Dict, Union
+import logging
+import os
+import sys
+from typing import Dict, Optional, Union
 
+import jinja2
 import numpy as np
+import sqlparse
+
+logging.basicConfig(
+    format='%(levelname)s: %(message)s', level=logging.INFO, stream=sys.stdout)
 
 
 def assert_label_values_are_valid(labels: np.ndarray) -> None:
@@ -94,3 +102,30 @@ def configure_sql(sql_path: str, query_params: Dict[str, Union[str, int,
       params[param_key] = param_value
 
   return sql_script.format(**params)
+
+
+def render_jinja_sql(template_dir: str,
+                     template_name: str,
+                     verbose: Optional[bool] = False,
+                     **kwargs) -> str:
+  """Renders the template sql file into a formatted sql statement.
+
+  NOTE: The function doesn't do SQL injection filtering and not meant to be used
+  for untrusted input.
+
+  Args:
+    template_dir: Directory containing SQL jinja2 template files.
+    template_name: Base name of the SQL jinja2 file.
+    verbose: Rendered SQL script is printed if set True.
+     **kwargs: Parameters to insert into the template.
+
+  Returns:
+     Parametrized SQL query.
+  """
+  template_file_path = os.path.join(
+      os.path.abspath(f'{template_dir}'), f'{template_name}.sql.jinja2')
+  sql_template_str = read_file(template_file_path)
+  template = jinja2.Template(sql_template_str).render(**kwargs)
+  if verbose:
+    logging.info(sqlparse.format(template, reindent=True, keyword_case='upper'))
+  return template

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for gps_building_blocks.ml.utils."""
 
+from unittest import mock
 from absl.testing import absltest
 
 import numpy as np
@@ -75,6 +76,19 @@ class UtilsTest(absltest.TestCase):
     with absltest.mock.patch('builtins.open', mock_open):
       actual = utils.configure_sql(self.test_sql, query_params)
       self.assertEqual(expected_sql, actual)
+
+  def test_render_jinja_sql_parses_sql_template(self):
+    test_sql_template = ('SELECT * FROM `{{ table_name }}` WHERE where_param > '
+                         '{{ where_param_val }};')
+    params = {'table_name': 'test_table', 'where_param_val': 0}
+    expected_sql_str = 'SELECT * FROM `test_table` WHERE where_param > 0;'
+
+    mock_open = mock.mock_open(read_data=test_sql_template)
+    with mock.patch('builtins.open', mock_open):
+      actual = utils.render_jinja_sql(
+          template_dir='test_dir', template_name='test_template', **params)
+
+    self.assertEqual(actual, expected_sql_str)
 
 
 if __name__ == '__main__':
