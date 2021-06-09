@@ -91,7 +91,28 @@ class Future:
 
 
 class BigQueryFuture(Future):
-  """Return type for async big query task."""
+  r"""Return type for async BigQuery task.
+
+    To use this future, you need to set up a log router that routes BigQuery job
+      complete logs into your PubSub topic for external messages. for example:
+
+    ```
+    gcloud logging sinks create bq_complete_sink \
+    pubsub.googleapis.com/projects/$PROJECT_ID/topics/$TOPIC_EXTERNAL \
+     --log-filter='resource.type="bigquery_resource" \
+     AND protoPayload.methodName="jobservice.jobcompleted"'
+
+    sink_service_account=$(gcloud logging sinks describe bq_complete_sink
+    |grep writerIdentity| sed 's/writerIdentity: //')
+
+    gcloud pubsub topics add-iam-policy-binding $TOPIC_EXTERNAL \
+      --member $sink_service_account --role roles/pubsub.publisher
+    ```
+
+    Upon calling, future class extracts the BigQuery job status from the log
+    message directly: if a "status.code" is present the job failed, otherwise
+    it completed successfully.
+  """
 
   @classmethod
   def handle_message(cls, message: Mapping[str, Any]) -> Optional[Result]:

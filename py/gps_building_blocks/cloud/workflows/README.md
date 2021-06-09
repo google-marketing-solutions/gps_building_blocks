@@ -43,20 +43,23 @@ example_job = tasks.Job(name='test_job',
                         schedule_topic='SCHEDULE')
 
 @example_job.task(task_id='step1')
-def task1(**unused_context: Dict[str, str]) -> str:
+def task1(task: tasks.Task, job: tasks.Job) -> str:
   """Task 1: a simple task that returns a string."""
+  del task, job  # unused
   return 'result1'
 
 
 @example_job.task(task_id='step2', deps=['step1'])
-def task2(**unused_context: Dict[str, str]) -> str:
+def task2(task: tasks.Task, job: tasks.Job) -> str:
   """Task 2: a simple task that returns a string."""
+  del task, job  # unused
   return 'result2'
 
 
 @example_job.task(task_id='step3', deps=['step1'])
-def task3(**unused_context: Dict[str, str]) -> str:
+def task3(task: tasks.Task, job: tasks.Job) -> str:
   """Task 3: a BigQuery asynchronous job."""
+  del task, job  # unused
   _, project = google.auth.default()
   dst_table_id = f'{project}.{TEST_BQ_TABLE_NAME}'
   client = bigquery.Client()
@@ -75,8 +78,9 @@ def task3(**unused_context: Dict[str, str]) -> str:
 
 
 @example_job.task(task_id='step4', deps=['step2', 'step3'])
-def task4(job: tasks.Job, **unused_context: Dict[str, str]) -> str:
+def task4(task: tasks.Task, job: tasks.Job) -> str:
   """Task 4: a job that checks the result of task 2."""
+  del task  # unused
   result2 = job.get_task_result('step2')
   logging.info('in task4, got task2 result: %s', result2)
   assert result2 == 'result2'
@@ -99,6 +103,7 @@ File: `requirements.txt`
 
 ```
 gps-building-blocks
+pyOpenSSL
 ```
 
 ## Deployment
@@ -111,12 +116,29 @@ To run the example:
 1. Add the files `main.py` and `requirements.txt` with the contents above.
 1. Deploy the cloud functions by running the following commands:
 
-```
-gcloud functions deploy start --runtime python37 --trigger-http
-gcloud functions deploy scheduler --runtime python37 --trigger-topic SCHEDULE
-gcloud functions deploy external_event_listener --runtime python37 --trigger-topic SCHEDULE_EXTERNAL_EVENTS
-```
+  ```
+  gcloud functions deploy start --runtime python37 --trigger-http
+  gcloud functions deploy scheduler --runtime python37 --trigger-topic SCHEDULE
+  gcloud functions deploy external_event_listener --runtime python37 --trigger-topic SCHEDULE_EXTERNAL_EVENTS
+  ```
 
-The workflow can then be started by calling the `start` Cloud Function. (Cloud
-Functions supports many ways of invocation including HTTP, PubSub and others.
-See https://cloud.google.com/functions/docs/calling for details.)
+1. Create a log router to send BigQuery job complete logs into your PubSub
+   topic for external messages (used by `task3`).
+
+  ```
+  PROJECT_ID=your_gcp_project_id
+
+  gcloud logging sinks create bq_complete_sink \
+      pubsub.googleapis.com/projects/$PROJECT_ID/topics/SCHEDULE_EXTERNAL_EVENTS \
+       --log-filter='resource.type="bigquery_resource" \
+       AND protoPayload.methodName="jobservice.jobcompleted"'
+
+  sink_service_account=$(gcloud logging sinks describe bq_complete_sink|grep writerIdentity| sed 's/writerIdentity: //')
+
+  gcloud pubsub topics add-iam-policy-binding SCHEDULE_EXTERNAL_EVENTS --member $sink_service_account --role roles/pubsub.publisher
+  ```
+
+The workflow can then be started by calling the `start` Cloud Function using the
+HTTP trigger (Cloud Functions supports many ways of invocation including HTTP,
+PubSub and others. See https://cloud.google.com/functions/docs/calling for
+details).
