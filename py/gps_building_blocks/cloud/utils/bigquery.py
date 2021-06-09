@@ -1,5 +1,5 @@
 # Lint as: python3
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,15 @@
 """Manage operations on BigQuery."""
 import logging
 import re
+import sys
+import time
 from typing import Any, Optional, Sequence
 
 from google.cloud import bigquery
 from gps_building_blocks.cloud.utils import cloud_auth
+
+logging.basicConfig(
+    format='%(levelname)s: %(message)s', level=logging.INFO, stream=sys.stdout)
 
 
 class BigQueryUtils:
@@ -62,7 +67,7 @@ class BigQueryUtils:
 
     self.client = bigquery.Client(project=project_id, credentials=credentials)
 
-  def run_query(self, query: str) -> bigquery.QueryJob:
+  def run_query(self, query: str) -> bigquery.table.RowIterator:
     """Performs a SQL query.
 
     Args:
@@ -71,7 +76,15 @@ class BigQueryUtils:
     Returns:
       google.cloud.bigquery.QueryJob: The query object.
     """
-    return self.client.query(query)
+    query_job = self.client.query(query)
+    while not query_job.done():
+      elapsed_seconds = time.time() - query_job.started.timestamp()
+      logging.info('BigQuery job is [%s]. %sseconds elapsed... ',
+                   str(query_job.state), '%.2f' % elapsed_seconds)
+      # Adds a sleep as a safeguard to avoid floods of requests.
+      time.sleep(1)
+    logging.info('BigQuery job is [%s].', query_job.state)
+    return query_job.result()
 
   def insert_rows(self, table: str, rows: Sequence[Any]) -> Sequence[Any]:
     """Inserts rows into a table.
@@ -82,9 +95,9 @@ class BigQueryUtils:
 
     Returns:
       One mapping per row with insert errors: the “index” key identifies the
-      row, and the “errors” key contains a list of the mappings describing one
-      or more problems with the row. If the sequence is empty, it means all rows
-      were inserted successfully.
+      row, and the “errors” key contains a list of the mappings describing
+      one or more problems with the row. If the sequence is empty, it means all
+      rows were inserted successfully.
 
     Raises:
       ValueError: If the table name is invalid or rows are empty.
