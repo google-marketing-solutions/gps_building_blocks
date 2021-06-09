@@ -110,7 +110,7 @@ class GoogleCloudStorageHook(base_hook.GoogleCloudStorageHook,
     done = False
     outio = io.BytesIO()
     try:
-      request = self.get_conn().objects().get_media(bucket=self.bucket,
+      request = self.get_conn().objects().get_media(bucket=self.bucket,  # pytype: disable=attribute-error
                                                     object=blob_name)
       downloader = http.MediaIoBaseDownload(outio, request)
     except googleapiclient_errors.HttpError as error:
