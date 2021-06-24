@@ -62,6 +62,7 @@ setuptools.setup(
         "parameterized==0.8.1",
         "plotly==4.14.3",
         "requests==2.23.0",
+        "scipy==1.2.1",
         "six==1.15.0",
         "sklearn==0.0.0",
         "tensorflow==2.4.1",
