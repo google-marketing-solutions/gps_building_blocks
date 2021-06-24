@@ -65,7 +65,7 @@ setuptools.setup(
         "scipy==1.2.1",
         "six==1.15.0",
         "sklearn==0.0.0",
-        "tensorflow==2.4.1",
+        "tensorflow==2.4.2",
         "tensorflow-hub==0.11.0",
         "statsmodels==0.12.1",
         "dataclasses; python_version<'3.7'"
