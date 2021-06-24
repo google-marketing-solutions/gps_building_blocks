@@ -13,9 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Task scheduler for Function Flow.
-"""
+"""Task scheduler for Function Flow."""
 import base64
 import datetime
 import enum
@@ -32,7 +30,6 @@ from google.cloud import firestore
 from google.cloud import pubsub_v1
 
 from gps_building_blocks.cloud.workflows import futures
-
 
 _ALREADY_EXISTS_CODE = 6
 
@@ -57,8 +54,7 @@ class _AutoName(enum.Enum):
 
 
 class TaskStatus(str, _AutoName):
-  """Represents the status of a single task.
-  """
+  """Represents the status of a single task."""
   # ready to be scheduled
   READY = enum.auto()
   # running
@@ -89,9 +85,8 @@ class Task:
       status: The task status. See class doc of `TaskStatus` for details.
   """
 
-  def __init__(self,
-               task_id: str,
-               deps: List[str],
+  def __init__(self, task_id: str, deps: List[str], remote_topic: Optional[str],
+               task_args: Optional[Dict[str, Any]],
                func: Callable[['Task', 'Job'], Any]):
     """Constructor.
 
@@ -99,12 +94,19 @@ class Task:
       task_id: The task id.
       deps: The task ids list of the dependencies(tasks that should be executed
         before this task).
+      remote_topic: The topic to send a message to after executing the defined
+        function. If None, no message will be sent to any topic after executing
+        the defined function.
+      task_args: Task level arguments that will be passed for this particular
+        task. If None, it will be stored and passed as an empty variable.
       func: The function to be called during execution of this task. This
         function is defined using `@job.task` decorator, and will be called as
         `func(task=task_instance, job=job_instance)`.
     """
     self.id = task_id
     self.deps = deps
+    self.remote_topic = remote_topic
+    self.task_args = task_args
     self.func = func
     self.status = TaskStatus.READY
 
@@ -153,7 +155,7 @@ class Job:
         database.
       pubsub: The pubsub client.
       schedule_topic: The topic which triggers the scheduler function.
-      external_event_topic: The topic for external events, e.g. completion log
+      external_event_topic: The topic for external events, e.g., completion log
         for BigQuery jobs, etc.
       max_parallel_tasks: Maximum tasks running in parallel.
       project: The cloud project id. Will be determined from current envrioment
@@ -241,14 +243,15 @@ class Job:
 
   def _get_tasks_ref(self) -> firestore.CollectionReference:
     """Gets tasks reference of current job from database."""
-    return self.db.collection(self.JOB_STATUS_COLLECTION,
-                              self.id, self.FIELD_TASKS)
+    return self.db.collection(self.JOB_STATUS_COLLECTION, self.id,
+                              self.FIELD_TASKS)
 
   def _get_trigger_ref(self, trigger_id: str) -> firestore.DocumentReference:
     """Gets a trigger reference from database.
 
     Args:
       trigger_id: The trigger id.
+
     Returns:
       Trigger reference.
     """
@@ -271,6 +274,7 @@ class Job:
       from_state: The state before transition.
       to_state: The state after transition.
       updates: Dictionary containing other updates to be written.
+
     Returns:
       True if the transition happened, False otherwise.
     """
@@ -287,29 +291,27 @@ class Job:
 
     return transition_task(transaction)
 
-  def _start_task(
-      self,
-      task_ref: firestore.DocumentReference) -> bool:
+  def _start_task(self, task_ref: firestore.DocumentReference) -> bool:
     """Marks a task as running in the database, if it's not started yet.
 
     Args:
       task_ref: ref to task object in the database.
+
     Returns:
       True if the task changes from READY to RUNNING state, otherwise False.
     """
-    return self._transition_task_state(task_ref,
-                                       from_state=TaskStatus.READY,
-                                       to_state=TaskStatus.RUNNING)
+    return self._transition_task_state(
+        task_ref, from_state=TaskStatus.READY, to_state=TaskStatus.RUNNING)
 
-  def _finish_task(
-      self,
-      task_ref: firestore.DocumentReference,
-      result: Optional[Any] = None) -> bool:
+  def _finish_task(self,
+                   task_ref: firestore.DocumentReference,
+                   result: Optional[Any] = None) -> bool:
     """Marks a running task as finished in the database.
 
     Args:
       task_ref: The ref to task object in the database.
       result: The result of the task, to be written in the task entry.
+
     Returns:
       True if the task changes from RUNNING to FINISHED state, otherwise False.
     """
@@ -323,15 +325,14 @@ class Job:
         to_state=TaskStatus.FINISHED,
         updates={'result': result} if result else None)
 
-  def _fail_task(
-      self,
-      task_ref: firestore.DocumentReference,
-      error: Any) -> bool:
+  def _fail_task(self, task_ref: firestore.DocumentReference,
+                 error: Any) -> bool:
     """Marks a running task as failed in the database.
 
     Args:
       task_ref: The ref to task object in the database.
       error: The error message of the task, to be written in the task entry.
+
     Returns:
       True if the task changes from RUNNING to FAILED state, otherwise False.
     """
@@ -339,19 +340,19 @@ class Job:
     job_ref = self._get_job_ref()
     job_ref.update({'status': JobStatus.FAILED, 'error': error})
 
-    return self._transition_task_state(task_ref,
-                                       from_state=TaskStatus.RUNNING,
-                                       to_state=TaskStatus.FAILED,
-                                       updates={'error': error})
+    return self._transition_task_state(
+        task_ref,
+        from_state=TaskStatus.RUNNING,
+        to_state=TaskStatus.FAILED,
+        updates={'error': error})
 
-  def _publish_schedule_message(self,
-                                count: Optional[int] = None):
+  def _publish_schedule_message(self, count: Optional[int] = None):
     """Publish scheduling messages to initiate following tasks.
 
     Args:
       count: The number of messages to publish. A count of more than 1 allows
-             multiple tasks to be scheduled. A none value means sending
-             according to max parallel task settings.
+        multiple tasks to be scheduled. A none value means sending according to
+        max parallel task settings.
     """
     if count is None:
       num_running_tasks = len(
@@ -366,16 +367,51 @@ class Job:
     for _ in range(count):
       self.pubsub.publish(self.topic_path, data=data)
 
+  def _launch_remote_task(
+      self,
+      task: Task,
+      result: Optional[Any] = None) -> futures.RemoteFunctionFuture:
+    """Launches a remote cloud function associated with a task using pubsub.
+
+    Args:
+      task: The task instance associated with the remote function.
+      result: The result of the local function executed for this task.
+
+    Returns:
+      A future to handle the incoming result of a remote function task.
+    """
+
+    datestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
+    rand_id = uuid.uuid4().hex[:4]
+    job_id = f'{datestamp}-{rand_id}'
+
+    topic_path = self.pubsub.topic_path(self.project, task.remote_topic)
+    job_args = self.get_arguments()
+
+    message = {
+        'job_id': job_id,
+        'job_args': job_args,
+        'task_args': task.task_args
+    }
+    if result:
+      message['result'] = result
+    data = json.dumps(message).encode('utf-8')
+    self.pubsub.publish(topic_path, data=data)
+    return futures.RemoteFunctionFuture(job_id)
+
   def _schedule(self):
     """Schedules one task from the runnable tasks to run.
+
+    If the task is of type `remote`, that is, it has the `remote_topic`
+    attribute set, the local function will be executed and the result will be
+    passed to the remote function in the message.
     """
 
     all_finished = True
     for task in self.tasks:
-      logging.info('job: %s task: %s status: %s', self.id, task.id, task.status)
+      logging.info('Job: %s task: %s status: %s', self.id, task.id, task.status)
       if task.status != TaskStatus.FINISHED:
         all_finished = False
-        break
     if all_finished:
       job_ref = self._get_job_ref()
       job_ref.update({
@@ -395,6 +431,9 @@ class Job:
     if self._start_task(task_ref):
       try:
         result = task.func(task, self)
+        if task.remote_topic:
+          # if the function is remote, the local result is passed as argument
+          result = self._launch_remote_task(task, result)
         if isinstance(result, futures.Future):
           # async task
           self._register_async_task_trigger(task.id, result.trigger_id)
@@ -415,7 +454,7 @@ class Job:
   def _register_async_task_trigger(self, task_id: str, trigger_id: str):
     """Registers a trigger for an async task.
 
-      The trigger is used to match the async task(e.g. the BigQuery job you run
+      The trigger is used to match the async task(e.g., the BigQuery job you run
       asynchronously) with the function flow job and task.
 
     Args:
@@ -423,18 +462,15 @@ class Job:
       trigger_id: The trigger id.
     """
     trigger_ref = self._get_trigger_ref(trigger_id)
-    trigger_ref.set({
-        'job_id': self.id,
-        'task_id': task_id
-    })
+    trigger_ref.set({'job_id': self.id, 'task_id': task_id})
 
   def _handle_event(self, message: Dict[str, Any]):
-    """Handles external events (e.g. finish event of big query jobs).
+    """Handles external events (e.g., finish event of big query jobs).
 
     Args:
       message: Event message.
     """
-    logging.info('handle message: %s', message)
+    logging.info('Handle message: %s', message)
 
     for future_cls in futures.Future.all_futures:
       result = future_cls.handle_message(message)
@@ -462,31 +498,45 @@ class Job:
 
   def task(self,
            task_id: str,
-           deps: Optional[List[str]] = None) -> Callable[..., Any]:
+           deps: Optional[List[str]] = None,
+           remote_topic: Optional[str] = None,
+           task_args: Optional[Dict[str, Any]] = None) -> Callable[..., Any]:
     """Task wrapper for creating tasks in this job.
 
     Args:
       task_id: The id for the task.
       deps: The ids for the dependent tasks.
+      remote_topic: The topic to send a message to after executing the defined
+        function. If None, no message will be sent to any topic after executing
+        the defined function.
+      task_args: Task level arguments that will be passed for this particular
+        task. If None, it will be stored and passed as an empty variable.
 
     Returns:
       A wrapped task function.
     """
+
     def wrapper(task_func):
-      task = Task(task_id=task_id, deps=deps or [], func=task_func)
+      task = Task(
+          task_id=task_id,
+          deps=deps or [],
+          remote_topic=remote_topic or None,
+          task_args=task_args or None,
+          func=task_func)
       self.tasks.append(task)
 
     return wrapper
 
-  def start(self, argv: Optional[Dict[str, Any]] = None):
+  def start(self, job_args: Optional[Dict[str, Any]] = None):
     """Starts a job.
 
-    Args:
-      argv: The start arguments.
+    Creates an entry in the `JOB_STATUS_COLLECTION` storing the job and task
+    status and the start arguments, sets job status to RUNNING, and all tasks
+    in the job to READY so that they can be scheduled.
 
-      Creates an entry in the `JOB_STATUS_COLLECTION` storing the job and task
-        status, sets job status to RUNNING, and all tasks in the job to READY so
-        that they can be scheduled.
+    Args:
+      job_args: The start arguments. If None, it will be stored as an empty
+        dictionary.
     """
     # creates a job document and saves it to db
     datestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
@@ -498,7 +548,7 @@ class Job:
         'name': self.name,
         'start_time': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S'),
         'status': JobStatus.RUNNING,
-        'argv': argv or {}
+        'job_args': job_args or {}
     })
 
     # creates task entries in the job document
@@ -509,6 +559,8 @@ class Job:
           'id': task.id,
           'deps': task.deps,
           'status': TaskStatus.READY,
+          'remote_topic': task.remote_topic or None,
+          'task_args': task.task_args or {}
       })
 
     self._publish_schedule_message()
@@ -517,11 +569,11 @@ class Job:
     """Gets start arguments of this job.
 
     Returns:
-      argv paremeter of start()
+      job_args parameter of start().
     """
     job_ref = self._get_job_ref()
     job = job_ref.get().to_dict()
-    return job['argv']
+    return job['job_args']
 
   def get_task_result(self, task_id: str):
     """Gets task result from this job.
@@ -542,19 +594,22 @@ class Job:
     Returns:
       The scheduler function.
     """
+
     def scheduler(event, unused_context):
       message = base64.b64decode(event['data']).decode('utf-8')
       args = json.loads(message)
       self._load(job_id=args['id'])
       self._schedule()
+
     return scheduler
 
   def make_external_event_listener(self):
-    """Creates a function to receive external events (e.g. bq job finish).
+    """Creates a function to receive external events (e.g., bq job finish).
 
     Returns:
       The event listener function.
     """
+
     def listener(event, context):
       del context  # unused context
       message = base64.b64decode(event['data']).decode('utf-8')
@@ -563,7 +618,7 @@ class Job:
         self._handle_event(message)
       except json.JSONDecodeError:
         # Intentionally ignore unwanted messages
-        pass
+        logging.exception('Invalid message received.')
 
     return listener
 
@@ -614,8 +669,8 @@ def cleanup_expired_jobs(db=None, project=None, max_expire_days=30):
   # then delete the job itself.
   for job_id in expired_job_ids:
     job_ref = jobs_ref.document(job_id)
-    tasks_ref = db.collection(Job.JOB_STATUS_COLLECTION,
-                              job_id, Job.FIELD_TASKS)
+    tasks_ref = db.collection(Job.JOB_STATUS_COLLECTION, job_id,
+                              Job.FIELD_TASKS)
     for task_ref in tasks_ref.stream():
       task_ref.reference.delete()
     job_ref.delete()

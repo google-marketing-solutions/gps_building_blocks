@@ -13,9 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Future: the return type for async tasks.
-"""
+"""Future: the return type for async tasks."""
 
 import datetime
 import json
@@ -34,8 +32,11 @@ from google.cloud import storage
 class Result:
   """Wrapper for results of async tasks."""
 
-  def __init__(self, trigger_id: str, is_success: bool,
-               result: Optional[Any] = None, error: Optional[Any] = None):
+  def __init__(self,
+               trigger_id: str,
+               is_success: bool,
+               result: Optional[Any] = None,
+               error: Optional[Any] = None):
     """Initializes the Result object.
 
     Args:
@@ -69,9 +70,9 @@ class Future:
 
     Args:
       trigger_id: The trigger id to be associated with this async task. This id
-                  is used to trigger the corresponding function flow task to be
-                  marked as finished. For example, in a BigQuery job, the job id
-                  can be used as a trigger id.
+        is used to trigger the corresponding function flow task to be marked as
+        finished. For example, in a BigQuery job, the job id can be used as a
+        trigger id.
     """
     self.trigger_id = trigger_id
 
@@ -83,11 +84,55 @@ class Future:
 
     Args:
       message: The message dict to be handled.
+
     Returns:
       A Result object, if the message can be parsed and handled, or None if the
         message is ignored.
     """
     raise NotImplementedError('Please implement class method handle_message!')
+
+
+class RemoteFunctionFuture(Future):
+  """Return type for async remote function async task."""
+
+  @classmethod
+  def handle_message(cls, message: Mapping[str, Any]) -> Optional[Result]:
+    """Handles generic async task finish messages.
+
+      If the message is a correct message, then parse it and return its status,
+        otherwise just return None.
+
+    Args:
+      message: The message JSON dictionary.
+
+    Returns:
+      Parsed task result from the message or None.
+    """
+
+    if _get_value(message, 'resource.type') != 'remote_function_resource':
+      # An invalid message was received.
+      return None
+
+    code = _get_value(message, 'status.code')
+    status_message = _get_value(message, 'status.message')
+    generic_job_id = _get_value(message, 'resource.labels.job_id')
+
+    result = {
+        'job_id': generic_job_id,
+        'message': status_message,
+        'code': code
+    }
+
+    if code == 0:
+      # A status code of 0 represents a successful execution, any other value
+      # represents a failed execution.
+      return Result(result=result, trigger_id=generic_job_id, is_success=True)
+    else:
+      return Result(
+          result=result,
+          trigger_id=generic_job_id,
+          is_success=False,
+          error=status_message)
 
 
 class BigQueryFuture(Future):
@@ -199,9 +244,7 @@ class DataFlowFuture(Future):
 
       dataflow = discovery.build('dataflow', 'v1b3')
       request = dataflow.projects().locations().jobs().get(
-          jobId=job_id,
-          location=region,
-          projectId=project)
+          jobId=job_id, location=region, projectId=project)
 
       retry = cls.STATUS_CHECK_RETRY_TIMES
       while retry > 0:
@@ -306,8 +349,7 @@ class GCSPoller:
 
       storage_client = storage.Client()
       blobs = storage_client.list_blobs(
-          bucket_name, prefix=prefix, delimiter=None
-      )
+          bucket_name, prefix=prefix, delimiter=None)
 
       path_exist = False
       for _ in blobs:
@@ -336,9 +378,8 @@ class GCSPoller:
     gcs_watches = db.collection(cls.GCS_WATCH_COLLECTION)
     # Firestore can not have '/' in document ID, so it's neccessary to quote it.
     path_prefix_escaped = urllib.parse.quote(path_prefix, safe='')
-    gcs_watches.document(path_prefix_escaped).set({
-        'created': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
-    })
+    gcs_watches.document(path_prefix_escaped).set(
+        {'created': datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')})
 
   @classmethod
   def deregister_path_prefix(cls, path_prefix: str, db=None):

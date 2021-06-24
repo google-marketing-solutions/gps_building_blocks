@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for gps_building_blocks.cloud.workflows.futures."""
 
 import urllib
@@ -34,8 +33,7 @@ class TasksTest(absltest.TestCase):
 
     self.addCleanup(mock.patch.stopall)
 
-    mock_auth = mock.patch.object(
-        google.auth, 'default', autospec=True).start()
+    mock_auth = mock.patch.object(google.auth, 'default', autospec=True).start()
     mock_auth.return_value = (None, 'test_project')
 
     self.mock_api = mock.Mock()
@@ -44,6 +42,54 @@ class TasksTest(absltest.TestCase):
     mock_discovery.return_value = self.mock_api
 
     self.db = fake_firestore.FakeFirestore()
+
+  def test_remote_function_future_should_parse_generic_success_logs(self):
+    # a fake generic message for job complete
+    generic_message = {
+        'status': {
+            'code': 0,
+            'message': 'test success message'
+        },
+        'resource': {
+            'type': 'remote_function_resource',
+            'labels': {
+                'job_id': 'generic-job-id'
+            }
+        }
+    }
+    result = futures.RemoteFunctionFuture.handle_message(generic_message)
+    self.assertTrue(result.is_success)
+    self.assertEqual(result.trigger_id, 'generic-job-id')
+
+  def test_remote_function_future_should_parse_generic_fail_logs(self):
+    # a fake generic message for job complete
+    generic_message = {
+        'status': {
+            'code': 1,
+            'message': 'test error message'
+        },
+        'resource': {
+            'type': 'remote_function_resource',
+            'labels': {
+                'job_id': 'generic-job-id'
+            }
+        }
+    }
+    result = futures.RemoteFunctionFuture.handle_message(generic_message)
+    self.assertFalse(result.is_success)
+    self.assertEqual(result.trigger_id, 'generic-job-id')
+    self.assertEqual(result.error, 'test error message')
+
+  def test_remote_function_future_should_parse_invalid_message(self):
+    # a fake generic message for job complete
+    invalid_message = {
+        'status': {
+            'code': 1,
+            'message': 'test error message'
+        }
+    }
+    result = futures.RemoteFunctionFuture.handle_message(invalid_message)
+    self.assertIsNone(result)
 
   def test_bq_future_should_parse_bq_success_logs(self):
     # a fake bq message for job complete

@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for gps_building_blocks.cloud.workflows.tasks."""
 
 import base64
@@ -39,11 +38,12 @@ class TasksTest(absltest.TestCase):
     self.mock_pubsub.topic_path.return_value = self.topic_path
 
   def _define_job(self) -> tasks.Job:
-    return tasks.Job(name='test_job',
-                     project='test_project',
-                     db=self.db,
-                     pubsub=self.mock_pubsub,
-                     max_parallel_tasks=self.max_parallel_tasks)
+    return tasks.Job(
+        name='test_job',
+        project='test_project',
+        db=self.db,
+        pubsub=self.mock_pubsub,
+        max_parallel_tasks=self.max_parallel_tasks)
 
   def _define_job_with_two_dependent_tasks(self) -> tasks.Job:
     job = self._define_job()
@@ -53,7 +53,7 @@ class TasksTest(absltest.TestCase):
       mark_unused(job, task)
       return 'result1'
 
-    @job.task(task_id='task2', deps=['task1'])
+    @job.task(task_id='task2', deps=['task1'], task_args={'my_arg': 'my_value'})
     def task2(job, task):
       mark_unused(job, task)
       return 'result2'
@@ -63,8 +63,11 @@ class TasksTest(absltest.TestCase):
     return job
 
   def _call_job_scheduler(self, job, scheduler):
-    event = {'data': base64.b64encode(
-        json.dumps({'id': job.id}).encode('utf-8'))}
+    event = {
+        'data': base64.b64encode(json.dumps({
+            'id': job.id
+        }).encode('utf-8'))
+    }
     scheduler(event, {})
 
   def test_can_create_job(self):
@@ -149,6 +152,9 @@ class TasksTest(absltest.TestCase):
     self.assertIsNotNone(tasks_ref)
     task1_ref = tasks_ref.document('task1')
     self.assertIsNotNone(task1_ref)
+    task2 = tasks_ref.document('task2').get().to_dict()
+    task_args = task2['task_args']
+    self.assertEqual(task_args, {'my_arg': 'my_value'})
 
   def test_load_job_should_get_job_content_from_db(self):
     job_to_load = self._define_job_with_two_dependent_tasks()
@@ -174,8 +180,8 @@ class TasksTest(absltest.TestCase):
     self._call_job_scheduler(job, scheduler)
     # When task1 finishes, there should be another #{max_parallel_tasks} pubsub
     # messages sent to pubsub to trigger subsequent tasks.
-    self.mock_pubsub.publish.assert_has_calls(
-        call * (self.max_parallel_tasks*2))
+    self.mock_pubsub.publish.assert_has_calls(call *
+                                              (self.max_parallel_tasks * 2))
     self.assertEqual(self.mock_pubsub.publish.call_count,
                      self.max_parallel_tasks * 2)
 
@@ -259,6 +265,49 @@ class TasksTest(absltest.TestCase):
         json.dumps(bq_finish_event).encode('utf-8'))
 
     external_event_listener({'data': bq_finish_event_encoded}, None)
+    jobs_ref = self.db.collection(tasks.Job.JOB_STATUS_COLLECTION)
+    task1 = jobs_ref.document(job.id).collection(
+        tasks.Job.FIELD_TASKS).document('task1').get().to_dict()
+    self.assertEqual(task1['status'], tasks.TaskStatus.FINISHED)
+
+  def test_schedule_generic_remote_jobs(self):
+    job = self._define_job()
+    scheduler = job.make_scheduler()
+    external_event_listener = job.make_external_event_listener()
+
+    @job.task(task_id='task1', remote_topic='test_topic')
+    def task1(job, task):
+      mark_unused(job, task)
+      return 'result'
+
+    job.start()
+    self._call_job_scheduler(job, scheduler)
+
+    # When an asynchronous task finishes, a trigger object is created in db.
+    triggers_ref = self.db.collection(tasks.Job.EVENT_TRIGGERS_COLLECTION)
+
+    trigger_ref = next(triggers_ref.stream())
+    trigger = trigger_ref.to_dict()
+    self.assertEqual(trigger['task_id'], 'task1')
+    self.assertEqual(trigger['job_id'], job.id)
+
+    # Manually trigger a remote function job finish log message
+    generic_finish_event = {
+        'status': {
+            'code': 0,
+            'message': 'test success message'
+        },
+        'resource': {
+            'type': 'remote_function_resource',
+            'labels': {
+                'job_id': trigger_ref.id
+            }
+        }
+    }
+    generic_finish_event_encoded = base64.b64encode(
+        json.dumps(generic_finish_event).encode('utf-8'))
+
+    external_event_listener({'data': generic_finish_event_encoded}, None)
     jobs_ref = self.db.collection(tasks.Job.JOB_STATUS_COLLECTION)
     task1 = jobs_ref.document(job.id).collection(
         tasks.Job.FIELD_TASKS).document('task1').get().to_dict()
