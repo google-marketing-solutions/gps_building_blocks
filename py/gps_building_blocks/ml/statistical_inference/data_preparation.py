@@ -654,10 +654,22 @@ def _print_mock(message: str) -> None:
   print(message)
 
 
-def _vif_interactive_input_and_validation(vif_data: pd.DataFrame) -> List[str]:
-  """Prompts and validates column selection for interactive sessions."""
+def _vif_interactive_input_and_validation(vif_data: pd.DataFrame,
+                                          max_features_to_display: int = 10
+                                         ) -> List[str]:
+  """Prompts and validates column selection for interactive sessions.
+
+  Args:
+    vif_data: DataFrame of VIF data to display.
+    max_features_to_display: Maximum number of features to display, in
+      descending order of VIF score.
+
+  Returns:
+    selected_columns: A list (can be empty) of column names to remove.
+  """
+
   while True:
-    _print_mock(vif_data.set_index('features'))
+    _print_mock(vif_data.set_index('features').head(max_features_to_display))
     selected_columns = _input_mock(
         'Select one or more variables to remove separated by comma. '
         'To end the interactive session press Enter.\n')
