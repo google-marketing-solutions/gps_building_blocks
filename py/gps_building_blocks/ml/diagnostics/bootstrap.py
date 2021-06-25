@@ -275,7 +275,7 @@ def regression_bootstrap(
 
     except AttributeError:
       warn_msg = ('Couldn\'t run multiprocessing using\n', 'Process Pool.')
-      warnings.warn(warn_msg)
+      warnings.warn(warn_msg)  # pytype: disable=wrong-arg-types
       return pd.DataFrame([])
 
 
