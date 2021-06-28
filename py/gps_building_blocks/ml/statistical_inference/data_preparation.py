@@ -516,12 +516,46 @@ class InferenceData():
       else:
         warnings.warn(CollinearityWarning(message))
 
-  def address_collinearity_with_vif(self,
-                                    vif_threshold: int = 10,
-                                    sequential: bool = True,
-                                    interactive: bool = False,
-                                    drop: bool = True) -> pd.DataFrame:
-    """Uses VIF to identify columns that are collinear and option to drop them.
+  def _get_list_of_correlated_features(
+      self,
+      vif_data: pd.DataFrame,
+      corr_matrix: pd.DataFrame,
+      min_absolute_corr: float) -> List[List[str]]:
+    """Generates list of features which are correlated to features in vif_data.
+
+    Args:
+      vif_data: Table of features and VIFs
+      corr_matrix: (Pearson) correlation matrix for all features in the original
+        dataset (can be more features than just the features in vif_data)
+      min_absolute_corr: Minimum value of absolute correlation; only display
+        features with absolute correlations above this value
+    Returns:
+      List of lists of features, along with their correlations.
+    """
+    correlated_features = []
+    for feature in vif_data.features:
+      min_correlation_mask = abs(corr_matrix[feature]) > min_absolute_corr
+      correlated_features_info = corr_matrix.loc[min_correlation_mask]
+      correlated_features_info = correlated_features_info.drop(feature, axis=0)
+      correlated_features_info = correlated_features_info.sort_values(
+          feature, ascending=False)
+
+      correlated_features.append([
+          f'{feature_name}: {round(corr_coeff, 2)}' for feature_name, corr_coeff
+          in zip(correlated_features_info[feature].index,
+                 correlated_features_info[feature].values)
+      ])
+
+    return correlated_features
+
+  def address_collinearity_with_vif(
+      self,
+      vif_threshold: int = 10,
+      sequential: bool = True,
+      interactive: bool = False,
+      drop: bool = True,
+      min_absolute_corr: float = 0.4) -> pd.DataFrame:
+    """Uses VIF to identify columns that are collinear and optionally drop them.
 
     You can customize how collinearity will be resolved with `sequential` and
     `interactive` parameters. By default, the VIF score will re-calculated every
@@ -532,7 +566,12 @@ class InferenceData():
     automatically pick the column with the highest VIF score, you can set
     `interactive=True`. This will prompt for your input every time columns are
     found with VIF score higher than your threshold, whether `sequential` is set
-    to True of False.
+    to True or False.
+
+    In interactive mode, to assist in choosing which features to drop, each
+    listed feature will also display the other features that correlate with that
+    feature, for all other features with a minimum absolute (positive or
+    negative) correlation of at least min_absolute_corr (default = 0.4).
 
     Args:
       vif_threshold: Threshold to identify which columns have high collinearity
@@ -540,9 +579,13 @@ class InferenceData():
       sequential: Whether you want to sequentially re-calculate VIF each time
         after a set column(s) have been removed or only once.
       interactive: Whether you want to manually specify which column(s) you want
-       to remove.
+        to remove.
       drop: Boolean to either drop columns with high VIF or print message,
         default is set to True.
+      min_absolute_corr: Float, default = 0.4. Minimum absolute correlation
+        required to display a feature as "correlated" to another feature in
+        interactive mode. Only used when interactive=True. Should be between 0
+        and 1, though this is not currently enforced.
 
     Returns:
       Data after collinearity check with vif has been applied. When drop=True
@@ -550,6 +593,7 @@ class InferenceData():
     """
     covariates = self.data.drop(columns=self.target_column)
     columns_to_drop = []
+    corr_matrix = covariates.corr()
 
     while True:
       tmp_data = covariates.drop(columns=columns_to_drop)
@@ -559,6 +603,12 @@ class InferenceData():
         break
 
       if interactive:
+        correlated_features = self._get_list_of_correlated_features(
+            vif_data,
+            corr_matrix.drop(columns_to_drop, axis=1),
+            min_absolute_corr)
+        vif_data = vif_data.sort_index()
+        vif_data['correlated_features'] = correlated_features
         selected_columns = _vif_interactive_input_and_validation(vif_data)
       elif sequential:
         selected_columns = [vif_data['features'][0]]
@@ -651,7 +701,8 @@ def _input_mock(promp_message: str) -> str:
 def _print_mock(message: str) -> None:
   """Allows 'print' to be mocked with nose test."""
   # https://stackoverflow.com/questions/25878616/attributeerror-none-does-not-have-the-attribute-print
-  print(message)
+  with pd.option_context('display.max_colwidth', None):
+    print(message)
 
 
 def _vif_interactive_input_and_validation(vif_data: pd.DataFrame,
