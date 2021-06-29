@@ -23,10 +23,10 @@ from absl.testing import absltest
 class CramerVTest(absltest.TestCase):
 
   def test_cramer_returns_expected_value(self):
-    x1 = np.array([1, 2, 1])
-    x2 = np.array([2, 1, 1])
+    x1 = np.array([1, 2, 1, 2, 1, 2, 2, 1])
+    x2 = np.array([2, 1, 1, 2, 1, 2, 1, 2])
     cramer = cramer_v.cramer_v(x1, x2)
-    self.assertEqual(cramer, 0.25)
+    self.assertEqual(cramer, 0)
 
   def test_cramer_returns_one(self):
     x1 = np.array(['a'] * 98 + ['b'] + ['c'])

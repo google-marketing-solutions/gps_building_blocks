@@ -41,6 +41,9 @@ def cramer_v(feature: np.ndarray, label: np.ndarray) -> float:
 
   Returns:
     Cramer's V, a float between 0 and 1.
+
+  Raises:
+    AssertionError when inputs have wrong length or only distinct values.
   """
   if len(feature) <= 1:
     raise AssertionError('feature needs at least 2 values.')
@@ -52,6 +55,7 @@ def cramer_v(feature: np.ndarray, label: np.ndarray) -> float:
   if len(set(label)) == len(label):
     raise AssertionError('label contains only distinct values.')
   confusion_matrix = pd.crosstab(feature, label)
+  # Note that there is a change in scipy v1.7. See b/191963980.
   chi2 = scipy.stats.chi2_contingency(confusion_matrix)[0]
   categories_feature, categories_label = len(set(feature)), len(set(label))
   number_obs = len(feature)
