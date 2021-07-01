@@ -30,7 +30,7 @@ created (e.g. prediction_window_conversions_to_label_multi_class.sql).
 
 Example Usage:
 
-python main.py \
+python run_windowing_pipeline.py \
 --project_id=<PROJECT_ID> \
 --dataset_id=<DATASET_ID> \
 --run_id=<OPTIONAL RUN_ID> \
