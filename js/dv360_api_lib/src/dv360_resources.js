@@ -206,16 +206,52 @@ class Advertiser extends DisplayVideoResource {
   /**
    * Constructs an instance of `Advertiser`.
    *
-   * @param {?string} id The unique resource ID
-   * @param {string} displayName The display name
-   * @param {string} partnerId The partner ID
+   * @param {{
+   *     id: ?string,
+   *     displayName: string,
+   *     partnerId: string,
+   *     domainUrl: string,
+   *     currencyCode: string,
+   *     thirdPartyOrderIdReporting: (boolean|undefined),
+   *     campaignManagerConfig: ({
+   *         cmAccountId: string,
+   *         cmFloodlightConfigId: string,
+   *         cmFloodlightLinkingAuthorized: boolean,
+   *     }|undefined)
+   * }} params
    * @param {!Status=} status Optional status to set
    */
-  constructor(id, displayName, partnerId, status = Status.ACTIVE) {
+  constructor({
+        id,
+        displayName,
+        partnerId,
+        domainUrl,
+        currencyCode,
+        thirdPartyOrderIdReporting,
+        campaignManagerConfig,
+      }, status = Status.ACTIVE) {
     super(id, displayName, status);
 
     /** @private @const {string} */
     this.partnerId_ = partnerId;
+
+    /** @private {string} */
+    this.domainUrl_ = domainUrl;
+
+    /** @private @const {string} */
+    this.currencyCode_ = currencyCode;
+
+    /** @private @const {boolean|undefined} */
+    this.thirdPartyOrderIdReporting_ = thirdPartyOrderIdReporting;
+
+    /**
+     * @private @const {({
+     *     cmAccountId: string,
+     *     cmFloodlightConfigId: string,
+     *     cmFloodlightLinkingAuthorized: boolean,
+     * }|undefined)}
+     */
+    this.campaignManagerConfig_ = campaignManagerConfig;
   }
 
   /**
@@ -228,16 +264,54 @@ class Advertiser extends DisplayVideoResource {
    *     properties
    */
   static fromApiResource(resource) {
-    if (!resource['advertiserId'] || !resource['displayName'] ||
-        !resource['partnerId'] || !resource['entityStatus']) {
-      throw new Error(
-          'Error! Encountered an invalid API resource object ' +
-          'while mapping to an instance of Advertiser.');
+    const properties = [
+      'advertiserId', 'displayName', 'partnerId', 'entityStatus',
+      'generalConfig', 'adServerConfig'
+    ];
+    if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const generalConfig = resource['generalConfig'];
+      const thirdPartyAdServerConfig =
+          resource['adServerConfig']['thirdPartyOnlyConfig'];
+      const campaignManagerAdServerConfig =
+          resource['adServerConfig']['cmHybridConfig'];
+
+      const validGeneralConfig = ObjectUtil.hasOwnProperties(
+          generalConfig, ['domainUrl', 'currencyCode']);
+      const validCampaignManagerConfig =
+          ObjectUtil.hasOwnProperties(campaignManagerAdServerConfig, [
+            'cmAccountId',
+            'cmFloodlightConfigId',
+            'cmFloodlightLinkingAuthorized',
+          ]);
+
+      if (validGeneralConfig &&
+          (thirdPartyAdServerConfig || validCampaignManagerConfig)) {
+        const params = {
+          id: String(resource['advertiserId']),
+          displayName: String(resource['displayName']),
+          partnerId: String(resource['partnerId']),
+          domainUrl: String(generalConfig['domainUrl']),
+          currencyCode: String(generalConfig['currencyCode']),
+        };
+        if (validCampaignManagerConfig) {
+          params['campaignManagerConfig'] = {
+            cmAccountId: String(campaignManagerAdServerConfig['cmAccountId']),
+            cmFloodlightConfigId:
+                String(campaignManagerAdServerConfig['cmFloodlightConfigId']),
+            cmFloodlightLinkingAuthorized: String(
+                campaignManagerAdServerConfig['cmFloodlightLinkingAuthorized']),
+          };
+        } else if (thirdPartyAdServerConfig['pixelOrderIdReportingEnabled']) {
+          params['thirdPartyOrderIdReporting'] =
+              Boolean(thirdPartyAdServerConfig['pixelOrderIdReportingEnabled']);
+        }
+        return new Advertiser(
+            params, StatusMapper.map(String(resource['entityStatus'])));
+      }
     }
-    return new Advertiser(
-        String(resource['advertiserId']), String(resource['displayName']),
-        String(resource['partnerId']),
-        StatusMapper.map(String(resource['entityStatus'])));
+    throw new Error(
+        'Error! Encountered an invalid API resource object ' +
+        'while mapping to an instance of Advertiser.');
   }
 
   /**
@@ -245,16 +319,66 @@ class Advertiser extends DisplayVideoResource {
    * This method is called by default when an instance of `Advertiser` is passed
    * to `JSON.stringify`.
    *
-   * @return {!Object<string, ?string>} The custom JSON representation of this
+   * @return {!Object<string, *>} The custom JSON representation of this
    *     `Advertiser` instance
    */
   toJSON() {
-    return {
+    const result = {
       advertiserId: this.getId(),
       displayName: this.getDisplayName(),
       partnerId: this.getPartnerId(),
       entityStatus: String(this.getStatus()),
+      generalConfig: {
+        domainUrl: this.getDomainUrl(),
+        currencyCode: this.getCurrencyCode(),
+      },
     };
+    if (this.getCampaignManagerConfig()) {
+      result['adServerConfig'] = {
+        cmHybridConfig: this.getCampaignManagerConfig(),
+      };
+    } else {
+      result['adServerConfig'] = {
+        thirdPartyOnlyConfig: {},
+      };
+      if (this.getThirdPartyOrderIdReporting()) {
+        result['adServerConfig']['thirdPartyOnlyConfig'] = {
+          pixelOrderIdReportingEnabled: this.getThirdPartyOrderIdReporting(),
+        };
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Compares this `Advertiser` to 'other' and returns an `Array` of changed
+   * mutable properties (ID for example is immutable and cannot be changed,
+   * therefore this method will not compare it between 'this' and 'other').
+   * @see #getMutableProperties for a complete list of mutable properties.
+   *
+   * @param {?DisplayVideoResource} other The other advertiser to compare
+   * @return {!Array<string>} An array of changed mutable properties between
+   *     this and 'other'
+   * @override
+   */
+  getChangedProperties(other) {
+    const changedProperties = super.getChangedProperties(other);
+
+    if (other && other instanceof Advertiser &&
+        this.getDomainUrl() !== other.getDomainUrl()) {
+      changedProperties.push('domainUrl');
+    }
+    return changedProperties;
+  }
+
+  /**
+   * Returns all properties of this `Advertiser` that are modifiable.
+   *
+   * @return {!Array<string>} An array of properties that are modifiable
+   * @override
+   */
+  getMutableProperties() {
+    return [...super.getMutableProperties(), 'domainUrl'];
   }
 
   /**
@@ -264,6 +388,55 @@ class Advertiser extends DisplayVideoResource {
    */
   getPartnerId() {
     return this.partnerId_;
+  }
+
+  /**
+   * Returns the domain URL.
+   *
+   * @return {string}
+   */
+  getDomainUrl() {
+    return this.domainUrl_;
+  }
+
+  /**
+   * Sets the domain URL.
+   *
+   * @param {string} domainUrl
+   */
+  setDomainUrl(domainUrl) {
+    this.domainUrl_ = domainUrl;
+  }
+
+  /**
+   * Returns the currency code.
+   *
+   * @return {string}
+   */
+  getCurrencyCode() {
+    return this.currencyCode_;
+  }
+
+  /**
+   * Returns the third party order ID reporting boolean.
+   *
+   * @return {boolean|undefined}
+   */
+  getThirdPartyOrderIdReporting() {
+    return this.thirdPartyOrderIdReporting_;
+  }
+
+  /**
+   * Returns the campaign manager config.
+   *
+   * @return {({
+   *     cmAccountId: string,
+   *     cmFloodlightConfigId: string,
+   *     cmFloodlightLinkingAuthorized: boolean,
+   * }|undefined)}
+   */
+  getCampaignManagerConfig() {
+    return this.campaignManagerConfig_;
   }
 }
 
