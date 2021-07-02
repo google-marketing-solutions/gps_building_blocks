@@ -128,12 +128,17 @@ class DisplayVideoApiClient extends BaseApiClient {
    * within the given 'requestUri'.
    *
    * @param {string} requestUri The URI of the PATCH request
+   * @param {!DisplayVideoResource} payload The representation of the resource
+   *     to patch
    * @return {!DisplayVideoResource} The updated resource
    */
-  patchResource(requestUri) {
+  patchResource(requestUri, payload) {
     return this.asDisplayVideoResource(this.executeApiRequest(
         requestUri,
-        /* requestParams= */ {method: 'patch'},
+        /* requestParams= */ {
+          method: 'patch',
+          payload: JSON.stringify(payload),
+        },
         /* retryOnFailure= */ true));
   }
 
@@ -150,8 +155,10 @@ class DisplayVideoApiClient extends BaseApiClient {
   patchResourceByComparison(requestUri, original, modified) {
     const changedProperties = original.getChangedPropertiesString(modified);
 
-    return this.patchResource(ApiUtil.modifyUrlQueryString(
-        requestUri, 'updateMask', encodeURIComponent(changedProperties)));
+    return this.patchResource(
+        UriUtil.modifyUrlQueryString(
+            requestUri, 'updateMask', encodeURIComponent(changedProperties)),
+        original);
   }
 
   /**
@@ -260,16 +267,18 @@ class Advertisers extends DisplayVideoApiClient {
    * Modifies an advertiser resource identified by 'advertiserId' based on the
    * given 'changedProperties'.
    *
-   * @param {string} advertiserId The ID of the advertiser to 'patch'
+   * @param {!DisplayVideoResource} advertiserResource The advertiser resource
+   *     to 'patch'
    * @param {string} changedProperties A comma-separated list of properties that
    *     have changed in the advertiser resource and therefore need updating
    * @return {!Advertiser} An object representing the modified advertiser
    *     resource
    */
-  patch(advertiserId, changedProperties) {
+  patch(advertiserResource, changedProperties) {
     const result = super.patchResource(
-        `advertisers/${advertiserId}?updateMask=` +
-        encodeURIComponent(changedProperties));
+        `advertisers/${advertiserResource.getId()}?updateMask=` +
+            encodeURIComponent(changedProperties),
+        advertiserResource);
     return result;
   }
 
@@ -370,15 +379,18 @@ class Campaigns extends DisplayVideoApiClient {
    * Modifies a campaign resource identified by 'campaignId' based on the
    * given 'changedProperties'.
    *
-   * @param {string} campaignId The ID of the campaign to 'patch'
+   * @param {!DisplayVideoResource} campaignResource The campaign resource to
+   *     'patch'
    * @param {string} changedProperties A comma-separated list of properties that
    *     have changed in the campaign resource and therefore need updating
    * @return {!Campaign} An object representing the modified campaign resource
    */
-  patch(campaignId, changedProperties) {
+  patch(campaignResource, changedProperties) {
     const result = super.patchResource(
         `advertisers/${this.getAdvertiserId()}/campaigns/` +
-        `${campaignId}?updateMask=${encodeURIComponent(changedProperties)}`);
+            `${campaignResource.getId()}?updateMask=` +
+            encodeURIComponent(changedProperties),
+        campaignResource);
     return result;
   }
 
@@ -486,18 +498,20 @@ class InsertionOrders extends DisplayVideoApiClient {
    * Modifies an insertion order resource identified by 'insertionOrderId' based
    * on the given 'changedProperties'.
    *
-   * @param {string} insertionOrderId The ID of the insertion order to 'patch'
+   * @param {!DisplayVideoResource} insertionOrderResource The insertion order
+   *     resource to 'patch'
    * @param {string} changedProperties A comma-separated list of properties that
    *     have changed in the insertion order resource and therefore need
    *     updating
    * @return {!InsertionOrder} An object representing the modified
    *     insertion order resource
    */
-  patch(insertionOrderId, changedProperties) {
+  patch(insertionOrderResource, changedProperties) {
     const result = super.patchResource(
         `advertisers/${this.getAdvertiserId()}/insertionOrders/` +
-        `${insertionOrderId}?updateMask=` +
-        encodeURIComponent(changedProperties));
+            `${insertionOrderResource.getId()}?updateMask=` +
+            encodeURIComponent(changedProperties),
+        insertionOrderResource);
     return result;
   }
 
@@ -600,15 +614,18 @@ class LineItems extends DisplayVideoApiClient {
    * Modifies a line item resource identified by 'lineItemId' based on the given
    * 'changedProperties'.
    *
-   * @param {string} lineItemId The ID of the line item to 'patch'
+   * @param {!DisplayVideoResource} lineItemResource The line item resource to
+   *     'patch'
    * @param {string} changedProperties A comma-separated list of properties that
    *     have changed in the line item resource and therefore need updating
    * @return {!LineItem} An object representing the modified line item resource
    */
-  patch(lineItemId, changedProperties) {
+  patch(lineItemResource, changedProperties) {
     const result = super.patchResource(
         `advertisers/${this.getAdvertiserId()}/lineItems/` +
-        `${lineItemId}?updateMask=` + encodeURIComponent(changedProperties));
+            `${lineItemResource.getId()}?updateMask=` +
+            encodeURIComponent(changedProperties),
+        lineItemResource);
     return result;
   }
 

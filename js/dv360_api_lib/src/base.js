@@ -70,7 +70,7 @@ class BaseApiClient {
           payload['pageToken'] = pageToken;
           requestParams['payload'] = JSON.stringify(payload);
         } else {
-          url = ApiUtil.modifyUrlQueryString(url, 'pageToken', pageToken);
+          url = UriUtil.modifyUrlQueryString(url, 'pageToken', pageToken);
         }
       }
       pageCount++;
@@ -128,13 +128,12 @@ class BaseApiClient {
    * @return {string} The fully-qualified API URL
    */
   buildApiUrl(requestUri) {
-    const protocolAndDomain = 'https://www.googleapis.com/';
+    const protocolAndDomain = `https://${this.apiScope_}.googleapis.com/`;
 
     if (requestUri.startsWith(protocolAndDomain)) {
       return requestUri;
     }
-    return protocolAndDomain +
-        `${this.apiScope_}/${this.apiVersion_}/${requestUri}`;
+    return `${protocolAndDomain}${this.apiVersion_}/${requestUri}`;
   }
 
   /**
@@ -152,7 +151,7 @@ class BaseApiClient {
       'headers':
           {'Authorization': `Bearer ${token}`, 'Accept': 'application/json'},
     };
-    const params = ApiUtil.extend(baseParams, requestParams || {});
+    const params = ObjectUtil.extend(baseParams, requestParams || {});
 
     return params;
   }

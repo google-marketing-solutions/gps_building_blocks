@@ -137,40 +137,8 @@ class FilterExpression {
   }
 }
 
-/** Uility class for API-related functionality */
-class ApiUtil {
-  /**
-   * Extends an object identified by 'original' with the values in 'extension'.
-   * 'extension' will be returned if 'original' is null, otherwise 'original'
-   * will get extended. Array values in 'extension' will be appended to existing
-   * arrays in 'original', however all other objects in 'extension' will
-   * override existing counterparts in 'original'. The plain JS type of
-   * 'original' will be preserved (if it wasn't null or undefined - i.e. passing
-   * an instance of a specific class will not be overrided, rather extended).
-   *
-   * @param {?Object<string, *>} original The original object to extend, which
-   *     may be null
-   * @param {!Object<string, *>} extension The value to use for extending
-   * @return {!Object<string, *>} The extended object
-   */
-  static extend(original, extension) {
-    if (original == null) {
-      return extension;
-    }
-    for (const key in extension) {
-      if (extension.hasOwnProperty(key)) {
-        const extensionValue = extension[key];
-        const originalValue = original[key];
-        if (Array.isArray(extensionValue) && Array.isArray(originalValue)) {
-          originalValue.push(...extensionValue);
-        } else {
-          original[key] = extension[key];
-        }
-      }
-    }
-    return original;
-  }
-
+/** Uility class for working with URIs. */
+class UriUtil {
   /**
    * Modifies a url by either appending the 'key' and 'value' to the end of the
    * url if the 'key' was not present or replacing the value of the 'key' if it
@@ -218,6 +186,62 @@ class ApiUtil {
       fragment = '';
     }
     return `${baseUrl}?${queryString}${fragment}`;
+  }
+}
+
+/**
+ * Class holding utility methods for working with objects. It can essentially be
+ * considered an extension of the built in static methods provided by the
+ * `Object` class.
+ */
+class ObjectUtil {
+  /**
+   * Extends an object identified by 'original' with the values in 'extension'.
+   * 'extension' will be returned if 'original' is null, otherwise 'original'
+   * will get extended. Array values in 'extension' will be appended to existing
+   * arrays in 'original', however all other objects in 'extension' will
+   * override existing counterparts in 'original'. The plain JS type of
+   * 'original' will be preserved (if it wasn't null or undefined - i.e. passing
+   * an instance of a specific class will not be overrided, rather extended).
+   *
+   * @param {?Object<string, *>} original The original object to extend, which
+   *     may be null
+   * @param {!Object<string, *>} extension The value to use for extending
+   * @return {!Object<string, *>} The extended object
+   */
+  static extend(original, extension) {
+    if (original == null) {
+      return extension;
+    }
+    for (const key in extension) {
+      if (extension.hasOwnProperty(key)) {
+        const extensionValue = extension[key];
+        const originalValue = original[key];
+        if (Array.isArray(extensionValue) && Array.isArray(originalValue)) {
+          originalValue.push(...extensionValue);
+        } else {
+          original[key] = extension[key];
+        }
+      }
+    }
+    return original;
+  }
+
+  /**
+   * Checks if the given object contains all of the given properties.
+   *
+   * @param {*} obj The obj to check. Can be null or undefined
+   * @param {!Array<string>} properties The properties to check. Should not be
+   *     empty (as otherwise false would be returned)
+   * @return {boolean} True if the object contains all properties, false
+   *     otherwise
+   */
+  static hasOwnProperties(obj, properties) {
+    const keys = obj != null && obj instanceof Object && !Array.isArray(obj) ?
+        Object.keys(obj) :
+        [];
+    return keys.length > 0 && properties.length > 0 &&
+        properties.every((key) => keys.includes(key));
   }
 }
 
