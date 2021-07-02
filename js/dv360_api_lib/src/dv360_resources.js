@@ -36,8 +36,8 @@ const Status = {
   UNSPECIFIED: 'ENTITY_STATUS_UNSPECIFIED',
 };
 
-/** @const {{parse: function(?string): !Status}} */
-const StatusParser = {
+/** @const {{map: function(?string): !Status}} */
+const StatusMapper = {
   /**
    * Converts a raw status string to a concrete `Status`. Returns
    * `Status.UNSPECIFIED` for null inputs or unknown status values.
@@ -45,7 +45,7 @@ const StatusParser = {
    * @param {?string} rawStatus The raw status to convert. Can be nullable
    * @return {!Status} The concrete `Status`
    */
-  parse: (rawStatus) => {
+  map: (rawStatus) => {
     if (rawStatus) {
       const status = rawStatus.replace('ENTITY_STATUS_', '');
       return Status[status] || Status.UNSPECIFIED;
@@ -63,8 +63,8 @@ const TargetingType = {
   UNSPECIFIED: 'TARGETING_TYPE_UNSPECIFIED',
 };
 
-/** @const {{parse: function(?string): !TargetingType}} */
-const TargetingTypeParser = {
+/** @const {{map: function(?string): !TargetingType}} */
+const TargetingTypeMapper = {
   /**
    * Converts a raw targeting type string to a concrete `TargetingType`. Returns
    * `TargetingType.UNSPECIFIED` for null inputs or unknown values.
@@ -72,7 +72,7 @@ const TargetingTypeParser = {
    * @param {?string} rawType The raw targeting type to convert. Can be nullable
    * @return {!TargetingType} The concrete `TargetingType`
    */
-  parse: (rawType) => {
+  map: (rawType) => {
     if (rawType) {
       const type = rawType.replace('TARGETING_TYPE_', '');
       return TargetingType[type] || TargetingType.UNSPECIFIED;
@@ -237,7 +237,7 @@ class Advertiser extends DisplayVideoResource {
     return new Advertiser(
         String(resource['advertiserId']), String(resource['displayName']),
         String(resource['partnerId']),
-        StatusParser.parse(String(resource['entityStatus'])));
+        StatusMapper.map(String(resource['entityStatus'])));
   }
 
   /**
@@ -307,7 +307,7 @@ class Campaign extends DisplayVideoResource {
     return new Campaign(
         String(resource['campaignId']), String(resource['displayName']),
         String(resource['advertiserId']),
-        StatusParser.parse(String(resource['entityStatus'])));
+        StatusMapper.map(String(resource['entityStatus'])));
   }
 
   /**
@@ -397,7 +397,7 @@ class InsertionOrder extends DisplayVideoResource {
           advertiserId: String(resource['advertiserId']),
           campaignId: String(resource['campaignId']),
           insertionOrderType: String(resource['insertionOrderType']),
-        }, StatusParser.parse(String(resource['entityStatus'])));
+        }, StatusMapper.map(String(resource['entityStatus'])));
   }
 
   /**
@@ -555,7 +555,7 @@ class LineItem extends DisplayVideoResource {
           campaignId: String(resource['campaignId']),
           insertionOrderId: String(resource['insertionOrderId']),
           lineItemType: String(resource['lineItemType']),
-        }, StatusParser.parse(String(resource['entityStatus'])));
+        }, StatusMapper.map(String(resource['entityStatus'])));
   }
 
   /**
@@ -743,7 +743,7 @@ class InventorySource extends DisplayVideoResource {
           publisherName: String(resource['publisherName']),
           exchange: String(resource['exchange']),
           rateType: String(resource['rateDetails']['inventorySourceRateType']),
-        }, StatusParser.parse(String(resource['status']['entityStatus'])));
+        }, StatusMapper.map(String(resource['status']['entityStatus'])));
   }
 
   /**
@@ -895,12 +895,11 @@ class TargetingOption extends DisplayVideoResource {
    *     properties
    */
   static fromApiResource(resource) {
-    const requiredKeys = ['targetingOptionId', 'targetingType'];
-    const resourceKeys = Object.keys(resource);
+    const properties = ['targetingOptionId', 'targetingType'];
 
-    if (requiredKeys.every((key) => resourceKeys.includes(key))) {
-      const keys = resourceKeys
-          .filter((key) => ![...requiredKeys, 'name'].includes(key));
+    if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const keys = Object.keys(resource).filter(
+          (key) => ![...properties, 'name'].includes(key));
 
       if (keys.length === 1) {
         const targetingDetailsKey = keys[0];
@@ -910,14 +909,15 @@ class TargetingOption extends DisplayVideoResource {
             !Array.isArray(targetingDetails)) {
           return new TargetingOption(
               String(resource['targetingOptionId']),
-              TargetingTypeParser.parse(String(resource['targetingType'])),
+              TargetingTypeMapper.map(String(resource['targetingType'])),
               targetingDetailsKey, targetingDetails);
         }
       }
     }
-    throw new Error('Error! Encountered an invalid API resource object ' +
-        'while mapping to an instance of TargetingOption.');
-  }
+      throw new Error(
+          'Error! Encountered an invalid API resource object ' +
+          'while mapping to an instance of TargetingOption.');
+    }
 
   /**
    * Converts this instance of `TargetingOption` to its expected JSON
