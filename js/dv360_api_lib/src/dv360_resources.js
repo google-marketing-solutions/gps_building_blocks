@@ -81,6 +81,146 @@ const TargetingTypeMapper = {
   },
 };
 
+/**
+ * Class representing a date as it is provided by the DV360 API. Note:
+ * individual values are not padded (i.e. 1 is valid for day or month) and may
+ * be 0 to indicate 'ignore value' (e.g. 0 for day means a year and month
+ * representation without a specific day).
+ */
+class ApiDate {
+  /**
+   * Constructs an instance of `ApiDate`.
+   *
+   * @param {number} year The year to set
+   * @param {number} month The month to set
+   * @param {number} day The day to set
+   */
+  constructor(year, month, day) {
+
+    /** @private @const {number} */
+    this.year_ = year;
+
+    /** @private @const {number} */
+    this.month_ = month;
+
+    /** @private @const {number} */
+    this.day_ = day;
+  }
+
+  /**
+   * Converts a resource object returned by the API to `ApiDate` if it matches
+   * the type. Returns null for any invalid input.
+   *
+   * @param {*} rawDate The raw object to convert. Can be null or undefined
+   * @return {?ApiDate} The concrete `ApiDate`, or null if invalid
+   */
+  static fromApiResource(rawDate) {
+    if (ObjectUtil.hasOwnProperties(rawDate, ['year', 'month', 'day']) &&
+        Number.isInteger(rawDate['year']) &&
+        Number.isInteger(rawDate['month']) &&
+        Number.isInteger(rawDate['day'])) {
+      return new ApiDate(
+          Number(rawDate['year']), Number(rawDate['month']),
+          Number(rawDate['day']));
+    }
+    return null;
+  }
+
+  /**
+   * Returns a new `ApiDate` for the current date.
+   *
+   * @return {!ApiDate}
+   */
+  static now() {
+    const date = new Date();
+
+    return new ApiDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  }
+
+  /**
+   * Returns all properties of this `ApiDate` that are modifiable.
+   *
+   * @param {string=} prefix Optional prefix for the properties. Defaults to an
+   *     empty string
+   * @return {!Array<string>} An array of properties that are modifiable
+   */
+  static getMutableProperties(prefix = '') {
+    return [`${prefix}year`, `${prefix}month`, `${prefix}day`];
+  }
+
+  /**
+   * Compares this `ApiDate` to 'other' and returns an `Array` of changed
+   * properties.
+   *
+   * @param {?ApiDate} other The other api date to compare
+   * @param {string=} prefix Optional prefix for the changed properties.
+   *     Defaults to an empty string
+   * @return {!Array<string>} An array of changed mutable properties between
+   *     this and 'other'
+   */
+  getChangedProperties(other, prefix = '') {
+    const changedProperties = [];
+
+    if (other) {
+      if (this.getYear() !== other.getYear()) {
+        changedProperties.push(`${prefix}year`);
+      }
+      if (this.getMonth() !== other.getMonth()) {
+        changedProperties.push(`${prefix}month`);
+      }
+      if (this.getDay() !== other.getDay()) {
+        changedProperties.push(`${prefix}day`);
+      }
+    } else {
+      return ApiDate.getMutableProperties(prefix);
+    }
+    return changedProperties;
+  }
+
+  /**
+   * Converts this instance of `ApiDate` to its expected JSON representation.
+   * This method is called by default when an instance of `ApiDate` is passed
+   * to `JSON.stringify`.
+   *
+   * @return {!Object<string, number>} The custom JSON representation of this
+   *     `ApiDate` instance
+   */
+  toJSON() {
+    return {
+      year: this.getYear(),
+      month: this.getMonth(),
+      day: this.getDay(),
+    };
+  }
+
+  /**
+   * Returns the year.
+   *
+   * @return {number}
+   */
+  getYear() {
+    return this.year_;
+  }
+
+  /**
+   * Returns the month.
+   *
+   * @return {number}
+   */
+  getMonth() {
+    return this.month_;
+  }
+
+  /**
+   * Returns the day.
+   *
+   * @return {number}
+   */
+  getDay() {
+    return this.day_;
+  }
+}
+
 /** A base class for DV360 resources that are accessible via the API. */
 class DisplayVideoResource {
   /**
