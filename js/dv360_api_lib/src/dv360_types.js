@@ -172,6 +172,127 @@ const AdvertiserAdServerConfigMapper = {
 };
 
 /**
+ * Defines a campaign's flight configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.campaigns#campaignflight
+ *
+ * @typedef {{
+ *     plannedDates: {
+ *         startDate: !ApiDate,
+ *     },
+ * }}
+ */
+let CampaignFlight;
+
+/** @const {{map: function(*): ?CampaignFlight}} */
+const CampaignFlightMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `CampaignFlight` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?CampaignFlight} The concrete instance, or null if the resource
+   *     did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['plannedDates']) &&
+        ObjectUtil.hasOwnProperties(resource['plannedDates'], ['startDate'])) {
+      const apiStartDate =
+          ApiDate.fromApiResource(resource['plannedDates']['startDate']);
+
+      if (apiStartDate) {
+        resource['plannedDates']['startDate'] = apiStartDate;
+        return /** @type {!CampaignFlight} */ (resource);
+      }
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines a campaign's goal configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.campaigns#campaigngoal
+ *
+ * @typedef {{
+ *     campaignGoalType: string,
+ *     performanceGoal: {
+ *         performanceGoalType: string,
+ *         performanceGoalAmountMicros: (string|undefined),
+ *         performanceGoalPercentageMicros: (string|undefined),
+ *         performanceGoalString: (string|undefined),
+ *     },
+ * }}
+ */
+let CampaignGoal;
+
+/** @const {{map: function(*): ?CampaignGoal}} */
+const CampaignGoalMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `CampaignGoal` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?CampaignGoal} The concrete instance, or null if the resource did
+   *     not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(
+            resource, ['campaignGoalType', 'performanceGoal'])) {
+      const performanceGoal = resource['performanceGoal'];
+      const validPerformanceGoal = ObjectUtil.hasOwnProperties(
+          performanceGoal, ['performanceGoalType'], [
+            'performanceGoalAmountMicros',
+            'performanceGoalPercentageMicros',
+            'performanceGoalString',
+          ]) && Object.keys(
+              /** @type {!Object<string, string>} */(performanceGoal))
+              .length === 2;
+
+      if (validPerformanceGoal) {
+        return /** @type {!CampaignGoal} */(resource);
+      }
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines frequency cap configuration for limiting display of ads.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/FrequencyCap
+ *
+ * @typedef {{
+ *     unlimited: boolean,
+ *     timeUnit: (string|undefined),
+ *     timeUnitCount: (number|undefined),
+ *     maxImpressions: (number|undefined),
+ * }}
+ */
+let FrequencyCap;
+
+/** @const {{map: function(*): ?FrequencyCap}} */
+const FrequencyCapMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `FrequencyCap` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?FrequencyCap} The concrete instance, or null if the resource
+   *     did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['unlimited']) &&
+        typeof resource['unlimited'] === 'boolean' &&
+        (resource['unlimited'] === true ||
+         (ObjectUtil.hasOwnProperties(
+              resource, ['timeUnit', 'timeUnitCount', 'maxImpressions']) &&
+          Number.isInteger(resource['timeUnitCount']) &&
+          Number.isInteger(resource['maxImpressions'])))) {
+      return /** @type {!FrequencyCap} */ (resource);
+    }
+    return null;
+  },
+};
+
+/**
  * Class representing a date as it is provided by the DV360 API. Note:
  * individual values are not padded (i.e. 1 is valid for day or month) and may
  * be 0 to indicate 'ignore value' (e.g. 0 for day means a year and month

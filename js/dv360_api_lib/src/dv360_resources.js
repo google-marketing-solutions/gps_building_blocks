@@ -320,16 +320,41 @@ class Campaign extends DisplayVideoResource {
   /**
    * Constructs an instance of `Campaign`.
    *
-   * @param {?string} id The unique resource ID
-   * @param {string} displayName The display name
-   * @param {string} advertiserId The advertiser ID
-   * @param {!Status=} status Optional status to set
+   * @param {{
+   *     id: ?string,
+   *     displayName: string,
+   *     advertiserId: string,
+   *     campaignGoal: !CampaignGoal,
+   *     frequencyCap: !FrequencyCap,
+   * }} requiredParams
+   * @param {{
+   *     campaignFlight: (!CampaignFlight|undefined),
+   *     status: (!Status|undefined),
+   * }=} optionalParams
    */
-  constructor(id, displayName, advertiserId, status = Status.ACTIVE) {
+  constructor({
+        id,
+        displayName,
+        advertiserId,
+        campaignGoal,
+        frequencyCap,
+      }, {
+        campaignFlight = {plannedDates: {startDate: ApiDate.now()}},
+        status = Status.ACTIVE,
+      } = {}) {
     super(id, displayName, status);
 
     /** @private @const {string} */
     this.advertiserId_ = advertiserId;
+
+    /** @private @const {!CampaignGoal} */
+    this.campaignGoal_ = campaignGoal;
+
+    /** @private @const {!FrequencyCap} */
+    this.frequencyCap_ = frequencyCap;
+
+    /** @private @const {!CampaignFlight} */
+    this.campaignFlight_ = campaignFlight;
   }
 
   /**
@@ -342,16 +367,39 @@ class Campaign extends DisplayVideoResource {
    *     properties
    */
   static fromApiResource(resource) {
-    if (!resource['campaignId'] || !resource['displayName'] ||
-        !resource['advertiserId'] || !resource['entityStatus']) {
-      throw new Error(
-          'Error! Encountered an invalid API resource object ' +
-          'while mapping to an instance of Campaign.');
+    const properties = [
+      'campaignId',
+      'displayName',
+      'advertiserId',
+      'entityStatus',
+      'campaignGoal',
+      'campaignFlight',
+      'frequencyCap',
+    ];
+    if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const campaignGoal = resource['campaignGoal'];
+      const campaignFlight = resource['campaignFlight'];
+      const frequencyCap = resource['frequencyCap'];
+      const mappedCampaignGoal = CampaignGoalMapper.map(campaignGoal);
+      const mappedCampaignFlight = CampaignFlightMapper.map(campaignFlight);
+      const mappedFrequencyCap = FrequencyCapMapper.map(frequencyCap);
+
+      if (mappedCampaignGoal && mappedCampaignFlight && mappedFrequencyCap) {
+        return new Campaign({
+          id: String(resource['campaignId']),
+          displayName: String(resource['displayName']),
+          advertiserId: String(resource['advertiserId']),
+          campaignGoal: mappedCampaignGoal,
+          frequencyCap: mappedFrequencyCap,
+        }, {
+          campaignFlight: mappedCampaignFlight,
+          status: StatusMapper.map(String(resource['entityStatus'])),
+        });
+      }
     }
-    return new Campaign(
-        String(resource['campaignId']), String(resource['displayName']),
-        String(resource['advertiserId']),
-        StatusMapper.map(String(resource['entityStatus'])));
+    throw new Error(
+        'Error! Encountered an invalid API resource object ' +
+        'while mapping to an instance of Campaign.');
   }
 
   /**
@@ -359,7 +407,7 @@ class Campaign extends DisplayVideoResource {
    * This method is called by default when an instance of `Campaign` is passed
    * to `JSON.stringify`.
    *
-   * @return {!Object<string, ?string>} The custom JSON representation of this
+   * @return {!Object<string, *>} The custom JSON representation of this
    *     `Campaign` instance
    */
   toJSON() {
@@ -368,7 +416,48 @@ class Campaign extends DisplayVideoResource {
       displayName: this.getDisplayName(),
       advertiserId: this.getAdvertiserId(),
       entityStatus: String(this.getStatus()),
+      campaignGoal: this.getCampaignGoal(),
+      campaignFlight: {
+        plannedDates: {startDate: this.getCampaignStartDate().toJSON()},
+      },
+      frequencyCap: this.getFrequencyCap(),
     };
+  }
+
+  /**
+   * Compares this `Campaign` to 'other' and returns an `Array` of changed
+   * mutable properties (ID for example is immutable and cannot be changed,
+   * therefore this method will not compare it between 'this' and 'other').
+   * @see #getMutableProperties for a complete list of mutable properties.
+   *
+   * @param {?DisplayVideoResource} other The other campaign to compare
+   * @return {!Array<string>} An array of changed mutable properties between
+   *     this and 'other'
+   * @override
+   */
+  getChangedProperties(other) {
+    const changedProperties = super.getChangedProperties(other);
+
+    if (other && other instanceof Campaign) {
+      changedProperties.push(
+          ...this.getCampaignStartDate().getChangedProperties(
+              other.getCampaignStartDate(),
+              /* prefix= */ 'campaignFlight.plannedDates.startDate.'));
+    }
+    return changedProperties;
+  }
+
+  /**
+   * Returns all properties of this `Campaign` that are modifiable.
+   *
+   * @return {!Array<string>} An array of properties that are modifiable
+   * @override
+   */
+  getMutableProperties() {
+    return [
+      ...super.getMutableProperties(),
+      ...ApiDate.getMutableProperties('campaignFlight.plannedDates.startDate.'),
+    ];
   }
 
   /**
@@ -378,6 +467,51 @@ class Campaign extends DisplayVideoResource {
    */
   getAdvertiserId() {
     return this.advertiserId_;
+  }
+
+  /**
+   * Returns the campaign goal configuration.
+   *
+   * @return {!CampaignGoal}
+   */
+  getCampaignGoal() {
+    return this.campaignGoal_;
+  }
+
+  /**
+   * Returns the campaign flight configuration.
+   *
+   * @return {!CampaignFlight}
+   */
+  getCampaignFlight() {
+    return this.campaignFlight_;
+  }
+
+  /**
+   * Returns the campaign start date.
+   *
+   * @return {!ApiDate}
+   */
+  getCampaignStartDate() {
+    return this.getCampaignFlight().plannedDates.startDate;
+  }
+
+  /**
+   * Sets the campaign start date.
+   *
+   * @param {!ApiDate} campaignStartDate
+   */
+  setCampaignStartDate(campaignStartDate) {
+    this.getCampaignFlight().plannedDates.startDate = campaignStartDate;
+  }
+
+  /**
+   * Returns the frequency cap configuration.
+   *
+   * @return {!FrequencyCap}
+   */
+  getFrequencyCap() {
+    return this.frequencyCap_;
   }
 }
 
