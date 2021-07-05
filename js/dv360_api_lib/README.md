@@ -4,7 +4,7 @@ This repository represents a client library for the Display & Video 360 (DV360)
 API, written in Google Apps Script.
 
 **DISCLAIMER**: The code samples shared here are _not_ formally supported
-by Google and are provided only as a reference. See [LICENSE](../../LICENSE.md)
+by Google and are provided only as a reference. See [LICENSE](../../LICENSE)
 for more information.
 
 Contributions are highly encouraged; see

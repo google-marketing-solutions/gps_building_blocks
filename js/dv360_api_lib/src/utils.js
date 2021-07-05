@@ -231,17 +231,34 @@ class ObjectUtil {
    * Checks if the given object contains all of the given properties.
    *
    * @param {*} obj The obj to check. Can be null or undefined
-   * @param {!Array<string>} properties The properties to check. Should not be
-   *     empty (as otherwise false would be returned)
+   * @param {!Array<string>} requiredProperties The required properties to
+   *     check. Can only be empty if optionalProperties exist, otherwise false
+   * will be returned
+   * @param {!Array<string>=} optionalProperties Optional properties to check.
+   *     Object must contain at least one of these properties. Defaults to an
+   *     empty array
    * @return {boolean} True if the object contains all properties, false
    *     otherwise
    */
-  static hasOwnProperties(obj, properties) {
-    const keys = obj != null && obj instanceof Object && !Array.isArray(obj) ?
-        Object.keys(obj) :
+  static hasOwnProperties(obj, requiredProperties, optionalProperties = []) {
+    const keys = ObjectUtil.isObject(obj) ?
+        Object.keys(/** @type {!Object<string, *>} */(obj)) :
         [];
-    return keys.length > 0 && properties.length > 0 &&
-        properties.every((key) => keys.includes(key));
+    return keys.length > 0 &&
+        (requiredProperties.length > 0 || optionalProperties.length > 0) &&
+        requiredProperties.every((key) => keys.includes(key)) &&
+        (optionalProperties.length === 0 ||
+         optionalProperties.some((key) => keys.includes(key)));
+  }
+
+  /**
+   * Checks if the given object is indeed an object.
+   *
+   * @param {*} obj The obj to check. Can be null or undefined
+   * @return {boolean} True if the object is an object, false otherwise
+   */
+  static isObject(obj) {
+    return obj != null && obj instanceof Object && !Array.isArray(obj);
   }
 }
 

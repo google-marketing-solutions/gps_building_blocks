@@ -17,7 +17,7 @@
 
 /**
  * @fileoverview This file encapsulates domain object representations for DV360
- * Resources that are accessible via the DV360 API. Static ranslators are
+ * Resources that are accessible via the DV360 API. Static mappers are
  * implemented per domain object to ensure proper separation of concerns between
  * the library's domain objects and their expected API counterparts.
  */
@@ -265,8 +265,12 @@ class Advertiser extends DisplayVideoResource {
    */
   static fromApiResource(resource) {
     const properties = [
-      'advertiserId', 'displayName', 'partnerId', 'entityStatus',
-      'generalConfig', 'adServerConfig'
+      'advertiserId',
+      'displayName',
+      'partnerId',
+      'entityStatus',
+      'generalConfig',
+      'adServerConfig',
     ];
     if (ObjectUtil.hasOwnProperties(resource, properties)) {
       const generalConfig = resource['generalConfig'];
@@ -285,7 +289,8 @@ class Advertiser extends DisplayVideoResource {
           ]);
 
       if (validGeneralConfig &&
-          (thirdPartyAdServerConfig || validCampaignManagerConfig)) {
+          (ObjectUtil.isObject(thirdPartyAdServerConfig) ||
+           validCampaignManagerConfig)) {
         const params = {
           id: String(resource['advertiserId']),
           displayName: String(resource['displayName']),
@@ -366,7 +371,7 @@ class Advertiser extends DisplayVideoResource {
 
     if (other && other instanceof Advertiser &&
         this.getDomainUrl() !== other.getDomainUrl()) {
-      changedProperties.push('domainUrl');
+      changedProperties.push('generalConfig.domainUrl');
     }
     return changedProperties;
   }
@@ -378,7 +383,7 @@ class Advertiser extends DisplayVideoResource {
    * @override
    */
   getMutableProperties() {
-    return [...super.getMutableProperties(), 'domainUrl'];
+    return [...super.getMutableProperties(), 'generalConfig.domainUrl'];
   }
 
   /**
@@ -1078,12 +1083,12 @@ class TargetingOption extends DisplayVideoResource {
         const targetingDetailsKey = keys[0];
         const targetingDetails = resource[targetingDetailsKey];
 
-        if (targetingDetails instanceof Object &&
-            !Array.isArray(targetingDetails)) {
+        if (ObjectUtil.isObject(targetingDetails)) {
           return new TargetingOption(
               String(resource['targetingOptionId']),
               TargetingTypeMapper.map(String(resource['targetingType'])),
-              targetingDetailsKey, targetingDetails);
+              targetingDetailsKey,
+              /** @type {!Object<string, string>} */(targetingDetails));
         }
       }
     }
