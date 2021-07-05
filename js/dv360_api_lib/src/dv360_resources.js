@@ -350,48 +350,32 @@ class Advertiser extends DisplayVideoResource {
    *     id: ?string,
    *     displayName: string,
    *     partnerId: string,
-   *     domainUrl: string,
-   *     currencyCode: string,
-   *     thirdPartyOrderIdReporting: (boolean|undefined),
-   *     campaignManagerConfig: ({
-   *         cmAccountId: string,
-   *         cmFloodlightConfigId: string,
-   *         cmFloodlightLinkingAuthorized: boolean,
-   *     }|undefined)
-   * }} params
-   * @param {!Status=} status Optional status to set
+   *     generalConfig: !AdvertiserGeneralConfig,
+   * }} requiredParams
+   * @param {{
+   *     adServerConfig: (!AdvertiserAdServerConfig|undefined),
+   *     status: (!Status|undefined),
+   * }=} optionalParams
    */
   constructor({
         id,
         displayName,
         partnerId,
-        domainUrl,
-        currencyCode,
-        thirdPartyOrderIdReporting,
-        campaignManagerConfig,
-      }, status = Status.ACTIVE) {
+        generalConfig,
+      }, {
+        adServerConfig = {thirdPartyOnlyConfig: {}},
+        status = Status.ACTIVE
+      } = {}) {
     super(id, displayName, status);
 
     /** @private @const {string} */
     this.partnerId_ = partnerId;
 
-    /** @private {string} */
-    this.domainUrl_ = domainUrl;
+    /** @private @const {!AdvertiserGeneralConfig} */
+    this.generalConfig_ = generalConfig;
 
-    /** @private @const {string} */
-    this.currencyCode_ = currencyCode;
-
-    /** @private @const {boolean|undefined} */
-    this.thirdPartyOrderIdReporting_ = thirdPartyOrderIdReporting;
-
-    /**
-     * @private @const {({
-     *     cmAccountId: string,
-     *     cmFloodlightConfigId: string,
-     *     cmFloodlightLinkingAuthorized: boolean,
-     * }|undefined)}
-     */
-    this.campaignManagerConfig_ = campaignManagerConfig;
+    /** @private @const {!AdvertiserAdServerConfig} */
+    this.adServerConfig_ = adServerConfig;
   }
 
   /**
@@ -414,44 +398,22 @@ class Advertiser extends DisplayVideoResource {
     ];
     if (ObjectUtil.hasOwnProperties(resource, properties)) {
       const generalConfig = resource['generalConfig'];
-      const thirdPartyAdServerConfig =
-          resource['adServerConfig']['thirdPartyOnlyConfig'];
-      const campaignManagerAdServerConfig =
-          resource['adServerConfig']['cmHybridConfig'];
+      const adServerConfig = resource['adServerConfig'];
+      const mappedGeneralConfig =
+          AdvertiserGeneralConfigMapper.map(generalConfig);
+      const mappedAdServerConfig =
+          AdvertiserAdServerConfigMapper.map(adServerConfig);
 
-      const validGeneralConfig = ObjectUtil.hasOwnProperties(
-          generalConfig, ['domainUrl', 'currencyCode']);
-      const validCampaignManagerConfig =
-          ObjectUtil.hasOwnProperties(campaignManagerAdServerConfig, [
-            'cmAccountId',
-            'cmFloodlightConfigId',
-            'cmFloodlightLinkingAuthorized',
-          ]);
-
-      if (validGeneralConfig &&
-          (ObjectUtil.isObject(thirdPartyAdServerConfig) ||
-           validCampaignManagerConfig)) {
-        const params = {
+      if (mappedGeneralConfig && mappedAdServerConfig) {
+        return new Advertiser({
           id: String(resource['advertiserId']),
           displayName: String(resource['displayName']),
           partnerId: String(resource['partnerId']),
-          domainUrl: String(generalConfig['domainUrl']),
-          currencyCode: String(generalConfig['currencyCode']),
-        };
-        if (validCampaignManagerConfig) {
-          params['campaignManagerConfig'] = {
-            cmAccountId: String(campaignManagerAdServerConfig['cmAccountId']),
-            cmFloodlightConfigId:
-                String(campaignManagerAdServerConfig['cmFloodlightConfigId']),
-            cmFloodlightLinkingAuthorized: String(
-                campaignManagerAdServerConfig['cmFloodlightLinkingAuthorized']),
-          };
-        } else if (thirdPartyAdServerConfig['pixelOrderIdReportingEnabled']) {
-          params['thirdPartyOrderIdReporting'] =
-              Boolean(thirdPartyAdServerConfig['pixelOrderIdReportingEnabled']);
-        }
-        return new Advertiser(
-            params, StatusMapper.map(String(resource['entityStatus'])));
+          generalConfig: mappedGeneralConfig,
+        }, {
+          adServerConfig: mappedAdServerConfig,
+          status: StatusMapper.map(String(resource['entityStatus'])),
+        });
       }
     }
     throw new Error(
@@ -468,31 +430,14 @@ class Advertiser extends DisplayVideoResource {
    *     `Advertiser` instance
    */
   toJSON() {
-    const result = {
+    return {
       advertiserId: this.getId(),
       displayName: this.getDisplayName(),
       partnerId: this.getPartnerId(),
       entityStatus: String(this.getStatus()),
-      generalConfig: {
-        domainUrl: this.getDomainUrl(),
-        currencyCode: this.getCurrencyCode(),
-      },
+      generalConfig: this.getGeneralConfig(),
+      adServerConfig: this.getAdServerConfig(),
     };
-    if (this.getCampaignManagerConfig()) {
-      result['adServerConfig'] = {
-        cmHybridConfig: this.getCampaignManagerConfig(),
-      };
-    } else {
-      result['adServerConfig'] = {
-        thirdPartyOnlyConfig: {},
-      };
-      if (this.getThirdPartyOrderIdReporting()) {
-        result['adServerConfig']['thirdPartyOnlyConfig'] = {
-          pixelOrderIdReportingEnabled: this.getThirdPartyOrderIdReporting(),
-        };
-      }
-    }
-    return result;
   }
 
   /**
@@ -510,7 +455,8 @@ class Advertiser extends DisplayVideoResource {
     const changedProperties = super.getChangedProperties(other);
 
     if (other && other instanceof Advertiser &&
-        this.getDomainUrl() !== other.getDomainUrl()) {
+        this.getGeneralConfig().domainUrl !==
+            other.getGeneralConfig().domainUrl) {
       changedProperties.push('generalConfig.domainUrl');
     }
     return changedProperties;
@@ -536,52 +482,30 @@ class Advertiser extends DisplayVideoResource {
   }
 
   /**
-   * Returns the domain URL.
+   * Returns the advertiser general config.
    *
-   * @return {string}
+   * @return {!AdvertiserGeneralConfig}
    */
-  getDomainUrl() {
-    return this.domainUrl_;
+  getGeneralConfig() {
+    return this.generalConfig_;
   }
 
   /**
-   * Sets the domain URL.
+   * Sets the domain URL property of the advertiser general config.
    *
    * @param {string} domainUrl
    */
   setDomainUrl(domainUrl) {
-    this.domainUrl_ = domainUrl;
+    this.getGeneralConfig().domainUrl = domainUrl;
   }
 
   /**
-   * Returns the currency code.
+   * Returns the advertiser ad server config.
    *
-   * @return {string}
+   * @return {!AdvertiserAdServerConfig}
    */
-  getCurrencyCode() {
-    return this.currencyCode_;
-  }
-
-  /**
-   * Returns the third party order ID reporting boolean.
-   *
-   * @return {boolean|undefined}
-   */
-  getThirdPartyOrderIdReporting() {
-    return this.thirdPartyOrderIdReporting_;
-  }
-
-  /**
-   * Returns the campaign manager config.
-   *
-   * @return {({
-   *     cmAccountId: string,
-   *     cmFloodlightConfigId: string,
-   *     cmFloodlightLinkingAuthorized: boolean,
-   * }|undefined)}
-   */
-  getCampaignManagerConfig() {
-    return this.campaignManagerConfig_;
+  getAdServerConfig() {
+    return this.adServerConfig_;
   }
 }
 
