@@ -15,4 +15,5 @@ Contributions are highly encouraged; see [CONTRIBUTING.md](CONTRIBUTING.md).
 Language specific documentation can be found within the corresponding folders.
 
  - [Python](py/README.md)
+ - [JavaScript](js/README.md)
 
