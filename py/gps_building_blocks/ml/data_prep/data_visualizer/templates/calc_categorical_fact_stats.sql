@@ -19,40 +19,51 @@
 --
 -- Query expects following parameters:
 --  bq_facts_table: Full path to the Facts Table in BigQuery. Ex: project.dataset.table.
---  categorical_fact_list: A comma separated list of categorical fact names to calculate
---  statistics for.
 --  number_top_categories: Number of top value levels to consider for each categorical fact.
-
 WITH
-  FactCount AS (
+  Fact AS (
     SELECT
       FORMAT_TIMESTAMP('%Y-%m-%d', ts) AS date,
       name,
       value,
-      COUNT(*) AS record_count
     FROM `{bq_facts_table}`
+  ),
+  FactCount AS (
+    SELECT
+      date,
+      name,
+      value,
+      COUNT(*) AS record_count
+    FROM Fact
     GROUP BY date, name, value
+  ),
+  ValueRankInitial AS (
+    SELECT
+      name,
+      APPROX_TOP_COUNT(value, {number_top_categories}}) AS rank
+    FROM Fact
+    GROUP BY name
   ),
   ValueRank AS (
     SELECT
-      name,
-      value,
-      RANK() OVER (PARTITION BY name ORDER BY SUM(record_count) DESC) AS rank
-      FROM FactCount
-      GROUP BY name, value
+      name AS name,
+      value AS value,
+      count AS rank_count
+    FROM ValueRankInitial, UNNEST(rank)
   ),
   ValueRankModified AS (
     SELECT
       name,
       value,
-      IF(rank <= {number_top_categories}, rank, NULL) AS rank
+      RANK() OVER (PARTITION BY name ORDER BY SUM(rank_count) DESC) AS rank
     FROM ValueRank
+    GROUP BY name, value, rank_count
   ),
   TotalCount AS (
     SELECT
       date,
       name,
-      SUM(record_count) AS total_record_count
+      SUM(record_count) AS total_record_count,
     FROM FactCount
     GROUP BY date, name
   ),
@@ -64,7 +75,7 @@ WITH
       FactCount.record_count,
       ValueRankModified.rank
     FROM FactCount
-    INNER JOIN ValueRankModified
+    LEFT JOIN ValueRankModified
       ON FactCount.name = ValueRankModified.name AND FactCount.value = ValueRankModified.value
   ),
   FactCountAndRankAndTotalCount AS (
@@ -78,7 +89,7 @@ WITH
     FROM FactCountAndRank
     INNER JOIN TotalCount
       ON FactCountAndRank.date = TotalCount.date AND FactCountAndRank.name = TotalCount.name
-   )
+  )
 SELECT
   date,
   name AS fact_name,
@@ -91,4 +102,4 @@ SELECT
   SAFE_DIVIDE(SUM(record_count), AVG(total_record_count)) * 100 AS percentage
 FROM FactCountAndRankAndTotalCount
 GROUP BY date, fact_name, category_value, rank
-ORDER BY date;
+ORDER BY date, fact_name, rank ASC;
