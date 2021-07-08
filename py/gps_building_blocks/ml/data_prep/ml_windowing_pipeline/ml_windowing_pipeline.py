@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""Library for running the ML Windowing Pipeline.
 
 ML Windowing Pipeline library to generate windowed features, outputing the
@@ -85,7 +84,10 @@ max_values: Feature Options for Max.
 min_values: Feature Options for Min.
 """
 
+import logging
 import os
+import sys
+import time
 from typing import Any, Dict
 
 from google.cloud import bigquery
@@ -95,6 +97,9 @@ from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import fact
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import merge_feature_option_list
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import parse_feature_option
 
+logging.basicConfig(
+    format='%(levelname)s: %(message)s', level=logging.INFO, stream=sys.stdout)
+
 _TABLE_NAME_TO_ID = {
     'conversions_table': 'conversions',
     'sessions_table': 'sessions',
@@ -102,8 +107,8 @@ _TABLE_NAME_TO_ID = {
     'categorical_facts_table': 'categorical_facts',
     'instances_table': 'instances',
     'windows_table': 'windows',
-    'categorical_fact_value_to_column_name_table': (
-        'categorical_fact_value_to_column_name'),
+    'categorical_fact_value_to_column_name_table':
+        'categorical_fact_value_to_column_name',
     'features_table': 'features',
 }
 
@@ -139,24 +144,41 @@ def _get_table_id(project_id, dataset, table_name, run_id):
 def _get_output_table_ids(project_id, dataset, run_id):
   table_name_to_id = {}
   for (table_name, table_id) in _TABLE_NAME_TO_ID.items():
-    table_name_to_id[table_name] = _get_table_id(
-        project_id, dataset, table_id, run_id)
+    table_name_to_id[table_name] = _get_table_id(project_id, dataset, table_id,
+                                                 run_id)
   return table_name_to_id
 
 
-def _run_sql(client: bigquery.client.Client,
-             template_sql: str,
+def _run_sql(client: bigquery.client.Client, template_sql: str,
              params: Dict[str, Any]) -> bigquery.table.RowIterator:
+  """Runs a SQL query.
+
+  Args:
+    client: BigQuery client.
+    template_sql: The SQL query statement.
+    params: SQL query parameters.
+
+  Returns:
+    RowIterator query object.
+  """
   sql = params['jinja_env'].get_template(template_sql).render(params)
   if params['verbose']:
     # Including a print here for easier debugging and to show pipeline progress.
-    print(sql)
-  return client.query(sql).result()
+    logging.info(sql)
+
+  query_job = client.query(sql)
+  while not query_job.done():
+    elapsed_seconds = time.time() - query_job.started.timestamp()
+    logging.info('BigQuery job is [%s]. %s seconds elapsed... ',
+                 str(query_job.state), '%.2f' % elapsed_seconds)
+    # Adds a sleep as a safeguard to avoid floods of requests.
+    time.sleep(1)
+  logging.info('BigQuery job is [%s].', query_job.state)
+  return query_job.result()
 
 
-def _get_automatic_feature_params(
-    client: bigquery.client.Client,
-    params: Dict[str, Any]) -> Dict[str, Any]:
+def _get_automatic_feature_params(client: bigquery.client.Client,
+                                  params: Dict[str, Any]) -> Dict[str, Any]:
   """Prepares and returns feature options for automatic feature generation.
 
   Args:
@@ -171,8 +193,9 @@ def _get_automatic_feature_params(
     _run_sql(client, 'rank_categorical_fact_values_by_count.sql', params)
   # Extract top fact values.
   fact_name_to_value_and_column_suffix = {}
-  for (fact_name, fact_value, column_name_suffix) in _run_sql(
-      client, 'load_top_categorical_facts.sql', params):
+  for (fact_name, fact_value,
+       column_name_suffix) in _run_sql(client, 'load_top_categorical_facts.sql',
+                                       params):
     if fact_name not in fact_name_to_value_and_column_suffix:
       fact_name_to_value_and_column_suffix[fact_name] = []
     fact_name_to_value_and_column_suffix[fact_name].append(
@@ -216,8 +239,7 @@ def _get_feature_options_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_value_to_column_suffix_mapping_params(
-    client: bigquery.client.Client,
-    params: Dict[str, Any]) -> Dict[str, Any]:
+    client: bigquery.client.Client, params: Dict[str, Any]) -> Dict[str, Any]:
   """Extracts a mapping from fact name and value to column suffix.
 
   For each feature_option in params, extracts a mapping from the fact name and
@@ -234,8 +256,9 @@ def _get_value_to_column_suffix_mapping_params(
   new_params = {}
   fact_name_to_value_and_column_suffix = {}
   if params['count_proportion_feature_options']:
-    for (fact_name, fact_value, column_name_suffix) in _run_sql(
-        client, 'feature_column_name.sql', params):
+    for (fact_name, fact_value,
+         column_name_suffix) in _run_sql(client, 'feature_column_name.sql',
+                                         params):
       if fact_name not in fact_name_to_value_and_column_suffix:
         fact_name_to_value_and_column_suffix[fact_name] = []
       fact_name_to_value_and_column_suffix[fact_name].append(
@@ -264,12 +287,12 @@ def update_params_with_defaults(params):
   params.setdefault('latest_values', '')
   params.setdefault('max_values', '')
   params.setdefault('min_values', '')
-  params.update(_get_output_table_ids(
-      params['project_id'], params['dataset_id'], params['run_id']))
+  params.update(
+      _get_output_table_ids(params['project_id'], params['dataset_id'],
+                            params['run_id']))
   params.setdefault('verbose', False)
-  params.setdefault(
-      'prediction_window_conversions_to_label_sql',
-      'prediction_window_conversions_to_label_binary.sql')
+  params.setdefault('prediction_window_conversions_to_label_sql',
+                    'prediction_window_conversions_to_label_binary.sql')
   params.setdefault('templates_dir', '')
   _set_jinja_env(params)
 
@@ -309,21 +332,20 @@ def check_prediction_window_params(params: Dict[str, Any]):
   assert params['prediction_window_gap_in_days'] >= 1
 
 
-def generate_conversions_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_conversions_table(client: bigquery.client.Client,
+                               params: Dict[str, Any]):
   """Generates the table of user conversion data."""
   assert 'conversions_table' in params
   _run_sql(client, params['conversions_sql'], params)
 
 
-def generate_sessions_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_sessions_table(client: bigquery.client.Client,
+                            params: Dict[str, Any]):
   """Generates the table of user session data."""
   _run_sql(client, params['sessions_sql'], params)
 
 
-def update_fact_params(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def update_fact_params(client: bigquery.client.Client, params: Dict[str, Any]):
   """Updates params with lists of facts, and numerical and categorical facts."""
   sessions_table = client.get_table(params['sessions_table'])
   params['facts'] = fact.Fact.extract_facts(sessions_table)
@@ -331,34 +353,34 @@ def update_fact_params(
   params['categorical_facts'] = fact.Fact.get_categorical_facts(params['facts'])
 
 
-def generate_numeric_facts_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_numeric_facts_table(client: bigquery.client.Client,
+                                 params: Dict[str, Any]):
   """Generates the table of numerical facts."""
   _run_sql(client, 'numeric_facts.sql', params)
 
 
-def generate_categorical_facts_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_categorical_facts_table(client: bigquery.client.Client,
+                                     params: Dict[str, Any]):
   """Generates the table of categorical facts."""
   _run_sql(client, 'categorical_facts.sql', params)
 
 
-def generate_instances_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_instances_table(client: bigquery.client.Client,
+                             params: Dict[str, Any]):
   """Generates the table of instances."""
   _run_sql(client, 'instances.sql', params)
 
 
-def generate_windows_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_windows_table(client: bigquery.client.Client,
+                           params: Dict[str, Any]):
   """Generates the table of windowed data."""
   _run_sql(client, params['windows_sql'], params)
   if params['stop_on_first_positive']:
     _run_sql(client, 'stop_on_first_positive.sql', params)
 
 
-def generate_features_table(
-    client: bigquery.client.Client, params: Dict[str, Any]):
+def generate_features_table(client: bigquery.client.Client,
+                            params: Dict[str, Any]):
   """Generates the table of features."""
   if params['features_sql'] == 'automatic_features.sql':
     params.update(_get_automatic_feature_params(client, params))
