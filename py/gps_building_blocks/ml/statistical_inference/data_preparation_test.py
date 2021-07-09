@@ -241,7 +241,9 @@ class InferenceTest(parameterized.TestCase):
         result = data.address_collinearity_with_vif(
             sequential=sequential,
             interactive=True,
-            drop=True)
+            drop=True,
+            use_correlation_matrix_inversion=False
+            )
 
     pd.testing.assert_frame_equal(
         result,

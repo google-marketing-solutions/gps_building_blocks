@@ -74,6 +74,7 @@ class LowVarianceError(InferenceDataError):
 class LowVarianceWarning(InferenceDataWarning):
   pass
 
+
 # Force custom Warnings to emitted all the time, not only once.
 warnings.simplefilter('always', InferenceDataWarning)
 
@@ -202,7 +203,7 @@ class InferenceData():
     4) Check that Collinearity has been verified addressed.
 
     Args:
-      raise_on_error: Weather to raise an exception if a problem if found with
+      raise_on_error: Whether to raise an exception if a problem if found with
         one of the above checks in the latest transformation of the data. If set
         to False, the integrity checks may emit InferenceDataWarning warnings.
 
@@ -494,6 +495,8 @@ class InferenceData():
     if columns_to_delete:
       if drop:
         self.data = self.data.drop(columns=columns_to_delete)
+        _print_mock(
+            f'Removing low-variance columns: {",".join(columns_to_delete)}')
       else:
         columns_to_delete = ' , '.join(columns_to_delete)
         message = (f'Consider removing the following columns: '
@@ -554,7 +557,8 @@ class InferenceData():
       sequential: bool = True,
       interactive: bool = False,
       drop: bool = True,
-      min_absolute_corr: float = 0.4) -> pd.DataFrame:
+      min_absolute_corr: float = 0.4,
+      use_correlation_matrix_inversion: bool = True) -> pd.DataFrame:
     """Uses VIF to identify columns that are collinear and optionally drop them.
 
     You can customize how collinearity will be resolved with `sequential` and
@@ -586,32 +590,41 @@ class InferenceData():
         required to display a feature as "correlated" to another feature in
         interactive mode. Only used when interactive=True. Should be between 0
         and 1, though this is not currently enforced.
+      use_correlation_matrix_inversion: If True, uses correlation matrix
+        inversion algorithm to optimize VIF calculations. If False, uses
+        regression algorithm.
 
     Returns:
       Data after collinearity check with vif has been applied. When drop=True
         columns with high collinearity will not be present in the returned data.
     """
+
     covariates = self.data.drop(columns=self.target_column)
     columns_to_drop = []
     corr_matrix = covariates.corr()
 
     while True:
       tmp_data = covariates.drop(columns=columns_to_drop)
-      vif_data = vif.calculate_vif(tmp_data, sort=True).reset_index(drop=True)
 
-      if vif_data['VIF'][0] < vif_threshold:
+      vif_data = vif.calculate_vif(
+          tmp_data,
+          sort=True,
+          use_correlation_matrix_inversion=use_correlation_matrix_inversion,
+          corr_matrix=corr_matrix.drop(columns_to_drop,
+                                       axis=0).drop(columns_to_drop, axis=1))
+      if max(vif_data['VIF']) < vif_threshold:
         break
 
       if interactive:
         correlated_features = self._get_list_of_correlated_features(
             vif_data,
-            corr_matrix.drop(columns_to_drop, axis=1),
+            corr_matrix.drop(columns_to_drop,
+                             axis=0).drop(columns_to_drop, axis=1),
             min_absolute_corr)
-        vif_data = vif_data.sort_index()
         vif_data['correlated_features'] = correlated_features
         selected_columns = _vif_interactive_input_and_validation(vif_data)
       elif sequential:
-        selected_columns = [vif_data['features'][0]]
+        selected_columns = [vif_data.iloc[0].features]
       else:
         vif_filter = vif_data['VIF'] >= vif_threshold
         selected_columns = vif_data['features'][vif_filter].tolist()
