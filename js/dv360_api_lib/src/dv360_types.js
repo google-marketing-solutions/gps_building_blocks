@@ -82,6 +82,184 @@ const TargetingTypeMapper = {
 };
 
 /**
+ * Defines possible pacing periods for spending ad budgets.
+ * @enum {string}
+ */
+const PacingPeriod = {
+  DAILY: 'PACING_PERIOD_DAILY',
+  FLIGHT: 'PACING_PERIOD_FLIGHT',
+  UNSPECIFIED: 'PACING_PERIOD_UNSPECIFIED',
+};
+
+/** @const {{map: function(?string): ?PacingPeriod}} */
+const PacingPeriodMapper = {
+  /**
+   * Converts a raw pacing period string to a concrete `PacingPeriod`.
+   *
+   * @param {?string} rawType The raw pacing period to convert. Can be nullable
+   * @return {?PacingPeriod} The concrete `PacingPeriod`, or null for unknown
+   *     or erroneous values
+   */
+  map: (rawType) => {
+    if (rawType) {
+      const type = rawType.replace('PACING_PERIOD_', '');
+      return PacingPeriod[type] || null;
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines frequency cap configuration for limiting display of ads.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/FrequencyCap
+ *
+ * @typedef {{
+ *     unlimited: boolean,
+ *     timeUnit: (string|undefined),
+ *     timeUnitCount: (number|undefined),
+ *     maxImpressions: (number|undefined),
+ * }}
+ */
+let FrequencyCap;
+
+/** @const {{map: function(*): ?FrequencyCap}} */
+const FrequencyCapMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `FrequencyCap` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?FrequencyCap} The concrete instance, or null if the resource
+   *     did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['unlimited']) &&
+        typeof resource['unlimited'] === 'boolean' &&
+        (resource['unlimited'] === true ||
+         (ObjectUtil.hasOwnProperties(
+              resource, ['timeUnit', 'timeUnitCount', 'maxImpressions']) &&
+          Number.isInteger(resource['timeUnitCount']) &&
+          Number.isInteger(resource['maxImpressions'])))) {
+      return /** @type {!FrequencyCap} */ (resource);
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines the pacing configuration for spending ad budgets.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/Pacing
+ *
+ * @typedef {{
+ *     pacingPeriod: !PacingPeriod,
+ *     pacingType: string,
+ *     dailyMaxMicros: (string|undefined),
+ *     dailyMaxImpressions: (string|undefined),
+ * }}
+ */
+let Pacing;
+
+/** @const {{map: function(*): ?Pacing}} */
+const PacingMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete `Pacing`
+   * instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?Pacing} The concrete instance, or null if the resource did not
+   *     contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['pacingPeriod', 'pacingType'])) {
+      const pacingPeriod = resource['pacingPeriod'];
+      const mappedPacingPeriod = PacingPeriodMapper.map(pacingPeriod);
+
+      if (mappedPacingPeriod &&
+          (mappedPacingPeriod !== PacingPeriod.DAILY ||
+           ObjectUtil.hasOwnProperties(
+               resource, [], ['dailyMaxMicros', 'dailyMaxImpressions']))) {
+        return /** @type {!Pacing} */ (resource);
+      }
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines a maximize spend oriented bidding strategy.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/BiddingStrategy#maximizespendbidstrategy
+ *
+ * @typedef {{
+ *     performanceGoalType: string,
+ *     maxAverageCpmBidAmountMicros: (string|undefined),
+ *     customBiddingAlgorithmId: (string|undefined),
+ * }}
+ */
+let MaxSpendBiddingStrategy;
+
+/**
+ * Defines a performance goal oriented bidding strategy.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/BiddingStrategy#performancegoalbidstrategy
+ *
+ * @typedef {{
+ *     performanceGoalAmountMicros: string,
+ *     performanceGoalType: string,
+ *     maxAverageCpmBidAmountMicros: (string|undefined),
+ *     customBiddingAlgorithmId: (string|undefined),
+ * }}
+ */
+let PerformanceGoalBiddingStrategy;
+
+/**
+ * Defines configuration that determines the bid price.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/BiddingStrategy
+ *
+ * @typedef {{
+ *     fixedBid: ({bidAmountMicros: string}|undefined),
+ *     maximizeSpendAutoBid: (!MaxSpendBiddingStrategy|undefined),
+ *     performanceGoalAutoBid: (!PerformanceGoalBiddingStrategy|undefined),
+ * }}
+ */
+let BiddingStrategy;
+
+/** @const {{map: function(*): ?BiddingStrategy}} */
+const BiddingStrategyMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `BiddingStrategy` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?BiddingStrategy} The concrete instance, or null if the resource
+   *     did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(
+            resource, [],
+            ['fixedBid', 'maximizeSpendAutoBid', 'performanceGoalAutoBid'])) {
+      const fixedBidStrategy = resource['fixedBid'];
+      const maxSpendStrategy = resource['maximizeSpendAutoBid'];
+      const performanceGoalStrategy = resource['performanceGoalAutoBid'];
+
+      const validFixedBidStrategy = fixedBidStrategy &&
+          ObjectUtil.hasOwnProperties(fixedBidStrategy, ['bidAmountMicros']);
+      const validMaxSpendStrategy = maxSpendStrategy &&
+          ObjectUtil.hasOwnProperties(
+              maxSpendStrategy, ['performanceGoalType']);
+      const validPerformanceGoalStrategy = performanceGoalStrategy &&
+          ObjectUtil.hasOwnProperties(
+              performanceGoalStrategy,
+              ['performanceGoalType', 'performanceGoalAmountMicros']);
+
+      if (validFixedBidStrategy || validMaxSpendStrategy ||
+          validPerformanceGoalStrategy) {
+        return /** @type {!BiddingStrategy} */ (resource);
+      }
+    }
+    return null;
+  },
+};
+
+/**
  * Defines general configuration for advertisers.
  * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers#advertisergeneralconfig
  *
@@ -256,37 +434,105 @@ const CampaignGoalMapper = {
 };
 
 /**
- * Defines frequency cap configuration for limiting display of ads.
- * @see https://developers.google.com/display-video/api/reference/rest/v1/FrequencyCap
+ * Defines line item flight configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems#LineItemFlight
  *
  * @typedef {{
- *     unlimited: boolean,
- *     timeUnit: (string|undefined),
- *     timeUnitCount: (number|undefined),
- *     maxImpressions: (number|undefined),
+ *     flightDateType: string,
+ *     triggerId: (string|undefined),
+ *     dateRange: ({
+ *         startDate: !ApiDate,
+ *         endDate: !ApiDate,
+ *     }|undefined)
  * }}
  */
-let FrequencyCap;
+let LineItemFlight;
 
-/** @const {{map: function(*): ?FrequencyCap}} */
-const FrequencyCapMapper = {
+/** @const {{map: function(*): ?LineItemFlight}} */
+const LineItemFlightMapper = {
   /**
    * Converts a resource object returned by the API into a concrete
-   * `FrequencyCap` instance.
+   * `LineItemFlight` instance.
    *
    * @param {*} resource The API resource object
-   * @return {?FrequencyCap} The concrete instance, or null if the resource
+   * @return {?LineItemFlight} The concrete instance, or null if the resource
    *     did not contain the expected properties
    */
   map: (resource) => {
-    if (ObjectUtil.hasOwnProperties(resource, ['unlimited']) &&
-        typeof resource['unlimited'] === 'boolean' &&
-        (resource['unlimited'] === true ||
-         (ObjectUtil.hasOwnProperties(
-              resource, ['timeUnit', 'timeUnitCount', 'maxImpressions']) &&
-          Number.isInteger(resource['timeUnitCount']) &&
-          Number.isInteger(resource['maxImpressions'])))) {
-      return /** @type {!FrequencyCap} */ (resource);
+    if (ObjectUtil.hasOwnProperties(resource, ['flightDateType'])) {
+      const dateRange = resource['dateRange'];
+      let validDateRange = false;
+
+      if (dateRange) {
+        const startDate = ApiDate.fromApiResource(dateRange['startDate']);
+        const endDate = ApiDate.fromApiResource(dateRange['endDate']);
+
+        if (startDate && endDate) {
+          dateRange['startDate'] = startDate;
+          dateRange['endDate'] = endDate;
+          validDateRange = true;
+        }
+      }
+      if (!dateRange || validDateRange) {
+        return /** @type {!LineItemFlight} */ (resource);
+      }
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines line item budget configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems#LineItemBudget
+ *
+ * @typedef {{
+ *     budgetAllocationType: string,
+ * }}
+ */
+let LineItemBudget;
+
+/** @const {{map: function(*): ?LineItemBudget}} */
+const LineItemBudgetMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `LineItemBudget` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?LineItemBudget} The concrete instance, or null if the resource
+   *     did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['budgetAllocationType'])) {
+      return /** @type {!LineItemBudget} */ (resource);
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines line item partner revenue model configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems#PartnerRevenueModel
+ *
+ * @typedef {{
+ *     markupType: string,
+ *     markupAmount: (string|undefined),
+ * }}
+ */
+let LineItemPartnerRevenueModel;
+
+/** @const {{map: function(*): ?LineItemPartnerRevenueModel}} */
+const LineItemPartnerRevenueModelMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `LineItemPartnerRevenueModel` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?LineItemPartnerRevenueModel} The concrete instance, or null if
+   *     the resource did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['markupType'])) {
+      return /** @type {!LineItemPartnerRevenueModel} */ (resource);
     }
     return null;
   },
