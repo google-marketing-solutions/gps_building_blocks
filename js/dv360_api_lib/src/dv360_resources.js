@@ -351,7 +351,7 @@ class Campaign extends DisplayVideoResource {
     this.campaignGoal_ = campaignGoal;
 
     /** @private @const {!FrequencyCap} */
-    this.frequencyCap_ = frequencyCap;
+    this.campaignFrequencyCap_ = frequencyCap;
 
     /** @private @const {!CampaignFlight} */
     this.campaignFlight_ = campaignFlight;
@@ -420,7 +420,7 @@ class Campaign extends DisplayVideoResource {
       campaignFlight: {
         plannedDates: {startDate: this.getCampaignStartDate().toJSON()},
       },
-      frequencyCap: this.getFrequencyCap(),
+      frequencyCap: this.getCampaignFrequencyCap(),
     };
   }
 
@@ -506,12 +506,12 @@ class Campaign extends DisplayVideoResource {
   }
 
   /**
-   * Returns the frequency cap configuration.
+   * Returns the campaign frequency cap configuration.
    *
    * @return {!FrequencyCap}
    */
-  getFrequencyCap() {
-    return this.frequencyCap_;
+  getCampaignFrequencyCap() {
+    return this.campaignFrequencyCap_;
   }
 }
 
@@ -682,6 +682,12 @@ class LineItem extends DisplayVideoResource {
    *     campaignId: string,
    *     insertionOrderId: string,
    *     lineItemType: string,
+   *     flight: !LineItemFlight,
+   *     budget: !LineItemBudget,
+   *     pacing: !Pacing,
+   *     frequencyCap: !FrequencyCap,
+   *     partnerRevenueModel: !LineItemPartnerRevenueModel,
+   *     bidStrategy: !BiddingStrategy,
    * }} params
    * @param {!Status=} status Optional status to set
    */
@@ -692,6 +698,12 @@ class LineItem extends DisplayVideoResource {
         campaignId,
         insertionOrderId,
         lineItemType,
+        flight,
+        budget,
+        pacing,
+        frequencyCap,
+        partnerRevenueModel,
+        bidStrategy,
       }, status = Status.DRAFT) {
     super(id, displayName, status);
 
@@ -704,8 +716,26 @@ class LineItem extends DisplayVideoResource {
     /** @private @const {string} */
     this.insertionOrderId_ = insertionOrderId;
 
-    /** @private {string} */
+    /** @private @const {string} */
     this.lineItemType_ = lineItemType;
+
+    /** @private @const {!LineItemFlight} */
+    this.lineItemFlight_ = flight;
+
+    /** @private @const {!LineItemBudget} */
+    this.lineItemBudget_ = budget;
+
+    /** @private @const {!Pacing} */
+    this.lineItemPacing_ = pacing;
+
+    /** @private @const {!FrequencyCap} */
+    this.lineItemFrequencyCap_ = frequencyCap;
+
+    /** @private @const {!LineItemPartnerRevenueModel} */
+    this.lineItemPartnerRevenueModel_ = partnerRevenueModel;
+
+    /** @private @const {!BiddingStrategy} */
+    this.lineItemBidStrategy_ = bidStrategy;
   }
 
   /**
@@ -718,22 +748,57 @@ class LineItem extends DisplayVideoResource {
    *     properties
    */
   static fromApiResource(resource) {
-    if (!resource['lineItemId'] || !resource['displayName'] ||
-        !resource['advertiserId'] || !resource['campaignId'] ||
-        !resource['insertionOrderId'] || !resource['lineItemType'] ||
-        !resource['entityStatus']) {
-      throw new Error(
-          'Error! Encountered an invalid API resource object ' +
-          'while mapping to an instance of LineItem.');
-    }
-    return new LineItem({
+    const properties = [
+      'lineItemId',
+      'displayName',
+      'advertiserId',
+      'campaignId',
+      'insertionOrderId',
+      'lineItemType',
+      'entityStatus',
+      'flight',
+      'budget',
+      'pacing',
+      'frequencyCap',
+      'partnerRevenueModel',
+      'bidStrategy',
+    ];
+    if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const flight = resource['flight'];
+      const budget = resource['budget'];
+      const pacing = resource['pacing'];
+      const frequencyCap = resource['frequencyCap'];
+      const partnerRevenueModel = resource['partnerRevenueModel'];
+      const bidStrategy = resource['bidStrategy'];
+      const mappedFlight = LineItemFlightMapper.map(flight);
+      const mappedBudget = LineItemBudgetMapper.map(budget);
+      const mappedPacing = PacingMapper.map(pacing);
+      const mappedFrequencyCap = FrequencyCapMapper.map(frequencyCap);
+      const mappedPartnerRevenueModel =
+          LineItemPartnerRevenueModelMapper.map(partnerRevenueModel);
+      const mappedBidStrategy = BiddingStrategyMapper.map(bidStrategy);
+
+      if (mappedFlight && mappedBudget && mappedPacing && mappedFrequencyCap &&
+          mappedPartnerRevenueModel && mappedBidStrategy) {
+        return new LineItem({
           id: String(resource['lineItemId']),
           displayName: String(resource['displayName']),
           advertiserId: String(resource['advertiserId']),
           campaignId: String(resource['campaignId']),
           insertionOrderId: String(resource['insertionOrderId']),
           lineItemType: String(resource['lineItemType']),
+          flight: mappedFlight,
+          budget: mappedBudget,
+          pacing: mappedPacing,
+          frequencyCap: mappedFrequencyCap,
+          partnerRevenueModel: mappedPartnerRevenueModel,
+          bidStrategy: mappedBidStrategy,
         }, StatusMapper.map(String(resource['entityStatus'])));
+      }
+    }
+    throw new Error(
+        'Error! Encountered an invalid API resource object ' +
+        'while mapping to an instance of LineItem.');
   }
 
   /**
@@ -741,7 +806,7 @@ class LineItem extends DisplayVideoResource {
    * This method is called by default when an instance of `LineItem` gets passed
    * to `JSON.stringify`.
    *
-   * @return {!Object<string, ?string>} The custom JSON representation of this
+   * @return {!Object<string, *>} The custom JSON representation of this
    *     `LineItem` instance
    */
   toJSON() {
@@ -753,6 +818,12 @@ class LineItem extends DisplayVideoResource {
       insertionOrderId: this.getInsertionOrderId(),
       lineItemType: this.getLineItemType(),
       entityStatus: String(this.getStatus()),
+      flight: this.getLineItemFlight(),
+      budget: this.getLineItemBudget(),
+      pacing: this.getLineItemPacing(),
+      frequencyCap: this.getLineItemFrequencyCap(),
+      partnerRevenueModel: this.getLineItemPartnerRevenueModel(),
+      bidStrategy: this.getLineItemBidStrategy(),
     };
   }
 
@@ -770,9 +841,11 @@ class LineItem extends DisplayVideoResource {
   getChangedProperties(other) {
     const changedProperties = super.getChangedProperties(other);
 
-    if (other && other instanceof LineItem &&
-        this.getLineItemType() !== other.getLineItemType()) {
-      changedProperties.push('lineItemType');
+    if (other && other instanceof LineItem && this.getLineItemFlightEndDate()) {
+      changedProperties.push(
+          ...this.getLineItemFlightEndDate().getChangedProperties(
+              other.getLineItemFlightEndDate(),
+              /* prefix= */ 'flight.dateRange.endDate.'));
     }
     return changedProperties;
   }
@@ -784,7 +857,10 @@ class LineItem extends DisplayVideoResource {
    * @override
    */
   getMutableProperties() {
-    return [...super.getMutableProperties(), 'lineItemType'];
+    return [
+      ...super.getMutableProperties(),
+      ...ApiDate.getMutableProperties('flight.dateRange.endDate.'),
+    ];
   }
 
   /**
@@ -824,12 +900,79 @@ class LineItem extends DisplayVideoResource {
   }
 
   /**
-   * Sets the line item type.
+   * Returns the line item flight configuration.
    *
-   * @param {string} lineItemType
+   * @return {!LineItemFlight}
    */
-  setInsertionOrderType(lineItemType) {
-    this.lineItemType_ = lineItemType;
+  getLineItemFlight() {
+    return this.lineItemFlight_;
+  }
+
+  /**
+   * Returns the line item flight end date, or null if a date object doesn't
+   * exist.
+   *
+   * @return {?ApiDate}
+   */
+  getLineItemFlightEndDate() {
+    return this.getLineItemFlight().dateRange ?
+        this.getLineItemFlight().dateRange.endDate : null;
+  }
+
+  /**
+   * Sets the line item flight end date, only if a date object exists.
+   *
+   * @param {!ApiDate} lineItemFlightEndDate
+   */
+  setLineItemFlightEndDate(lineItemFlightEndDate) {
+    if (this.getLineItemFlight().dateRange) {
+      this.getLineItemFlight().dateRange.endDate = lineItemFlightEndDate;
+    }
+  }
+
+  /**
+   * Returns the line item budget configuration.
+   *
+   * @return {!LineItemBudget}
+   */
+  getLineItemBudget() {
+    return this.lineItemBudget_;
+  }
+
+  /**
+   * Returns the line item pacing configuration.
+   *
+   * @return {!Pacing}
+   */
+  getLineItemPacing() {
+    return this.lineItemPacing_;
+  }
+
+  /**
+   * Returns the line item frequency cap configuration.
+   *
+   * @return {!FrequencyCap}
+   */
+  getLineItemFrequencyCap() {
+    return this.lineItemFrequencyCap_;
+  }
+
+  /**
+   * Returns the line item partner revenue model configuration.
+   *
+   * @return {!LineItemPartnerRevenueModel}
+   */
+  getLineItemPartnerRevenueModel() {
+    return this.lineItemPartnerRevenueModel_;
+  }
+
+  /**
+   * Returns the line item bid strategy configuration.
+   *
+   * @return {!BiddingStrategy}
+   */
+  getLineItemBidStrategy() {
+    return this.lineItemBidStrategy_;
   }
 }
 
