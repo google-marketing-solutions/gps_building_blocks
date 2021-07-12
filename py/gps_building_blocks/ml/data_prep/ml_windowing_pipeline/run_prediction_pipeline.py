@@ -16,11 +16,11 @@
 
 r"""Script to run the end-to-end ML Windowing Pipeline.
 
-Before running this pipeline, first run the end-to-end windowing pipeline, and
-then use the data to train an ML model. Once the model is deployed and you want
-predictions about live customers, run this script to generate features for the
-customers over a single window of data, and then input the features into the
-ML model to get it's predictions.
+Before running this pipeline, first run the end-to-end windowing pipeline using
+sliding windows, and then use the data to train an ML model. Once the model is
+deployed and you want predictions about live customers, run this script to
+generate features for the customers over a single window of data, and then input
+the features into the ML model to get it's predictions.
 
 Example Usage:
 
@@ -97,8 +97,6 @@ flags.DEFINE_string('conversions_sql', 'conversions_google_analytics.sql',
                     'Name of the conversion extraction SQL file in templates/.')
 flags.DEFINE_string('sessions_sql', 'sessions_google_analytics.sql',
                     'Name of the session extraction SQL file in templates/.')
-flags.DEFINE_string('windows_sql', 'sliding_windows.sql',
-                    'Name of the windows extraction SQL file in templates/.')
 flags.DEFINE_string('features_sql', 'automatic_features.sql',
                     'Name of the feature extraction SQL file in templates/.'
                     'Override default value with `features_from_input.sql` for '
@@ -117,6 +115,8 @@ flags.DEFINE_string('count_values', '', 'Feature Options for Count')
 flags.DEFINE_string('mode_values', '', 'Feature Options for Mode')
 flags.DEFINE_string('proportions_values', '', 'Feature Options for Proportion')
 flags.DEFINE_string('latest_values', '', 'Feature Options for Recent')
+flags.DEFINE_string('max_values', '', 'Feature Options for Max')
+flags.DEFINE_string('min_values', '', 'Feature Options for Min')
 # Debug flag.
 flags.DEFINE_bool('verbose', False, 'Debug logging.')
 
@@ -133,6 +133,7 @@ def run(params: Dict[str, Any]) -> int:
   Raises:
     ValueError: User formatted message on error.
   """
+  params['windows_sql'] = 'sliding_windows.sql'
   if params.get('snapshot_date') and params.get('snapshot_date_offset_in_days'):
     raise ValueError(
         'Specify either snapshot_date or snapshot_date_offset_in_days.')
