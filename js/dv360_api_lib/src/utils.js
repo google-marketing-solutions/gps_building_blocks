@@ -20,7 +20,6 @@
  * the underlying API client library.
  */
 
-
 /**
  * Defines the logical grouping for filter expressions.
  * @enum {string}
@@ -261,4 +260,3 @@ class ObjectUtil {
     return obj != null && obj instanceof Object && !Array.isArray(obj);
   }
 }
-

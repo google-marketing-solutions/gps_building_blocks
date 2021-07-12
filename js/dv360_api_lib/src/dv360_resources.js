@@ -22,7 +22,6 @@
  * the library's domain objects and their expected API counterparts.
  */
 
-
 /** A base class for DV360 resources that are accessible via the API. */
 class DisplayVideoResource {
   /**

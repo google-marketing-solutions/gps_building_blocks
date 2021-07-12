@@ -22,7 +22,6 @@
  * libraries (e.g. 'DisplayVideo.Advertisers.list()').
  */
 
-
 /** @const {string} */
 const API_SCOPE = 'displayvideo';
 
@@ -245,8 +244,8 @@ class Advertisers extends DisplayVideoApiClient {
    *     resource
    */
   get(advertiserId) {
-    const result = super.getResource(`advertisers/${advertiserId}`);
-    return result;
+    return /** @type {!Advertiser} */ (
+        super.getResource(`advertisers/${advertiserId}`));
   }
 
   /**
@@ -259,8 +258,8 @@ class Advertisers extends DisplayVideoApiClient {
    *     resource
    */
   create(advertiserResource) {
-    const result = super.createResource('advertisers', advertiserResource);
-    return result;
+    return /** @type {!Advertiser} */ (
+        super.createResource('advertisers', advertiserResource));
   }
 
   /**
@@ -275,11 +274,10 @@ class Advertisers extends DisplayVideoApiClient {
    *     resource
    */
   patch(advertiserResource, changedProperties) {
-    const result = super.patchResource(
+    return /** @type {!Advertiser} */ (super.patchResource(
         `advertisers/${advertiserResource.getId()}?updateMask=` +
             encodeURIComponent(changedProperties),
-        advertiserResource);
-    return result;
+        advertiserResource));
   }
 
   /**
@@ -356,9 +354,8 @@ class Campaigns extends DisplayVideoApiClient {
    * @return {!Campaign} An object representing the retrieved campaign resource
    */
   get(campaignId) {
-    const result = super.getResource(
-        `advertisers/${this.getAdvertiserId()}/campaigns/${campaignId}`);
-    return result;
+    return /** @type {!Campaign} */ (super.getResource(
+        `advertisers/${this.getAdvertiserId()}/campaigns/${campaignId}`));
   }
 
   /**
@@ -370,9 +367,8 @@ class Campaigns extends DisplayVideoApiClient {
    * @return {!Campaign} An object representing the created campaign resource
    */
   create(campaignResource) {
-    const result = super.createResource(
-        `advertisers/${this.getAdvertiserId()}/campaigns`, campaignResource);
-    return result;
+    return /** @type {!Campaign} */ (super.createResource(
+        `advertisers/${this.getAdvertiserId()}/campaigns`, campaignResource));
   }
 
   /**
@@ -386,12 +382,11 @@ class Campaigns extends DisplayVideoApiClient {
    * @return {!Campaign} An object representing the modified campaign resource
    */
   patch(campaignResource, changedProperties) {
-    const result = super.patchResource(
+    return /** @type {!Campaign} */ (super.patchResource(
         `advertisers/${this.getAdvertiserId()}/campaigns/` +
             `${campaignResource.getId()}?updateMask=` +
             encodeURIComponent(changedProperties),
-        campaignResource);
-    return result;
+        campaignResource));
   }
 
   /**
@@ -472,10 +467,9 @@ class InsertionOrders extends DisplayVideoApiClient {
    *     insertion order resource
    */
   get(insertionOrderId) {
-    const result = super.getResource(
+    return /** @type {!InsertionOrder} */ (super.getResource(
         `advertisers/${this.getAdvertiserId()}/` +
-        `insertionOrders/${insertionOrderId}`);
-    return result;
+        `insertionOrders/${insertionOrderId}`));
   }
 
   /**
@@ -488,10 +482,9 @@ class InsertionOrders extends DisplayVideoApiClient {
    *     order resource
    */
   create(insertionOrderResource) {
-    const result = super.createResource(
+    return /** @type {!InsertionOrder} */ (super.createResource(
         `advertisers/${this.getAdvertiserId()}/insertionOrders`,
-        insertionOrderResource);
-    return result;
+        insertionOrderResource));
   }
 
   /**
@@ -507,12 +500,11 @@ class InsertionOrders extends DisplayVideoApiClient {
    *     insertion order resource
    */
   patch(insertionOrderResource, changedProperties) {
-    const result = super.patchResource(
+    return /** @type {!InsertionOrder} */ (super.patchResource(
         `advertisers/${this.getAdvertiserId()}/insertionOrders/` +
             `${insertionOrderResource.getId()}?updateMask=` +
             encodeURIComponent(changedProperties),
-        insertionOrderResource);
-    return result;
+        insertionOrderResource));
   }
 
   /**
@@ -591,9 +583,8 @@ class LineItems extends DisplayVideoApiClient {
    * @return {!LineItem} An object representing the retrieved line item resource
    */
   get(lineItemId) {
-    const result = super.getResource(
-        `advertisers/${this.getAdvertiserId()}/lineItems/${lineItemId}`);
-    return result;
+    return /** @type {!LineItem} */ (super.getResource(
+        `advertisers/${this.getAdvertiserId()}/lineItems/${lineItemId}`));
   }
 
   /**
@@ -605,9 +596,8 @@ class LineItems extends DisplayVideoApiClient {
    * @return {!LineItem} An object representing the created line item resource
    */
   create(lineItemResource) {
-    const result = super.createResource(
-        `advertisers/${this.getAdvertiserId()}/lineItems`, lineItemResource);
-    return result;
+    return /** @type {!LineItem} */ (super.createResource(
+        `advertisers/${this.getAdvertiserId()}/lineItems`, lineItemResource));
   }
 
   /**
@@ -621,12 +611,11 @@ class LineItems extends DisplayVideoApiClient {
    * @return {!LineItem} An object representing the modified line item resource
    */
   patch(lineItemResource, changedProperties) {
-    const result = super.patchResource(
+    return /** @type {!LineItem} */ (super.patchResource(
         `advertisers/${this.getAdvertiserId()}/lineItems/` +
             `${lineItemResource.getId()}?updateMask=` +
             encodeURIComponent(changedProperties),
-        lineItemResource);
-    return result;
+        lineItemResource));
   }
 
   /**
@@ -716,10 +705,9 @@ class InventorySources extends DisplayVideoApiClient {
    *     source resource
    */
   get(inventorySourceId) {
-    const result = super.getResource(
+    return /** @type {!InventorySource} */ (super.getResource(
         `inventorySources/${inventorySourceId}` +
-        `?partnerId=${this.getPartnerId()}`);
-    return result;
+        `?partnerId=${this.getPartnerId()}`));
   }
 
   /**
@@ -883,10 +871,9 @@ class TargetingOptions extends DisplayVideoApiClient {
    *     option resource
    */
   get(targetingOptionId) {
-    const result = super.getResource(
+    return /** @type {!TargetingOption} */ (super.getResource(
         `targetingTypes/${this.getTargetingType()}/targetingOptions/` +
-        `${targetingOptionId}?advertiserId=${this.getAdvertiserId()}`);
-    return result;
+        `${targetingOptionId}?advertiserId=${this.getAdvertiserId()}`));
   }
 
   /**

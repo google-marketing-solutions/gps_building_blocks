@@ -22,7 +22,6 @@
  * type for an exhaustive and up-to-date list of properties.
  */
 
-
 /**
  * Defines possible statuses for a DV360 resource.
  * @enum {string}

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 /**
  * Base class encapsulating all logic to access any Google API using the
  * built-in Google Apps Script service {@link UrlFetchApp}.
@@ -175,4 +174,3 @@ class BaseApiClient {
   }
 
 }
-
