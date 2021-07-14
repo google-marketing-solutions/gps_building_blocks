@@ -434,9 +434,9 @@ class InferenceData():
   def _check_low_variance(self, raise_on_error: bool = True) -> None:
     """Verifies if data contains columns with low variance."""
     if not self._checked_low_variance:
-      message = ('The data may contain columns with low variance. Consider '
-                 'using `address_low_variance` identifying the columns with low'
-                 'variance and whether to drop those.')
+      message = ('The data has not been checked for low variance. Consider '
+                 'using `address_low_variance` to identify if any column has '
+                 'low variation and whether to drop these.')
 
       if raise_on_error:
         raise LowVarianceError(message)
@@ -510,7 +510,7 @@ class InferenceData():
   def _check_collinearity(self, raise_on_error: bool = True) -> None:
     """Verifies if data has been checked for collinearity."""
     if not self._checked_collinearity:
-      message = ('The data may contain collinearity between covariates. '
+      message = ('The data has not been checked for multi-collinearity. '
                  'Consider using `address_collinearity_with_vif` to identify '
                  'columns that are collinear and whether to drop them.')
 
