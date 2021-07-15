@@ -84,6 +84,7 @@ max_values: Feature Options for Max.
 min_values: Feature Options for Min.
 """
 
+import datetime
 import logging
 import os
 import sys
@@ -92,6 +93,7 @@ from typing import Any, Dict
 
 from google.cloud import bigquery
 import jinja2
+import pytz
 
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import fact
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import merge_feature_option_list
@@ -561,11 +563,36 @@ def run_prediction_pipeline(params: Dict[str, Any]):
     params: Dict from pipeline parameter names to values.
   """
   params['prediction_mode'] = True
+  params['slide_interval_in_days'] = 1
+  params['windows_sql'] = 'sliding_windows.sql'
+
+  if params.get('snapshot_date') and params.get('snapshot_date_offset_in_days'):
+    raise ValueError(
+        'Specify either snapshot_date or snapshot_date_offset_in_days.')
+  elif params.get('snapshot_date'):
+    params['snapshot_start_date'] = params['snapshot_date']
+    params['snapshot_end_date'] = params['snapshot_date']
+  elif params.get('snapshot_date_offset_in_days'):
+    offset_days = int(params['snapshot_date_offset_in_days'])
+    end_date = (
+        datetime.datetime.now(pytz.timezone(params['timezone']))
+        - datetime.timedelta(days=offset_days))
+    params['snapshot_start_date'] = end_date.strftime('%Y-%m-%d')
+    params['snapshot_end_date'] = end_date.strftime('%Y-%m-%d')
+  else:
+    raise ValueError('Set snapshot_date or snapshot_date_offset_in_days.')
+  if not params.get('run_id'):
+    params['run_id'] = datetime.datetime.strptime(
+        params['snapshot_end_date'], '%Y-%m-%d').strftime('%Y%m%d')
+
+  # Prediction window settings are used in generating prediction label which is
+  # irrelevant in this pipeline so setting prediction_window_gap_in_days and
+  # prediction_window_size_in_days to 1.
+  params['prediction_window_gap_in_days'] = 1
+  params['prediction_window_size_in_days'] = 1
+
   check_gcp_params(params)
   assert 'analytics_table' in params
-  check_snapshot_date_params(params)
-  assert params['snapshot_start_date'] == params['snapshot_end_date']
-  check_slide_interval_params(params)
   check_lookback_window_params(params)
   check_prediction_window_params(params)
   # Save the user-specified fact_value_map_table.

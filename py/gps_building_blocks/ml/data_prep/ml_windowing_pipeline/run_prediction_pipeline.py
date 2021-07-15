@@ -49,12 +49,8 @@ python run_prediction_pipeline.py \
 --latest_values='device_isMobile:[false,true]:[Others]'
 """
 
-import datetime
-from typing import Any, Dict
-
 from absl import app
 from absl import flags
-import pytz
 
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import ml_windowing_pipeline
 
@@ -121,47 +117,10 @@ flags.DEFINE_string('min_values', '', 'Feature Options for Min')
 flags.DEFINE_bool('verbose', False, 'Debug logging.')
 
 
-def run(params: Dict[str, Any]) -> int:
-  """Sets default flag values and runs the features pipeline.
-
-  Side-effect: Updates params with additional normalized parameters.
-
-  Args:
-    params: Mapping of pipeline string parameter names to values.
-  Returns:
-    0 on success and non-zero otherwise.
-  Raises:
-    ValueError: User formatted message on error.
-  """
-  params['windows_sql'] = 'sliding_windows.sql'
-  if params.get('snapshot_date') and params.get('snapshot_date_offset_in_days'):
-    raise ValueError(
-        'Specify either snapshot_date or snapshot_date_offset_in_days.')
-  elif params.get('snapshot_date'):
-    params['snapshot_start_date'] = params['snapshot_date']
-    params['snapshot_end_date'] = params['snapshot_date']
-  elif params.get('snapshot_date_offset_in_days'):
-    offset_days = int(params['snapshot_date_offset_in_days'])
-    end_date = (
-        datetime.datetime.now(pytz.timezone(params['timezone']))
-        - datetime.timedelta(days=offset_days))
-    params['snapshot_start_date'] = end_date.strftime('%Y-%m-%d')
-    params['snapshot_end_date'] = end_date.strftime('%Y-%m-%d')
-  else:
-    raise ValueError('Set snapshot_date or snapshot_date_offset_in_days.')
-  if not params.get('run_id'):
-    params['run_id'] = datetime.datetime.strptime(
-        params['snapshot_end_date'], '%Y-%m-%d').strftime('%Y%m%d')
-  params['slide_interval_in_days'] = 1
-  params['prediction_window_gap_in_days'] = 1
-  params['prediction_window_size_in_days'] = 1
-  ml_windowing_pipeline.run_prediction_pipeline(params)
-  return 0
-
-
 def main(_):
   params = FLAGS.flag_values_dict()
-  return run(params)
+  ml_windowing_pipeline.run_prediction_pipeline(params)
+  return 0
 
 
 if __name__ == '__main__':
