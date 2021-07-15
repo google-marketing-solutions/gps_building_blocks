@@ -22,7 +22,7 @@ Instance table is created by the DataExplorationPipeline of the
 ML Windowing Pipeline tool. For more info:
 https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 """
-
+import enum
 from typing import Optional, Union
 from absl import logging
 from google.cloud import bigquery
@@ -32,18 +32,28 @@ import pandas as pd
 from gps_building_blocks.ml import utils
 from gps_building_blocks.ml.data_prep.data_visualizer import viz_utils
 
-_ROWS_IN_SUBPLOTS_GRID = 5
+_ROWS_IN_SUBPLOTS_GRID_BINARY_LABEL = 5
+_ROWS_IN_SUBPLOTS_GRID_NUMERICAL_LABEL = 4
 _COLS_IN_SUBPLOT_GRID = 1
 # Path to the file with sql code to calculate stats from the Instance table in
 # BigQuery.
-_CALC_INSTANCE_STATS_SQL_PATH = viz_utils.get_absolute_path(
-    'calc_instance_stats.sql')
+_CALC_INSTANCE_STATS_SQL_BINARY_PATH = viz_utils.get_absolute_path(
+    'calc_instance_stats_binary.sql')
+_CALC_INSTANCE_STATS_SQL_NUMERICAL_PATH = viz_utils.get_absolute_path(
+    'calc_instance_stats_numerical.sql')
 # Path to the file with sql code to extract features from the Instance table in
 # BigQuery.
-_EXTRACT_INSTANCE_FEATURES_SQL_PATH = viz_utils.get_absolute_path(
-    'extract_instance_features.sql')
+_EXTRACT_INSTANCE_FEATURES_SQL_BINARY_PATH = viz_utils.get_absolute_path(
+    'extract_instance_features_binary.sql')
+_EXTRACT_INSTANCE_FEATURES_NUMERICAL_SQL_PATH = viz_utils.get_absolute_path(
+    'extract_instance_features_numerical.sql')
 # Type of the label values
-LabelType = Union[str, bool, int]
+Label = Union[str, bool, int]
+
+
+class LabelType(enum.Enum):
+  NUMERICAL = 'numerical'
+  BINARY = 'binary'
 
 
 class InstanceVisualizer(object):
@@ -55,10 +65,14 @@ class InstanceVisualizer(object):
   daysSinceLatestActivity.
   """
 
-  def __init__(self, bq_client: bigquery.client.Client,
-               instance_table_path: str, num_instances: int, label_column: str,
-               positive_class_label: LabelType,
-               negative_class_label: LabelType) -> None:
+  def __init__(self,
+               bq_client: bigquery.client.Client,
+               instance_table_path: str,
+               num_instances: int,
+               label_column: str,
+               label_type: str,
+               positive_class_label: Optional[Label] = None,
+               negative_class_label: Optional[Label] = None) -> None:
     """Initializes parameters.
 
     Args:
@@ -68,16 +82,18 @@ class InstanceVisualizer(object):
       num_instances: Number of instances to select randomly for plotting their
         features.
       label_column: Name of the label column of the Instance table.
+      label_type: Type of the label, 'numerical' or 'binary'.
       positive_class_label: Label value representing the positive class
-        instances.
+        instances (not used when label_type is numerical).
       negative_class_label: Label value representing the negative class
-        instances.
+        instances (not used when label_type is numerical).
     """
     # Initialize class variables.
     self._bq_client = bq_client
     self._num_instances = num_instances
     self._instance_table_path = instance_table_path
     self._label_column = label_column
+    self._label_type = label_type
     self._positive_class_label = positive_class_label
     self._negative_class_label = negative_class_label
 
@@ -90,18 +106,26 @@ class InstanceVisualizer(object):
     logging.info('Calculating statistics from Instance table.')
     logging.info('Reading the sql query from the file.')
     positive_class_label_sql = self._positive_class_label
-    if (self._positive_class_label) == 'str':
+    if isinstance(self._positive_class_label, str):
       positive_class_label_sql = """'{self._positive_class_label}'"""
     negaive_class_label_sql = self._negative_class_label
     if isinstance(self._negative_class_label, str):
       negaive_class_label_sql = """'{self._negative_class_label}'"""
-    query_params = {
-        'bq_instance_table': self._instance_table_path,
-        'label_column': self._label_column,
-        'positive_class_label': positive_class_label_sql,
-        'negative_class_label': negaive_class_label_sql
-    }
-    sql_query = utils.configure_sql(_CALC_INSTANCE_STATS_SQL_PATH, query_params)
+    if self._label_type == LabelType.BINARY.value:
+      query_params = {
+          'bq_instance_table': self._instance_table_path,
+          'label_column': self._label_column,
+          'positive_class_label': positive_class_label_sql,
+          'negative_class_label': negaive_class_label_sql
+      }
+      sql_path = _CALC_INSTANCE_STATS_SQL_BINARY_PATH
+    else:
+      query_params = {
+          'bq_instance_table': self._instance_table_path,
+          'label_column': self._label_column
+      }
+      sql_path = _CALC_INSTANCE_STATS_SQL_NUMERICAL_PATH
+    sql_query = utils.configure_sql(sql_path, query_params)
     results = viz_utils.execute_sql(self._bq_client, sql_query)
     logging.info('Finished calculating statistics from Instance table.')
     return results
@@ -117,13 +141,20 @@ class InstanceVisualizer(object):
     """
     logging.info('Extracting features from Instance table.')
     logging.info('Reading the sql query from the file.')
-    query_params = {
-        'bq_instance_table': self._instance_table_path,
-        'num_instances': self._num_instances,
-        'label_column': self._label_column
-    }
-    sql_query = utils.configure_sql(_EXTRACT_INSTANCE_FEATURES_SQL_PATH,
-                                    query_params)
+    if self._label_type == LabelType.BINARY.value:
+      query_params = {
+          'bq_instance_table': self._instance_table_path,
+          'num_instances': self._num_instances,
+          'label_column': self._label_column
+      }
+      sql_path = _EXTRACT_INSTANCE_FEATURES_SQL_BINARY_PATH
+    else:
+      query_params = {
+          'bq_instance_table': self._instance_table_path,
+          'num_instances': self._num_instances
+      }
+      sql_path = _EXTRACT_INSTANCE_FEATURES_NUMERICAL_SQL_PATH
+    sql_query = utils.configure_sql(sql_path, query_params)
     results = viz_utils.execute_sql(self._bq_client, sql_query)
     logging.info('Finished extracting features from Instance table.')
     return results
@@ -171,8 +202,9 @@ class InstanceVisualizer(object):
     instance_features_data = self._extract_instance_features()
 
     # Executes plotting.
+    nrows = _ROWS_IN_SUBPLOTS_GRID_BINARY_LABEL if self._label_type == LabelType.BINARY.value else _ROWS_IN_SUBPLOTS_GRID_NUMERICAL_LABEL
     _, plots = pyplot.subplots(
-        nrows=_ROWS_IN_SUBPLOTS_GRID,
+        nrows=nrows,
         ncols=_COLS_IN_SUBPLOT_GRID,
         figsize=(fig_width, fig_height))
 
@@ -190,31 +222,20 @@ class InstanceVisualizer(object):
         'xticklabels_rotation': 45
     }
 
-    logging.info('Plotting % of positive label distribution over time.')
-    viz_utils.plot_bar(
-        y_variable='positive_percentage',
-        title='% of positive label distribution over time',
-        subplot_index=0,
-        y_label='Percentage',
-        **bar_plot_common_params)
+    box_plot_common_params = {
+        'plot_data': instance_statistics_data,
+        'x_variable': 'snapshot_date',
+        'axes': plots,
+        'x_label': 'Snapshot date',
+        'title_fontsize': barplot_title_fontsize,
+        'xlabel_fontsize': barplot_xlabel_fontsize,
+        'ylabel_fontsize': barplot_ylabel_fontsize,
+        'xticklabels_fontsize': barplot_xticklabels_fontsize,
+        'yticklabels_fontsize': barplot_yticklabels_fontsize,
+        'xticklabels_rotation': 45
+    }
 
-    logging.info('Plotting number of positive instances over time.')
-    viz_utils.plot_bar(
-        y_variable='pos_count',
-        title='Number of positive instances over time',
-        subplot_index=1,
-        y_label='Count',
-        **bar_plot_common_params)
-
-    logging.info('Plotting number of total instances over time.')
-    viz_utils.plot_bar(
-        y_variable='tot_count',
-        title='Number of total instances over time',
-        subplot_index=2,
-        y_label='Count',
-        **bar_plot_common_params)
-
-    density_plot_common_params = {
+    class_density_plot_common_params = {
         'plot_data': instance_features_data,
         'label_variable': self._label_column,
         'class1_label': self._positive_class_label,
@@ -227,18 +248,72 @@ class InstanceVisualizer(object):
         'legend_fontsize': densityplot_legend_fontsize
     }
 
-    logging.info('Plotting distribution of days_since_first_activity.')
-    viz_utils.plot_class_densities(
-        plot_variable='days_since_first_activity',
-        title='Class distribution of days_since_first_activity',
-        subplot_index=3,
-        **density_plot_common_params)
+    density_plot_common_params = {
+        'plot_data': instance_features_data,
+        'axes': plots,
+        'title_fontsize': densityplot_title_fontsize,
+        'ticklabels_fontsize': densityplot_ticklabels_fontsize,
+        'legend_fontsize': densityplot_legend_fontsize
+    }
 
-    logging.info('Plotting distribution of days_since_latest_activity.')
-    viz_utils.plot_class_densities(
-        plot_variable='days_since_latest_activity',
-        title='Class distribution of days_since_latest_activity',
-        subplot_index=4,
-        **density_plot_common_params)
+    logging.info('Plotting number of total instances over time.')
+    viz_utils.plot_bar(
+        y_variable='tot_count',
+        title='Number of total instances over time',
+        subplot_index=0,
+        y_label='Count',
+        **bar_plot_common_params)
 
+    if self._label_type == LabelType.BINARY.value:
+      logging.info('Plotting % of positive label distribution over time.')
+      viz_utils.plot_bar(
+          y_variable='positive_percentage',
+          title='% of positive label distribution over time',
+          subplot_index=1,
+          y_label='Percentage',
+          **bar_plot_common_params)
+
+      logging.info('Plotting number of positive instances over time.')
+      viz_utils.plot_bar(
+          y_variable='pos_count',
+          title='Number of positive instances over time',
+          subplot_index=2,
+          y_label='Count',
+          **bar_plot_common_params)
+
+      logging.info('Plotting distribution of days_since_first_activity.')
+      viz_utils.plot_class_densities(
+          plot_variable='days_since_first_activity',
+          title='Class distribution of days_since_first_activity',
+          subplot_index=3,
+          **class_density_plot_common_params)
+
+      logging.info('Plotting distribution of days_since_latest_activity.')
+      viz_utils.plot_class_densities(
+          plot_variable='days_since_latest_activity',
+          title='Class distribution of days_since_latest_activity',
+          subplot_index=4,
+          **class_density_plot_common_params)
+
+    else:
+      logging.info(
+          'Plotting distribution of labels over time (approximated box plot).')
+      viz_utils.plot_box(
+          title='Distribution of label values over time (approximated box plot)',
+          subplot_index=1,
+          **box_plot_common_params)
+
+      logging.info('Plotting distribution of days_since_first_activity.')
+      viz_utils.plot_density(
+          plot_variable='days_since_first_activity',
+          title='Distribution of days_since_first_activity',
+          subplot_index=2,
+          **density_plot_common_params)
+
+      logging.info('Plotting distribution of days_since_latest_activity.')
+      viz_utils.plot_density(
+          plot_variable='days_since_latest_activity',
+          title='Distribution of days_since_latest_activity',
+          subplot_index=3,
+          **density_plot_common_params)
     return plots

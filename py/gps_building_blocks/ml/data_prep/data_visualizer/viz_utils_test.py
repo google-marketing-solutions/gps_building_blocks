@@ -38,6 +38,24 @@ TESTDATA_2 = pd.DataFrame({
     ]
 })
 
+TESTDATA_3 = pd.DataFrame({
+    'snapshot_date': ['2019-10-01', '2019-10-02', '2019-10-03'],
+    'tot_count': [321387, 320708, 320500],
+    'mean': [101, 101, 102],
+    'max': [150, 155, 170],
+    'min': [50, 55, 57],
+    'med': [98, 99, 99],
+    'q1': [75, 75, 96],
+    'q3': [120, 121, 122],
+    'whislo': [60, 61, 62],
+    'whishi': [130, 131, 132],
+})
+
+TESTDATA_4 = pd.DataFrame({
+    'days_since_first_activity': [120, 150, 200, 60, 100, 130, 20, 50, 450, 38],
+    'days_since_latest_activity': [30, 100, 35, 23, 45, 100, 14, 7, 20, 6]
+})
+
 
 class VizUtilsTest(absltest.TestCase):
 
@@ -147,6 +165,50 @@ class VizUtilsTest(absltest.TestCase):
       self.assertListEqual(y_data, list(line_plot.get_lines()[0].get_data()[1]))
     with self.subTest(name='test title is equal'):
       self.assertEqual(title, line_plot.get_title())
+
+  def test_plot_density_returns_plot_with_correct_elements(self):
+    plot_data = TESTDATA_4
+    plot_variable = 'days_since_first_activity'
+    title = 'Distribution of days_since_first_activity'
+    subplot_index = 0
+
+    _, axes = plt.subplots(nrows=2, ncols=1)
+    viz_utils.plot_density(
+        plot_data=plot_data,
+        plot_variable=plot_variable,
+        title=title,
+        axes=axes,
+        subplot_index=subplot_index)
+
+    plot = axes[subplot_index]
+
+    with self.subTest(name='test title is equal'):
+      self.assertEqual(title, plot.title.get_text())
+
+  def test_plot_box_returns_plot_with_correct_elements(self):
+    plot_data = TESTDATA_3
+    x_variable = 'snapshot_date'
+    title = 'Distribution of labels over time (approximated box plot)'
+    subplot_index = 0
+    lines_per_box = 7
+
+    _, axes = plt.subplots(nrows=2, ncols=1)
+    viz_utils.plot_box(
+        plot_data=plot_data,
+        x_variable=x_variable,
+        title=title,
+        axes=axes,
+        subplot_index=subplot_index)
+
+    plot = axes[subplot_index]
+
+    with self.subTest(name='test title is equal'):
+      self.assertEqual(title, plot.title.get_text())
+    with self.subTest(name='test number of box lines is equal'):
+      self.assertLen(plot.lines, len(TESTDATA_3) * lines_per_box)
+    with self.subTest(name='test the elements of label distribution box plot'):
+      self.assertListEqual(TESTDATA_3[x_variable].values.tolist(),
+                           [tick.get_text() for tick in plot.get_xticklabels()])
 
 
 if __name__ == '__main__':
