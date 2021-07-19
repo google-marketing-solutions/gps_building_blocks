@@ -113,7 +113,7 @@ const PacingPeriodMapper = {
  * @see https://developers.google.com/display-video/api/reference/rest/v1/FrequencyCap
  *
  * @typedef {{
- *     unlimited: boolean,
+ *     unlimited: (boolean|undefined),
  *     timeUnit: (string|undefined),
  *     timeUnitCount: (number|undefined),
  *     maxImpressions: (number|undefined),
@@ -132,13 +132,16 @@ const FrequencyCapMapper = {
    *     did not contain the expected properties
    */
   map: (resource) => {
-    if (ObjectUtil.hasOwnProperties(resource, ['unlimited']) &&
-        typeof resource['unlimited'] === 'boolean' &&
-        (resource['unlimited'] === true ||
-         (ObjectUtil.hasOwnProperties(
-              resource, ['timeUnit', 'timeUnitCount', 'maxImpressions']) &&
-          Number.isInteger(resource['timeUnitCount']) &&
-          Number.isInteger(resource['maxImpressions'])))) {
+    if ((ObjectUtil.hasOwnProperties(resource, ['unlimited']) &&
+         typeof resource['unlimited'] === 'boolean' &&
+         resource['unlimited'] === true) ||
+
+        (ObjectUtil.hasOwnProperties(
+             resource, ['timeUnit', 'timeUnitCount', 'maxImpressions']) &&
+         Number.isInteger(resource['timeUnitCount']) &&
+         Number.isInteger(resource['maxImpressions']))
+
+    ) {
       return /** @type {!FrequencyCap} */ (resource);
     }
     return null;
