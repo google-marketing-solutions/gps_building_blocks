@@ -742,6 +742,75 @@ const LineItemPartnerRevenueModelMapper = {
 };
 
 /**
+ * Defines configuration for an amount of money with its currency type.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/inventorySources#Money
+ *
+ * @typedef {{
+ *     currencyCode: string,
+ *     units: (string|undefined),
+ *     nanos: (string|undefined),
+ * }}
+ */
+let InventorySourceMoney;
+
+/** @const {{map: function(*): ?InventorySourceMoney}} */
+const InventorySourceMoneyMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `InventorySourceMoney` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?InventorySourceMoney} The concrete instance, or null if the
+   *     resource did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(
+            resource, ['currencyCode'], ['units', 'nanos'])) {
+      return /** @type {!InventorySourceMoney} */ (resource);
+    }
+    return null;
+  },
+};
+
+/**
+ * Defines inventory source rate details configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/inventorySources#RateDetails
+ *
+ * @typedef {{
+ *     inventorySourceRateType: (string|undefined),
+ *     rate: !InventorySourceMoney,
+ *     unitsPurchased: (string|undefined),
+ *     minimumSpend: (!InventorySourceMoney|undefined),
+ * }}
+ */
+let InventorySourceRateDetails;
+
+/** @const {{map: function(*): ?InventorySourceRateDetails}} */
+const InventorySourceRateDetailsMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `InventorySourceRateDetails` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?InventorySourceRateDetails} The concrete instance, or null if
+   *     the resource did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(resource, ['rate'])) {
+      const minimumSpend = resource['minimumSpend'];
+      const valid = InventorySourceMoneyMapper.map(resource['rate']) &&
+          (!minimumSpend ||
+           InventorySourceMoneyMapper.map(resource['minimumSpend']));
+
+      if (valid) {
+        return /** @type {!InventorySourceRateDetails} */ (resource);
+      }
+    }
+    return null;
+  },
+};
+
+/**
  * Class representing a date as it is provided by the DV360 API. Note:
  * individual values are not padded (i.e. 1 is valid for day or month) and may
  * be 0 to indicate 'ignore value' (e.g. 0 for day means a year and month

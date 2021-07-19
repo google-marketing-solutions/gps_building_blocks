@@ -1100,48 +1100,52 @@ class InventorySource extends DisplayVideoResource {
    *     id: string,
    *     displayName: string,
    *     inventorySourceType: string,
-   *     commitment: string,
-   *     deliveryMethod: string,
-   *     dealId: string,
-   *     publisherName: string,
-   *     exchange: string,
-   *     rateType: string,
-   * }} params
-   * @param {!Status=} status Optional status to set
+   *     rateDetails: !InventorySourceRateDetails,
+   * }} requiredParams
+   * @param {{
+   *     commitment: (?string|undefined),
+   *     deliveryMethod: (?string|undefined),
+   *     dealId: (?string|undefined),
+   *     publisherName: (?string|undefined),
+   *     exchange: (?string|undefined),
+   *     status: (!Status|undefined),
+   * }=} optionalParams
    */
   constructor({
         id,
         displayName,
         inventorySourceType,
-        commitment,
-        deliveryMethod,
-        dealId,
-        publisherName,
-        exchange,
-        rateType,
-      }, status = Status.ACTIVE) {
+        rateDetails,
+      }, {
+        commitment = null,
+        deliveryMethod = null,
+        dealId = null,
+        publisherName = null,
+        exchange = null,
+        status = Status.ACTIVE,
+      } = {}) {
     super(id, displayName, status);
 
     /** @private @const {string} */
     this.inventorySourceType_ = inventorySourceType;
 
-    /** @private @const {string} */
+    /** @private @const {!InventorySourceRateDetails} */
+    this.rateDetails_ = rateDetails;
+
+    /** @private @const {?string} */
     this.commitment_ = commitment;
 
-    /** @private @const {string} */
+    /** @private @const {?string} */
     this.deliveryMethod_ = deliveryMethod;
 
-    /** @private @const {string} */
+    /** @private @const {?string} */
     this.dealId_ = dealId;
 
-    /** @private @const {string} */
+    /** @private @const {?string} */
     this.publisherName_ = publisherName;
 
-    /** @private @const {string} */
+    /** @private @const {?string} */
     this.exchange_ = exchange;
-
-    /** @private @const {string} */
-    this.rateType_ = rateType;
   }
 
   /**
@@ -1154,28 +1158,51 @@ class InventorySource extends DisplayVideoResource {
    *     properties
    */
   static fromApiResource(resource) {
-    if (!resource['inventorySourceId'] || !resource['displayName'] ||
-        !resource['inventorySourceType'] || !resource['commitment'] ||
-        !resource['deliveryMethod'] || !resource['dealId'] ||
-        !resource['publisherName'] || !resource['exchange'] ||
-        !resource['rateDetails'] ||
-        !resource['rateDetails']['inventorySourceRateType'] ||
-        !resource['status'] || !resource['status']['entityStatus']) {
-      throw new Error(
-          'Error! Encountered an invalid API resource object ' +
-          'while mapping to an instance of InventorySource.');
-    }
-    return new InventorySource({
+    const properties = [
+      'inventorySourceId',
+      'displayName',
+      'inventorySourceType',
+      'rateDetails',
+      'status',
+    ];
+    if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const status = resource['status'];
+      const rateDetails = resource['rateDetails'];
+      const mappedRateDetails =
+          InventorySourceRateDetailsMapper.map(rateDetails);
+
+      if (mappedRateDetails &&
+          ObjectUtil.hasOwnProperties(status, ['entityStatus'])) {
+        const requiredParams = {
           id: String(resource['inventorySourceId']),
           displayName: String(resource['displayName']),
           inventorySourceType: String(resource['inventorySourceType']),
-          commitment: String(resource['commitment']),
-          deliveryMethod: String(resource['deliveryMethod']),
-          dealId: String(resource['dealId']),
-          publisherName: String(resource['publisherName']),
-          exchange: String(resource['exchange']),
-          rateType: String(resource['rateDetails']['inventorySourceRateType']),
-        }, StatusMapper.map(String(resource['status']['entityStatus'])));
+          rateDetails: mappedRateDetails,
+        };
+        const optionalParams = {
+          status: StatusMapper.map(String(status['entityStatus'])),
+        };
+        if (resource['commitment']) {
+          optionalParams['commitment'] = resource['commitment'];
+        }
+        if (resource['deliveryMethod']) {
+          optionalParams['deliveryMethod'] = resource['deliveryMethod'];
+        }
+        if (resource['dealId']) {
+          optionalParams['dealId'] = resource['dealId'];
+        }
+        if (resource['publisherName']) {
+          optionalParams['publisherName'] = resource['publisherName'];
+        }
+        if (resource['exchange']) {
+          optionalParams['exchange'] = resource['exchange'];
+        }
+        return new InventorySource(requiredParams, optionalParams);
+      }
+    }
+    throw new Error(
+        'Error! Encountered an invalid API resource object ' +
+        'while mapping to an instance of InventorySource.');
   }
 
   /**
@@ -1183,26 +1210,35 @@ class InventorySource extends DisplayVideoResource {
    * representation. This method is called by default when an instance of
    * `InventorySource` gets passed to `JSON.stringify`.
    *
-   * @return {!Object<string, (?string|!Object<string, string>)>} The custom
+   * @return {!Object<string, *>} The custom
    *     JSON representation of this `InventorySource` instance
    */
   toJSON() {
-    return {
+    const result = {
       inventorySourceId: this.getId(),
       displayName: this.getDisplayName(),
       inventorySourceType: this.getInventorySourceType(),
-      commitment: this.getCommitment(),
-      deliveryMethod: this.getDeliveryMethod(),
-      dealId: this.getDealId(),
-      publisherName: this.getPublisherName(),
-      exchange: this.getExchange(),
-      rateDetails: {
-        inventorySourceRateType: this.getRateType(),
-      },
+      rateDetails: this.getRateDetails(),
       status: {
         entityStatus: String(this.getStatus()),
       },
     };
+    if (this.getCommitment()) {
+      result['commitment'] = this.getCommitment();
+    }
+    if (this.getDeliveryMethod()) {
+      result['deliveryMethod'] = this.getDeliveryMethod();
+    }
+    if (this.getDealId()) {
+      result['dealId'] = this.getDealId();
+    }
+    if (this.getPublisherName()) {
+      result['publisherName'] = this.getPublisherName();
+    }
+    if (this.getExchange()) {
+      result['exchange'] = this.getExchange();
+    }
+    return result;
   }
 
   /**
@@ -1232,9 +1268,18 @@ class InventorySource extends DisplayVideoResource {
   }
 
   /**
+   * Returns the rate details.
+   *
+   * @return {!InventorySourceRateDetails}
+   */
+  getRateDetails() {
+    return this.rateDetails_;
+  }
+
+  /**
    * Returns the commitment.
    *
-   * @return {string}
+   * @return {?string}
    */
   getCommitment() {
     return this.commitment_;
@@ -1243,7 +1288,7 @@ class InventorySource extends DisplayVideoResource {
   /**
    * Returns the delivery method.
    *
-   * @return {string}
+   * @return {?string}
    */
   getDeliveryMethod() {
     return this.deliveryMethod_;
@@ -1252,7 +1297,7 @@ class InventorySource extends DisplayVideoResource {
   /**
    * Returns the deal ID.
    *
-   * @return {string}
+   * @return {?string}
    */
   getDealId() {
     return this.dealId_;
@@ -1261,7 +1306,7 @@ class InventorySource extends DisplayVideoResource {
   /**
    * Returns the publisher name.
    *
-   * @return {string}
+   * @return {?string}
    */
   getPublisherName() {
     return this.publisherName_;
@@ -1270,19 +1315,10 @@ class InventorySource extends DisplayVideoResource {
   /**
    * Returns the exchange.
    *
-   * @return {string}
+   * @return {?string}
    */
   getExchange() {
     return this.exchange_;
-  }
-
-  /**
-   * Returns the rate type.
-   *
-   * @return {string}
-   */
-  getRateType() {
-    return this.rateType_;
   }
 }
 
@@ -1342,14 +1378,14 @@ class TargetingOption extends DisplayVideoResource {
               String(resource['targetingOptionId']),
               TargetingTypeMapper.map(String(resource['targetingType'])),
               targetingDetailsKey,
-              /** @type {!Object<string, string>} */(targetingDetails));
+              /** @type {!Object<string, string>} */ (targetingDetails));
         }
       }
     }
-      throw new Error(
-          'Error! Encountered an invalid API resource object ' +
-          'while mapping to an instance of TargetingOption.');
-    }
+    throw new Error(
+        'Error! Encountered an invalid API resource object ' +
+        'while mapping to an instance of TargetingOption.');
+  }
 
   /**
    * Converts this instance of `TargetingOption` to its expected JSON
