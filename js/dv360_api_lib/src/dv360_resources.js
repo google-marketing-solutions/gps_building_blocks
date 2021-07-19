@@ -416,9 +416,7 @@ class Campaign extends DisplayVideoResource {
       advertiserId: this.getAdvertiserId(),
       entityStatus: String(this.getStatus()),
       campaignGoal: this.getCampaignGoal(),
-      campaignFlight: {
-        plannedDates: {startDate: this.getCampaignStartDate().toJSON()},
-      },
+      campaignFlight: CampaignFlightMapper.toJson(this.getCampaignFlight()),
       frequencyCap: this.getCampaignFrequencyCap(),
     };
   }
@@ -529,6 +527,10 @@ class InsertionOrder extends DisplayVideoResource {
    *     advertiserId: string,
    *     campaignId: string,
    *     insertionOrderType: string,
+   *     pacing: !Pacing,
+   *     frequencyCap: !FrequencyCap,
+   *     performanceGoal: !PerformanceGoal,
+   *     budget: !InsertionOrderBudget,
    * }} params
    * @param {!Status=} status Optional status to set
    */
@@ -538,6 +540,10 @@ class InsertionOrder extends DisplayVideoResource {
         advertiserId,
         campaignId,
         insertionOrderType,
+        pacing,
+        frequencyCap,
+        performanceGoal,
+        budget,
       }, status = Status.DRAFT) {
     super(id, displayName, status);
 
@@ -549,6 +555,18 @@ class InsertionOrder extends DisplayVideoResource {
 
     /** @private {string} */
     this.insertionOrderType_ = insertionOrderType;
+
+    /** @private @const {!Pacing} */
+    this.insertionOrderPacing_ = pacing;
+
+    /** @private @const {!FrequencyCap} */
+    this.insertionOrderFrequencyCap_ = frequencyCap;
+
+    /** @private @const {!PerformanceGoal} */
+    this.insertionOrderPerformanceGoal_ = performanceGoal;
+
+    /** @private @const {!InsertionOrderBudget} */
+    this.insertionOrderBudget_ = budget;
   }
 
   /**
@@ -561,20 +579,46 @@ class InsertionOrder extends DisplayVideoResource {
    *     properties
    */
   static fromApiResource(resource) {
-    if (!resource['insertionOrderId'] || !resource['displayName'] ||
-        !resource['advertiserId'] || !resource['campaignId'] ||
-        !resource['insertionOrderType'] || !resource['entityStatus']) {
-      throw new Error(
-          'Error! Encountered an invalid API resource object ' +
-          'while mapping to an instance of InsertionOrder.');
-    }
-    return new InsertionOrder({
+    const properties = [
+      'insertionOrderId',
+      'displayName',
+      'advertiserId',
+      'campaignId',
+      'insertionOrderType',
+      'entityStatus',
+      'pacing',
+      'frequencyCap',
+      'performanceGoal',
+      'budget',
+    ];
+    if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const pacing = resource['pacing'];
+      const frequencyCap = resource['frequencyCap'];
+      const performanceGoal = resource['performanceGoal'];
+      const budget = resource['budget'];
+      const mappedPacing = PacingMapper.map(pacing);
+      const mappedFrequencyCap = FrequencyCapMapper.map(frequencyCap);
+      const mappedPerformanceGoal = PerformanceGoalMapper.map(performanceGoal);
+      const mappedBudget = InsertionOrderBudgetMapper.map(budget);
+
+      if (mappedPacing && mappedFrequencyCap && mappedPerformanceGoal &&
+          mappedBudget) {
+        return new InsertionOrder({
           id: String(resource['insertionOrderId']),
           displayName: String(resource['displayName']),
           advertiserId: String(resource['advertiserId']),
           campaignId: String(resource['campaignId']),
           insertionOrderType: String(resource['insertionOrderType']),
+          pacing: mappedPacing,
+          frequencyCap: mappedFrequencyCap,
+          performanceGoal: mappedPerformanceGoal,
+          budget: mappedBudget,
         }, StatusMapper.map(String(resource['entityStatus'])));
+      }
+    }
+    throw new Error(
+        'Error! Encountered an invalid API resource object ' +
+        'while mapping to an instance of InsertionOrder.');
   }
 
   /**
@@ -582,7 +626,7 @@ class InsertionOrder extends DisplayVideoResource {
    * representation. This method is called by default when an instance of
    * `InsertionOrder` gets passed to `JSON.stringify`.
    *
-   * @return {!Object<string, ?string>} The custom JSON representation of this
+   * @return {!Object<string, *>} The custom JSON representation of this
    *     `InsertionOrder` instance
    */
   toJSON() {
@@ -593,6 +637,10 @@ class InsertionOrder extends DisplayVideoResource {
       campaignId: this.getCampaignId(),
       insertionOrderType: this.getInsertionOrderType(),
       entityStatus: String(this.getStatus()),
+      pacing: this.getInsertionOrderPacing(),
+      frequencyCap: this.getInsertionOrderFrequencyCap(),
+      performanceGoal: this.getInsertionOrderPerformanceGoal(),
+      budget: InsertionOrderBudgetMapper.toJson(this.getInsertionOrderBudget()),
     };
   }
 
@@ -611,9 +659,14 @@ class InsertionOrder extends DisplayVideoResource {
   getChangedProperties(other) {
     const changedProperties = super.getChangedProperties(other);
 
-    if (other && other instanceof InsertionOrder &&
-        this.getInsertionOrderType() !== other.getInsertionOrderType()) {
-      changedProperties.push('insertionOrderType');
+    if (other && other instanceof InsertionOrder) {
+      if (this.getInsertionOrderType() !== other.getInsertionOrderType()) {
+        changedProperties.push('insertionOrderType');
+      }
+      if (this.getInsertionOrderBudgetSegments() !==
+          other.getInsertionOrderBudgetSegments()) {
+        changedProperties.push('budget.budgetSegments');
+      }
     }
     return changedProperties;
   }
@@ -625,7 +678,11 @@ class InsertionOrder extends DisplayVideoResource {
    * @override
    */
   getMutableProperties() {
-    return [...super.getMutableProperties(), 'insertionOrderType'];
+    return [
+      ...super.getMutableProperties(),
+      'insertionOrderType',
+      'budget.budgetSegments',
+    ];
   }
 
   /**
@@ -662,6 +719,61 @@ class InsertionOrder extends DisplayVideoResource {
    */
   setInsertionOrderType(insertionOrderType) {
     this.insertionOrderType_ = insertionOrderType;
+  }
+
+  /**
+   * Returns the insertion order pacing configuration.
+   *
+   * @return {!Pacing}
+   */
+  getInsertionOrderPacing() {
+    return this.insertionOrderPacing_;
+  }
+
+  /**
+   * Returns the insertion order frequency cap configuration.
+   *
+   * @return {!FrequencyCap}
+   */
+  getInsertionOrderFrequencyCap() {
+    return this.insertionOrderFrequencyCap_;
+  }
+
+  /**
+   * Returns the insertion order performance goal configuration.
+   *
+   * @return {!PerformanceGoal}
+   */
+  getInsertionOrderPerformanceGoal() {
+    return this.insertionOrderPerformanceGoal_;
+  }
+
+  /**
+   * Returns the insertion order budget configuration.
+   *
+   * @return {!InsertionOrderBudget}
+   */
+  getInsertionOrderBudget() {
+    return this.insertionOrderBudget_;
+  }
+
+  /**
+   * Returns the insertion order budget segments array.
+   *
+   * @return {!Array<!InsertionOrderBudgetSegment>}
+   */
+  getInsertionOrderBudgetSegments() {
+    return this.getInsertionOrderBudget().budgetSegments;
+  }
+
+  /**
+   * Sets the insertion order budget segments array.
+   *
+   * @param {!Array<!InsertionOrderBudgetSegment>} insertionOrderBudgetSegments
+   */
+  setInsertionOrderBudgetSegments(insertionOrderBudgetSegments) {
+    this.getInsertionOrderBudget().budgetSegments =
+        insertionOrderBudgetSegments;
   }
 }
 
@@ -817,7 +929,7 @@ class LineItem extends DisplayVideoResource {
       insertionOrderId: this.getInsertionOrderId(),
       lineItemType: this.getLineItemType(),
       entityStatus: String(this.getStatus()),
-      flight: this.getLineItemFlight(),
+      flight: LineItemFlightMapper.toJson(this.getLineItemFlight()),
       budget: this.getLineItemBudget(),
       pacing: this.getLineItemPacing(),
       frequencyCap: this.getLineItemFrequencyCap(),
