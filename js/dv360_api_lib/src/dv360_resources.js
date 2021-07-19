@@ -255,7 +255,7 @@ class Advertiser extends DisplayVideoResource {
   getChangedProperties(other) {
     const changedProperties = super.getChangedProperties(other);
 
-    if (other && other instanceof Advertiser &&
+    if (other instanceof Advertiser &&
         this.getGeneralConfig().domainUrl !==
             other.getGeneralConfig().domainUrl) {
       changedProperties.push('generalConfig.domainUrl');
@@ -435,7 +435,7 @@ class Campaign extends DisplayVideoResource {
   getChangedProperties(other) {
     const changedProperties = super.getChangedProperties(other);
 
-    if (other && other instanceof Campaign) {
+    if (other instanceof Campaign) {
       changedProperties.push(
           ...this.getCampaignStartDate().getChangedProperties(
               other.getCampaignStartDate(),
@@ -659,7 +659,7 @@ class InsertionOrder extends DisplayVideoResource {
   getChangedProperties(other) {
     const changedProperties = super.getChangedProperties(other);
 
-    if (other && other instanceof InsertionOrder) {
+    if (other instanceof InsertionOrder) {
       if (this.getInsertionOrderType() !== other.getInsertionOrderType()) {
         changedProperties.push('insertionOrderType');
       }
@@ -952,7 +952,7 @@ class LineItem extends DisplayVideoResource {
   getChangedProperties(other) {
     const changedProperties = super.getChangedProperties(other);
 
-    if (other && other instanceof LineItem && this.getLineItemFlightEndDate()) {
+    if (other instanceof LineItem && this.getLineItemFlightEndDate()) {
       changedProperties.push(
           ...this.getLineItemFlightEndDate().getChangedProperties(
               other.getLineItemFlightEndDate(),
