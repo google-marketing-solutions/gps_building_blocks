@@ -62,10 +62,14 @@ class DisplayVideoApiClient extends BaseApiClient {
    * @param {function(!Array<!DisplayVideoResource>): undefined}
    *     requestCallback The callback to trigger after fetching every 'page' of
    *     results
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    * @param {!Object<string, string>=} requestParams Optional requestParams to
    *     use for the request
    */
-  listResources(requestUri, requestCallback, requestParams = {method: 'get'}) {
+  listResources(requestUri, requestCallback, maxPages = -1, requestParams = {
+    method: 'get'
+  }) {
     this.executePagedApiRequest(
         requestUri, requestParams,
         /* requestCallback= */ (apiResponse) => {
@@ -76,7 +80,7 @@ class DisplayVideoApiClient extends BaseApiClient {
                 .map((resource) => this.asDisplayVideoResource(resource));
             requestCallback(resources);
           }
-        });
+        }, maxPages);
   }
 
   /**
@@ -214,13 +218,15 @@ class Advertisers extends DisplayVideoApiClient {
    *     trigger after fetching every 'page' of advertisers
    * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' advertiser resources
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
-  list(callback, filter = activeEntityFilter()) {
+  list(callback, filter = activeEntityFilter(), maxPages = -1) {
     const filterQueryString =
         filter ? `&filter=${filter.toApiQueryString()}` : '';
     super.listResources(
         `advertisers?partnerId=${this.getPartnerId()}${filterQueryString}`,
-        callback);
+        callback, maxPages);
   }
 
   /**
@@ -326,13 +332,15 @@ class Campaigns extends DisplayVideoApiClient {
    *     trigger after fetching every 'page' of campaigns
    * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' campaign resources
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
-  list(callback, filter = activeEntityFilter()) {
+  list(callback, filter = activeEntityFilter(), maxPages = -1) {
     const filterQueryString =
         filter ? `?filter=${filter.toApiQueryString()}` : '';
     super.listResources(
         `advertisers/${this.getAdvertiserId()}/campaigns${filterQueryString}`,
-        callback);
+        callback, maxPages);
   }
 
   /**
@@ -438,14 +446,16 @@ class InsertionOrders extends DisplayVideoApiClient {
    *     trigger after fetching every 'page' of insertion orders
    * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' insertion order resources
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
-  list(callback, filter = activeEntityFilter()) {
+  list(callback, filter = activeEntityFilter(), maxPages = -1) {
     const filterQueryString =
         filter ? `?filter=${filter.toApiQueryString()}` : '';
     super.listResources(
         `advertisers/${this.getAdvertiserId()}/` +
             `insertionOrders${filterQueryString}`,
-        callback);
+        callback, maxPages);
   }
 
   /**
@@ -558,13 +568,15 @@ class LineItems extends DisplayVideoApiClient {
    *     trigger after fetching every 'page' of line items
    * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' line item resources
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
-  list(callback, filter = activeEntityFilter()) {
+  list(callback, filter = activeEntityFilter(), maxPages = -1) {
     const filterQueryString =
         filter ? `?filter=${filter.toApiQueryString()}` : '';
     super.listResources(
         `advertisers/${this.getAdvertiserId()}/lineItems${filterQueryString}`,
-        callback);
+        callback, maxPages);
   }
 
   /**
@@ -677,15 +689,18 @@ class InventorySources extends DisplayVideoApiClient {
    *     trigger after fetching every 'page' of inventory sources
    * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' inventory source resources
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
-  list(callback, filter = activeEntityFilter()) {
+  list(callback, filter = activeEntityFilter(), maxPages = -1) {
     const [key, value] = this.getAdvertiserId() ?
         ['advertiserId', this.getAdvertiserId()] :
         ['partnerId', this.getPartnerId()];
     const filterQueryString =
         filter ? `&filter=${filter.toApiQueryString()}` : '';
     super.listResources(
-        `inventorySources?${key}=${value}${filterQueryString}`, callback);
+        `inventorySources?${key}=${value}${filterQueryString}`, callback,
+        maxPages);
   }
 
   /**
@@ -809,14 +824,16 @@ class TargetingOptions extends DisplayVideoApiClient {
    *     trigger after fetching every 'page' of targeting options
    * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to null
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
-  list(callback, filter = null) {
+  list(callback, filter = null, maxPages = -1) {
     const filterQueryString =
         filter ? `&filter=${filter.toApiQueryString()}` : '';
     super.listResources(
         `targetingTypes/${this.getTargetingType()}/targetingOptions` +
             `?advertiserId=${this.getAdvertiserId()}${filterQueryString}`,
-        callback);
+        callback, maxPages);
   }
 
   /**
@@ -831,9 +848,11 @@ class TargetingOptions extends DisplayVideoApiClient {
    * @param {string} query The search query
    * @param {function(!Array<!TargetingOption>): undefined} callback Callback to
    *     trigger after fetching every 'page' of targeting options
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    * @throws {!Error} If the targeting type is not GEO_REGION
    */
-  search(query, callback) {
+  search(query, callback, maxPages = -1) {
     if (this.getTargetingType() !== TargetingType.GEO_REGION) {
       throw new Error(
           `Error! "search" is only supported for ${TargetingType.GEO_REGION}`);
@@ -850,7 +869,7 @@ class TargetingOptions extends DisplayVideoApiClient {
       method: 'post',
       payload: JSON.stringify(payload),
     };
-    super.listResources(url, callback, params);
+    super.listResources(url, callback, maxPages, params);
   }
 
   /**
