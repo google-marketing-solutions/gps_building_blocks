@@ -58,6 +58,7 @@ const StatusMapper = {
  * @enum {string}
  */
 const TargetingType = {
+  CHANNEL: 'TARGETING_TYPE_CHANNEL',
   GEO_REGION: 'TARGETING_TYPE_GEO_REGION',
   UNSPECIFIED: 'TARGETING_TYPE_UNSPECIFIED',
 };

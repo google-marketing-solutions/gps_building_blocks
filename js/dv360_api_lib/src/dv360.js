@@ -766,6 +766,7 @@ class InventorySources extends DisplayVideoApiClient {
 
   /**
    * @param {string} requestUri
+   * @throws {!Error} As this method is not allowed for this type
    * @override
    */
   deleteResource(requestUri) {
@@ -935,6 +936,7 @@ class TargetingOptions extends DisplayVideoApiClient {
 
   /**
    * @param {string} requestUri
+   * @throws {!Error} As this method is not allowed for this type
    * @override
    */
   deleteResource(requestUri) {
@@ -957,5 +959,256 @@ class TargetingOptions extends DisplayVideoApiClient {
    */
   getAdvertiserId() {
     return this.advertiserId_;
+  }
+}
+
+/**
+ * An extension of `DisplayVideoApiClient` to handle
+ * {@link AssignedTargetingOption} resources.
+ * @final
+ */
+class AssignedTargetingOptions extends DisplayVideoApiClient {
+  /**
+   * Constructs an instance of `AssignedTargetingOptions`.
+   *
+   * @param {!TargetingType} targetingType The targeting type for retrieving
+   *     targeting options
+   * @param {string} advertiserId The DV360 advertiser identifier to use for
+   *     retrieving targeting options
+   * @param {{
+   *     campaignId: (?string|undefined),
+   *     insertionOrderId: (?string|undefined),
+   *     lineItemId: (?string|undefined),
+   * }=} params
+   */
+  constructor(targetingType, advertiserId, {
+        campaignId = null,
+        insertionOrderId = null,
+        lineItemId = null,
+      } = {}) {
+    super('assignedTargetingOptions');
+
+    /** @private @const {!TargetingType} */
+    this.targetingType_ = targetingType;
+
+    /** @private @const {string} */
+    this.advertiserId_ = advertiserId;
+
+    /** @private @const {?string} */
+    this.campaignId_ = campaignId;
+
+    /** @private @const {?string} */
+    this.insertionOrderId_ = insertionOrderId;
+
+    /** @private @const {?string} */
+    this.lineItemId_ = lineItemId;
+
+    /**
+     * Assigned targeting options are read-only (list & get operations only) for
+     * campaigns and insertion orders.
+     * @private @const {boolean}
+     */
+    this.readOnly_ = campaignId != null || insertionOrderId != null;
+  }
+
+  /**
+   * Returns the base url string for every API operation. Checks the initialized
+   * constructor parameters and adds the necessary extensions to the resulting
+   * string.
+   *
+   * @return {string} The base url for every API operation
+   */
+  getBaseUrl() {
+    const prefix = `advertisers/${this.getAdvertiserId()}/`;
+    const suffix = `targetingTypes/${this.getTargetingType()}/` +
+        `assignedTargetingOptions`;
+    let extension = '';
+
+    if (this.getCampaignId()) {
+      extension = `campaigns/${this.getCampaignId()}/`;
+    } else if (this.getInsertionOrderId()) {
+      extension = `insertionOrders/${this.getInsertionOrderId()}/`;
+    } else if (this.getLineItemId()) {
+      extension = `lineItems/${this.getLineItemId()}/`;
+    }
+    return prefix + extension + suffix;
+  }
+
+  /**
+   * Retrieves all assigned targeting option resources from the API, filtering
+   * them using the given 'filter' and calling the given 'callback' for every
+   * retrieved 'page' of data.
+   *
+   * @param {function(!Array<!AssignedTargetingOption>): undefined} callback
+   *     Callback to trigger after fetching every 'page' of assigned targeting
+   *     options
+   * @param {?FilterExpression=} filter Optional filter for filtering retrieved
+   *     results. Defaults to null
+   * @param {number=} maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
+   */
+  list(callback, filter = null, maxPages = -1) {
+    const filterQueryString =
+        filter ? `?filter=${filter.toApiQueryString()}` : '';
+    super.listResources(
+        this.getBaseUrl() + filterQueryString, callback, maxPages);
+  }
+
+  /**
+   * Converts an assigned targeting option resource object returned by the API
+   * into a concrete {@link AssignedTargetingOption} instance.
+   *
+   * @param {!Object<string, *>} resource The API resource object
+   * @return {!AssignedTargetingOption} The concrete assigned targeting option
+   *     instance
+   * @throws {!Error} If the API resource object did not contain the expected
+   *     properties
+   * @override
+   */
+  asDisplayVideoResource(resource) {
+    return AssignedTargetingOption.fromApiResource(resource);
+  }
+
+  /**
+   * Retrieves a single assigned targeting option from the API, identified by
+   * 'assignedTargetingOptionId'.
+   *
+   * @param {string} assignedTargetingOptionId The ID of the assigned targeting
+   *     option to 'get'
+   * @return {!AssignedTargetingOption} An object representing the retrieved
+   *     assigned targeting option resource
+   */
+  get(assignedTargetingOptionId) {
+    return /** @type {!AssignedTargetingOption} */ (
+        super.getResource(`${this.getBaseUrl()}/${assignedTargetingOptionId}`));
+  }
+
+  /**
+   * Creates a new assigned targeting option resource based on the given
+   * 'assignedTargetingOptionResource' object.
+   *
+   * @param {!DisplayVideoResource} assignedTargetingOptionResource The
+   *     assigned targeting option resource to create
+   * @return {!AssignedTargetingOption} An object representing the created
+   *     assigned targeting option resource
+   * @throws {!Error} If this method is not allowed for this type
+   */
+  create(assignedTargetingOptionResource) {
+    return /** @type {!AssignedTargetingOption} */ (this.createResource(
+        this.getBaseUrl(), assignedTargetingOptionResource));
+  }
+
+  /**
+   * @param {string} requestUri
+   * @param {!DisplayVideoResource} payload
+   * @return {!DisplayVideoResource}
+   * @throws {!Error} If this method is not allowed for this type
+   * @override
+   */
+  createResource(requestUri, payload) {
+    if (this.isReadOnly()) {
+      throw new Error('405 Method Not Allowed');
+    }
+    return super.createResource(requestUri, payload);
+  }
+
+  /**
+   * @param {string} requestUri
+   * @return {!DisplayVideoResource}
+   * @throws {!Error} As this method is not allowed for this type
+   * @override
+   */
+  patchResource(requestUri) {
+    throw new Error('405 Method Not Allowed');
+  }
+
+  /**
+   * @param {string} requestUri
+   * @param {!DisplayVideoResource} original
+   * @param {?DisplayVideoResource} modified
+   * @return {!DisplayVideoResource}
+   * @throws {!Error} As this method is not allowed for this type
+   * @override
+   */
+  patchResourceByComparison(requestUri, original, modified) {
+    throw new Error('405 Method Not Allowed');
+  }
+
+  /**
+   * Deletes an assigned targeting option identified by
+   * 'assignedTargetingOptionId'.
+   *
+   * @param {string} assignedTargetingOptionId The ID of the assigned targeting
+   *     option to 'delete'
+   */
+  delete(assignedTargetingOptionId) {
+    this.deleteResource(`${this.getBaseUrl()}/${assignedTargetingOptionId}`);
+  }
+
+  /**
+   * @param {string} requestUri
+   * @throws {!Error} If this method is not allowed for this type
+   * @override
+   */
+  deleteResource(requestUri) {
+    if (this.isReadOnly()) {
+      throw new Error('405 Method Not Allowed');
+    }
+    super.deleteResource(requestUri);
+  }
+
+  /**
+   * Returns the targeting type.
+   *
+   * @return {!TargetingType}
+   */
+  getTargetingType() {
+    return this.targetingType_;
+  }
+
+  /**
+   * Returns the DV360 advertiser identifier.
+   *
+   * @return {string}
+   */
+  getAdvertiserId() {
+    return this.advertiserId_;
+  }
+
+  /**
+   * Returns the DV360 campaign identifier.
+   *
+   * @return {?string}
+   */
+  getCampaignId() {
+    return this.campaignId_;
+  }
+
+  /**
+   * Returns the DV360 insertion order identifier.
+   *
+   * @return {?string}
+   */
+  getInsertionOrderId() {
+    return this.insertionOrderId_;
+  }
+
+  /**
+   * Returns the DV360 line item identifier.
+   *
+   * @return {?string}
+   */
+  getLineItemId() {
+    return this.lineItemId_;
+  }
+
+  /**
+   * Whether this API client is read only (only list and get operations are
+   * supported) or not.
+   *
+   * @return {boolean}
+   */
+  isReadOnly() {
+    return this.readOnly_;
   }
 }
