@@ -318,7 +318,7 @@ const AdvertiserGeneralConfigMapper = {
   map: (resource) => {
     if (ObjectUtil.hasOwnProperties(
             resource, ['domainUrl', 'currencyCode'])) {
-      return /** @type {!AdvertiserGeneralConfig} */(resource);
+      return /** @type {!AdvertiserGeneralConfig} */ (resource);
     }
     return null;
   },
@@ -380,7 +380,7 @@ const AdvertiserAdServerConfigMapper = {
           typeof cmHybridConfig['cmFloodlightLinkingAuthorized'] === 'boolean';
 
       if (validThirdPartyOnlyConfig || validCmHybridConfig) {
-        return /** @type {!AdvertiserAdServerConfig} */(resource);
+        return /** @type {!AdvertiserAdServerConfig} */ (resource);
       }
     }
     return null;
@@ -399,7 +399,12 @@ const AdvertiserAdServerConfigMapper = {
  */
 let CampaignFlight;
 
-/** @const {{map: function(*): ?CampaignFlight}} */
+/**
+ * @const {{
+ *     map: function(*): ?CampaignFlight,
+ *     toJson: function(!CampaignFlight): !Object<string, *>,
+ * }}
+ */
 const CampaignFlightMapper = {
   /**
    * Converts a resource object returned by the API into a concrete
@@ -421,6 +426,21 @@ const CampaignFlightMapper = {
       }
     }
     return null;
+  },
+
+  /**
+   * Converts a `CampaignFlight` to its expected JSON representation.
+   *
+   * @param {!CampaignFlight} flight The flight to convert
+   * @return {!Object<string, *>} The custom JSON representation of the
+   *     `CampaignFlight`
+   */
+  toJson: (flight) => {
+    return {
+      plannedDates: {
+        startDate: flight.plannedDates.startDate.toJSON(),
+      },
+    };
   },
 };
 
@@ -456,6 +476,135 @@ const CampaignGoalMapper = {
 };
 
 /**
+ * Defines an insertion order's budget segment configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders#InsertionOrderBudgetSegment
+ *
+ * @typedef {{
+ *     budgetAmountMicros: string,
+ *     dateRange: {
+ *         startDate: !ApiDate,
+ *         endDate: !ApiDate,
+ *     },
+ * }}
+ */
+let InsertionOrderBudgetSegment;
+
+/**
+ * @const {{
+ *     map: function(*): ?InsertionOrderBudgetSegment,
+ *     toJson: function(!InsertionOrderBudgetSegment): !Object<string, *>,
+ * }}
+ */
+const InsertionOrderBudgetSegmentMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `InsertionOrderBudgetSegment` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?InsertionOrderBudgetSegment} The concrete instance, or null if
+   *     the resource did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(
+            resource, ['budgetAmountMicros', 'dateRange'])) {
+      const dateRange = resource['dateRange'];
+      const startDate = ApiDate.fromApiResource(dateRange['startDate']);
+      const endDate = ApiDate.fromApiResource(dateRange['endDate']);
+
+      if (startDate && endDate) {
+        dateRange['startDate'] = startDate;
+        dateRange['endDate'] = endDate;
+
+        return /** @type {!InsertionOrderBudgetSegment} */ (resource);
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Converts an `InsertionOrderBudgetSegment` to its expected JSON
+   * representation.
+   *
+   * @param {!InsertionOrderBudgetSegment} segment The segment to convert
+   * @return {!Object<string, *>} The custom JSON representation of the
+   *     `InsertionOrderBudgetSegment`
+   */
+  toJson: (segment) => {
+    return {
+      budgetAmountMicros: segment.budgetAmountMicros,
+      dateRange: {
+        startDate: segment.dateRange.startDate.toJSON(),
+        endDate: segment.dateRange.endDate.toJSON(),
+      },
+    };
+  },
+};
+
+/**
+ * Defines an insertion order's budget configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders#InsertionOrderBudget
+ *
+ * @typedef {{
+ *     budgetUnit: string,
+ *     budgetSegments: !Array<!InsertionOrderBudgetSegment>,
+ * }}
+ */
+let InsertionOrderBudget;
+
+/**
+ * @const {{
+ *     map: function(*): ?InsertionOrderBudget,
+ *     toJson: function(!InsertionOrderBudget): !Object<string, *>,
+ * }}
+ */
+const InsertionOrderBudgetMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `InsertionOrderBudget` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?InsertionOrderBudget} The concrete instance, or null if the
+   *     resource did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(
+            resource, ['budgetUnit', 'budgetSegments'])) {
+      const budgetSegments = resource['budgetSegments'];
+
+      if (Array.isArray(budgetSegments) && budgetSegments.length !== 0) {
+        let valid = true;
+
+        budgetSegments.forEach((segment) => {
+          const mappedSegment = InsertionOrderBudgetSegmentMapper.map(segment);
+          valid = valid && mappedSegment;
+        });
+        if (valid) {
+          return /** @type {!InsertionOrderBudget} */ (resource);
+        }
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Converts an `InsertionOrderBudget` to its expected JSON representation.
+   *
+   * @param {!InsertionOrderBudget} budget The budget to convert
+   * @return {!Object<string, *>} The custom JSON representation of the
+   *     `InsertionOrderBudget`
+   */
+  toJson: (budget) => {
+    const segments = budget.budgetSegments.map(
+        (segment) => InsertionOrderBudgetSegmentMapper.toJson(segment));
+
+    return {
+      budgetUnit: budget.budgetUnit,
+      budgetSegments: segments,
+    };
+  },
+};
+
+/**
  * Defines line item flight configuration.
  * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems#LineItemFlight
  *
@@ -470,7 +619,12 @@ const CampaignGoalMapper = {
  */
 let LineItemFlight;
 
-/** @const {{map: function(*): ?LineItemFlight}} */
+/**
+ * @const {{
+ *     map: function(*): ?LineItemFlight,
+ *     toJson: function(!LineItemFlight): !Object<string, *>,
+ * }}
+ */
 const LineItemFlightMapper = {
   /**
    * Converts a resource object returned by the API into a concrete
@@ -500,6 +654,30 @@ const LineItemFlightMapper = {
       }
     }
     return null;
+  },
+
+  /**
+   * Converts a `LineItemFlight` to its expected JSON representation.
+   *
+   * @param {!LineItemFlight} flight The flight to convert
+   * @return {!Object<string, *>} The custom JSON representation of the
+   *     `LineItemFlight`
+   */
+  toJson: (flight) => {
+    if (!flight.dateRange) {
+      return flight;
+    }
+    const result = {
+      flightDateType: flight.flightDateType,
+      dateRange: {
+        startDate: flight.dateRange.startDate.toJSON(),
+        endDate: flight.dateRange.endDate.toJSON(),
+      },
+    };
+    if (flight.triggerId) {
+      result['triggerId'] = flight.triggerId;
+    }
+    return result;
   },
 };
 
