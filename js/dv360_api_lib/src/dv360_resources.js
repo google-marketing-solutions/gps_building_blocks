@@ -1325,23 +1325,30 @@ class InventorySource extends DisplayVideoResource {
 /**
  * An extension of `DisplayVideoResource` to represent a targeting option.
  * @see https://developers.google.com/display-video/api/reference/rest/v1/targetingTypes.targetingOptions
- * @final
  */
 class TargetingOption extends DisplayVideoResource {
   /**
    * Constructs an instance of `TargetingOption`.
    *
-   * @param {string} id The unique resource ID
+   * @param {?string} id The unique resource ID
    * @param {!TargetingType} targetingType The targeting type for this targeting
    *     option
    * @param {string} targetingDetailsKey The property name for the targeting
    *     details object associated with this targeting option
-   * @param {!Object<string, string>} targetingDetails The targeting details
-   *     object, which may contain a 'displayName' property along with a
-   *     single string key-value pair representing the targeting details
+   * @param {!Object<string, *>} targetingDetails The targeting details
+   *     object, which may contain a 'displayName' property
+   * @param {string=} idProperty Optional name of the ID property. Defaults to
+   *     'targetingOptionId'
    */
-  constructor(id, targetingType, targetingDetailsKey, targetingDetails) {
-    super(id, targetingDetails['displayName'] || null);
+  constructor(
+      id, targetingType, targetingDetailsKey, targetingDetails,
+      idProperty = 'targetingOptionId') {
+    super(
+        id,
+        /* displayName= */
+        targetingDetails['displayName'] ?
+            String(targetingDetails['displayName']) :
+            null);
 
     /** @private @const {!TargetingType} */
     this.targetingType_ = targetingType;
@@ -1351,19 +1358,34 @@ class TargetingOption extends DisplayVideoResource {
 
     /** @private @const {!Object<string, string>} */
     this.targetingDetails_ = targetingDetails;
+
+    /** @private @const {string} */
+    this.idProperty_ = idProperty;
   }
 
   /**
    * Converts a resource object returned by the API into a concrete
-   * `InventorySource` instance.
+   * `TargetingOption` instance.
    *
    * @param {!Object<string, *>} resource The API resource object
+   * @param {!Array<string>=} additionalProperties Optional additional
+   *     properties. Defaults to an empty array
+   * @param {string=} idProperty Optional id property to use. Defaults to
+   *     'targetingOptionId'
+   * @param {string=} type Optional type to use for logging. Defaults to
+   *     'TargetingOption'
    * @return {!TargetingOption} The concrete instance
    * @throws {!Error} If the API resource object did not contain the expected
    *     properties
    */
-  static fromApiResource(resource) {
-    const properties = ['targetingOptionId', 'targetingType'];
+  static fromApiResource(
+      resource, additionalProperties = [], idProperty = 'targetingOptionId',
+      type = 'TargetingOption') {
+    const properties = [
+      'targetingType',
+      idProperty,
+      ...additionalProperties,
+    ];
 
     if (ObjectUtil.hasOwnProperties(resource, properties)) {
       const keys = Object.keys(resource).filter(
@@ -1375,16 +1397,16 @@ class TargetingOption extends DisplayVideoResource {
 
         if (ObjectUtil.isObject(targetingDetails)) {
           return new TargetingOption(
-              String(resource['targetingOptionId']),
+              String(resource[idProperty]),
               TargetingTypeMapper.map(String(resource['targetingType'])),
               targetingDetailsKey,
-              /** @type {!Object<string, string>} */ (targetingDetails));
+              /** @type {!Object<string, *>} */ (targetingDetails));
         }
       }
     }
     throw new Error(
         'Error! Encountered an invalid API resource object ' +
-        'while mapping to an instance of TargetingOption.');
+        `while mapping to an instance of ${type}.`);
   }
 
   /**
@@ -1392,15 +1414,15 @@ class TargetingOption extends DisplayVideoResource {
    * representation. This method is called by default when an instance of
    * `TargetingOption` gets passed to `JSON.stringify`.
    *
-   * @return {!Object<string, (?string|!Object<string, string>)>} The custom
-   *     JSON representation of this `TargetingOption` instance
+   * @return {!Object<string, *>} The custom JSON representation of this
+   *     `TargetingOption` instance
    */
   toJSON() {
     const result = {
-      targetingOptionId: this.getId(),
       targetingType: this.getTargetingType(),
     };
     result[this.getTargetingDetailsKey()] = this.getTargetingDetails();
+    result[this.getIdProperty()] = this.getId();
 
     return result;
   }
@@ -1443,9 +1465,101 @@ class TargetingOption extends DisplayVideoResource {
   /**
    * Returns the targeting details object.
    *
-   * @return {!Object<string, string>}
+   * @return {!Object<string, *>}
    */
   getTargetingDetails() {
     return this.targetingDetails_;
+  }
+
+  /**
+   * Returns the id property.
+   *
+   * @return {string}
+   */
+  getIdProperty() {
+    return this.idProperty_;
+  }
+}
+
+/**
+ * An extension of `DisplayVideoResource` to represent an assigned targeting
+ * option. It is either assigned to an `Advertiser`, `Campaign`,
+ * `InsertionOrder` or `LineItem`.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.targetingTypes.assignedTargetingOptions
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.campaigns.targetingTypes.assignedTargetingOptions
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.insertionOrders.targetingTypes.assignedTargetingOptions
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.lineItems.targetingTypes.assignedTargetingOptions
+ * @final
+ */
+class AssignedTargetingOption extends TargetingOption {
+  /**
+   * Constructs an instance of `AssignedTargetingOption`.
+   *
+   * @param {?string} id The unique resource ID
+   * @param {!TargetingType} targetingType The targeting type for this targeting
+   *     option
+   * @param {string} inheritance Indicates whether the assigned taregting option
+   *     is inherited from a higher level entity
+   * @param {string} targetingDetailsKey The property name for the assigned
+   *     targeting details object associated with this targeting option
+   * @param {!Object<string, *>} targetingDetails The targeting details object
+   *     which may contain a 'displayName' property
+   */
+  constructor(
+      id, targetingType, inheritance, targetingDetailsKey, targetingDetails) {
+    super(
+        id, targetingType, targetingDetailsKey, targetingDetails,
+        'assignedTargetingOptionId');
+
+    /** @private @const {string} */
+    this.inheritance_ = inheritance;
+  }
+
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `AssignedTargetingOption` instance.
+   *
+   * @param {!Object<string, *>} resource The API resource object
+   * @return {!AssignedTargetingOption} The concrete instance
+   * @throws {!Error} If the API resource object did not contain the expected
+   *     properties
+   */
+  static fromApiResource(resource) {
+    const targetingOption = TargetingOption.fromApiResource(
+        resource,
+        /* additionalProperties= */ ['inheritance'],
+        /* idProperty= */ 'assignedTargetingOptionId',
+        /* type= */ 'AssignedTargetingOption');
+    return new AssignedTargetingOption(
+        /** @type {string} */ (targetingOption.getId()),
+        targetingOption.getTargetingType(),
+        String(resource['inheritance']),
+        targetingOption.getTargetingDetailsKey(),
+        targetingOption.getTargetingDetails());
+  }
+
+  /**
+   * Converts this instance of `AssignedTargetingOption` to its expected JSON
+   * representation. This method is called by default when an instance of
+   * `AssignedTargetingOption` gets passed to `JSON.stringify`.
+   *
+   * @return {!Object<string, *>} The custom JSON representation of this
+   *     `AssignedTargetingOption` instance
+   * @override
+   */
+  toJSON() {
+    const result = super.toJSON();
+    result['inheritance'] = this.getInheritance();
+
+    return result;
+  }
+
+  /**
+   * Returns the inheritance.
+   *
+   * @return {string}
+   */
+  getInheritance() {
+    return this.inheritance_;
   }
 }
