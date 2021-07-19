@@ -185,6 +185,45 @@ const PacingMapper = {
 };
 
 /**
+ * Defines a performance goal configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/PerformanceGoal
+ *
+ * @typedef {{
+ *     performanceGoalType: string,
+ *     performanceGoalAmountMicros: (string|undefined),
+ *     performanceGoalPercentageMicros: (string|undefined),
+ *     performanceGoalString: (string|undefined),
+ * }}
+ */
+let PerformanceGoal;
+
+/** @const {{map: function(*): ?PerformanceGoal}} */
+const PerformanceGoalMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `PerformanceGoal` instance.
+   *
+   * @param {*} resource The API resource object
+   * @return {?PerformanceGoal} The concrete instance, or null if the resource
+   *     did not contain the expected properties
+   */
+  map: (resource) => {
+    if (ObjectUtil.hasOwnProperties(
+            resource, ['performanceGoalType'], [
+              'performanceGoalAmountMicros',
+              'performanceGoalPercentageMicros',
+              'performanceGoalString',
+            ]) &&
+        Object.keys(
+                  /** @type {!Object<string, string>} */ (resource))
+                .length === 2) {
+      return /** @type {!PerformanceGoal} */ (resource);
+    }
+    return null;
+  },
+};
+
+/**
  * Defines a maximize spend oriented bidding strategy.
  * @see https://developers.google.com/display-video/api/reference/rest/v1/BiddingStrategy#maximizespendbidstrategy
  *
@@ -391,12 +430,7 @@ const CampaignFlightMapper = {
  *
  * @typedef {{
  *     campaignGoalType: string,
- *     performanceGoal: {
- *         performanceGoalType: string,
- *         performanceGoalAmountMicros: (string|undefined),
- *         performanceGoalPercentageMicros: (string|undefined),
- *         performanceGoalString: (string|undefined),
- *     },
+ *     performanceGoal: !PerformanceGoal,
  * }}
  */
 let CampaignGoal;
@@ -413,20 +447,9 @@ const CampaignGoalMapper = {
    */
   map: (resource) => {
     if (ObjectUtil.hasOwnProperties(
-            resource, ['campaignGoalType', 'performanceGoal'])) {
-      const performanceGoal = resource['performanceGoal'];
-      const validPerformanceGoal = ObjectUtil.hasOwnProperties(
-          performanceGoal, ['performanceGoalType'], [
-            'performanceGoalAmountMicros',
-            'performanceGoalPercentageMicros',
-            'performanceGoalString',
-          ]) && Object.keys(
-              /** @type {!Object<string, string>} */(performanceGoal))
-              .length === 2;
-
-      if (validPerformanceGoal) {
-        return /** @type {!CampaignGoal} */(resource);
-      }
+            resource, ['campaignGoalType', 'performanceGoal']) &&
+        PerformanceGoalMapper.map(resource['performanceGoal'])) {
+      return /** @type {!CampaignGoal} */ (resource);
     }
     return null;
   },
