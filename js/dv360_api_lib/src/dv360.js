@@ -212,13 +212,14 @@ class Advertisers extends DisplayVideoApiClient {
    *
    * @param {function(!Array<!Advertiser>): undefined} callback Callback to
    *     trigger after fetching every 'page' of advertisers
-   * @param {!FilterExpression=} filter Optional filter for filtering retrieved
+   * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' advertiser resources
    */
   list(callback, filter = activeEntityFilter()) {
+    const filterQueryString =
+        filter ? `&filter=${filter.toApiQueryString()}` : '';
     super.listResources(
-        `advertisers?partnerId=${this.getPartnerId()}` +
-            `&filter=${filter.toApiQueryString()}`,
+        `advertisers?partnerId=${this.getPartnerId()}${filterQueryString}`,
         callback);
   }
 
@@ -323,13 +324,14 @@ class Campaigns extends DisplayVideoApiClient {
    *
    * @param {function(!Array<!Campaign>): undefined} callback Callback to
    *     trigger after fetching every 'page' of campaigns
-   * @param {!FilterExpression=} filter Optional filter for filtering retrieved
+   * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' campaign resources
    */
   list(callback, filter = activeEntityFilter()) {
+    const filterQueryString =
+        filter ? `?filter=${filter.toApiQueryString()}` : '';
     super.listResources(
-        `advertisers/${this.getAdvertiserId()}/campaigns` +
-            `?filter=${filter.toApiQueryString()}`,
+        `advertisers/${this.getAdvertiserId()}/campaigns${filterQueryString}`,
         callback);
   }
 
@@ -434,13 +436,15 @@ class InsertionOrders extends DisplayVideoApiClient {
    *
    * @param {function(!Array<!InsertionOrder>): undefined} callback Callback to
    *     trigger after fetching every 'page' of insertion orders
-   * @param {!FilterExpression=} filter Optional filter for filtering retrieved
+   * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' insertion order resources
    */
   list(callback, filter = activeEntityFilter()) {
+    const filterQueryString =
+        filter ? `?filter=${filter.toApiQueryString()}` : '';
     super.listResources(
-        `advertisers/${this.getAdvertiserId()}/insertionOrders` +
-            `?filter=${filter.toApiQueryString()}`,
+        `advertisers/${this.getAdvertiserId()}/` +
+            `insertionOrders${filterQueryString}`,
         callback);
   }
 
@@ -552,13 +556,14 @@ class LineItems extends DisplayVideoApiClient {
    *
    * @param {function(!Array<!InsertionOrder>): undefined} callback Callback to
    *     trigger after fetching every 'page' of line items
-   * @param {!FilterExpression=} filter Optional filter for filtering retrieved
+   * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' line item resources
    */
   list(callback, filter = activeEntityFilter()) {
+    const filterQueryString =
+        filter ? `?filter=${filter.toApiQueryString()}` : '';
     super.listResources(
-        `advertisers/${this.getAdvertiserId()}/lineItems` +
-            `?filter=${filter.toApiQueryString()}`,
+        `advertisers/${this.getAdvertiserId()}/lineItems${filterQueryString}`,
         callback);
   }
 
@@ -670,16 +675,17 @@ class InventorySources extends DisplayVideoApiClient {
    *
    * @param {function(!Array<!InventorySource>): undefined} callback Callback to
    *     trigger after fetching every 'page' of inventory sources
-   * @param {!FilterExpression=} filter Optional filter for filtering retrieved
+   * @param {?FilterExpression=} filter Optional filter for filtering retrieved
    *     results. Defaults to filtering for 'active' inventory source resources
    */
   list(callback, filter = activeEntityFilter()) {
     const [key, value] = this.getAdvertiserId() ?
         ['advertiserId', this.getAdvertiserId()] :
         ['partnerId', this.getPartnerId()];
+    const filterQueryString =
+        filter ? `&filter=${filter.toApiQueryString()}` : '';
     super.listResources(
-        `inventorySources?${key}=${value}&filter=${filter.toApiQueryString()}`,
-        callback);
+        `inventorySources?${key}=${value}${filterQueryString}`, callback);
   }
 
   /**
@@ -805,13 +811,12 @@ class TargetingOptions extends DisplayVideoApiClient {
    *     results. Defaults to null
    */
   list(callback, filter = null) {
-    let url = `targetingTypes/${this.getTargetingType()}/targetingOptions` +
-        `?advertiserId=${this.getAdvertiserId()}`;
-
-    if (filter) {
-      url += `&filter=${filter.toApiQueryString()}`;
-    }
-    super.listResources(url, callback);
+    const filterQueryString =
+        filter ? `&filter=${filter.toApiQueryString()}` : '';
+    super.listResources(
+        `targetingTypes/${this.getTargetingType()}/targetingOptions` +
+            `?advertiserId=${this.getAdvertiserId()}${filterQueryString}`,
+        callback);
   }
 
   /**
