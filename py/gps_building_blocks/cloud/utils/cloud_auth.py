@@ -267,7 +267,7 @@ def get_service_account(project_id: str,
     return service_account_details
   except errors.HttpError as error:
     if error.resp.status == _NOT_FOUND_ERROR_CODE:
-      return None
+      return None  # pytype: disable=bad-return-type
     logging.exception('Error occurred while retrieving service account: "%s".',
                       error)
     raise Error('Error occurred while retrieving service account.')
