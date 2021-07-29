@@ -40,7 +40,7 @@ WITH
   ValueRankInitial AS (
     SELECT
       name,
-      APPROX_TOP_COUNT(value, {number_top_categories}}) AS rank
+      APPROX_TOP_COUNT(value, {number_top_categories}) AS rank
     FROM Fact
     GROUP BY name
   ),
