@@ -22,7 +22,7 @@
 WITH
   Data AS (
     SELECT
-      CAST(TIMESTAMP_MILLIS(snapshotTimeInMillis) AS DATE) AS snapshot_date,
+      CAST(snapshot_ts AS DATE) AS snapshot_date,
       {label_column} AS label
     FROM `{bq_instance_table}`
   )
