@@ -31,7 +31,7 @@
 CREATE OR REPLACE TABLE `{{conversions_table}}`
 AS (
   SELECT DISTINCT
-    GaTable.fullVisitorId AS user_id,
+    IFNULL(NULLIF(GaTable.clientId, ''), GaTable.fullVisitorId) AS user_id,
     TIMESTAMP_SECONDS(GaTable.visitStartTime) AS conversion_ts,
     TRUE AS label
   FROM

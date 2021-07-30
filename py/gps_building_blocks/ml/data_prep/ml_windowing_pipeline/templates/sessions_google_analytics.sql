@@ -70,7 +70,7 @@ LANGUAGE js AS """
 CREATE OR REPLACE TABLE `{{sessions_table}}`
 AS (
   SELECT
-    fullVisitorId AS user_id,
+    IFNULL(NULLIF(clientId, ''), fullVisitorId) AS user_id,
     TIMESTAMP_SECONDS(visitStartTime) AS session_ts,
     CONCAT(fullVisitorId, '/', visitId) AS session_id,
 
