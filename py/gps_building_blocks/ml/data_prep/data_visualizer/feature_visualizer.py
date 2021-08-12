@@ -17,8 +17,9 @@
 
 Calculates statistics from the numerical and categoticals features in the
 Features table in BigQuery, generates and outputs plots. These plots can be
-used to explore the features to understand the distributions and any anomalies
-such as label leakage and inconsistencies over time.
+used to explore the features to understand their distributions, relationships
+with the label, any anomalies (such as label leakage) and inconsistencies over
+time.
 
 Feature table is created by the FeaturesPipeline of the
 ML Windowing Pipeline tool. For more info:
@@ -35,26 +36,43 @@ import numpy as np
 import pandas as pd
 from gps_building_blocks.ml.data_prep.data_visualizer import viz_utils
 
-# Class FeatureVisualizer utilize these constants to generate  plots and arrange
-# them in a single column. By changing the values of these constants will break
-# the code.
-_NUMERICAL_ROWS_IN_SUBPLOTS_GRID = 3
-_NUMERICAL_COLS_IN_SUBPLOTS_GRID = 1
-_CATEGORICAL_ROWS_IN_SUBPLOTS_GRID = 3
-_CATEGORICAL_COLS_IN_SUBPLOTS_GRID = 1
+# Class FeatureVisualizer utilizes the following constants to generate plots
+# and arrange them in a single column in the pdf outputs. By changing the
+# values of these constants will break the code
+# Number of columns to arrange the plots
+_COLS_IN_SUBPLOTS_GRID = 1
+# Number of plots for a numerical feature when the label is binary
+_NO_PLOTS_NUM_FEATURE_BINARY_LABEL = 3
+# Number of plots for a numerical feature when the label is numerical
+_NO_PLOTS_NUM_FEATURE_NUM_LABEL = 2
+# Number of plots for a categorical feature when the label is binary
+_NO_PLOTS_CAT_FEATURE_BINARY_LABEL = 3
+# Number of plots for a categorical feature when the label is numerical
+_NO_PLOTS_CAT_FEATURE_NUM_LABEL = 2
 
-# Path to the file with sql code to calculate stats from the numerical features
-# in the Features table in BigQuery.
-_CALC_NUM_FEATURE_STATS_SQL_PATH = viz_utils.get_absolute_path(
-    'calc_numerical_feature_stats.sql')
-# Path to the file with sql code to calculate stats from the categorical
-# features in the Features table in BigQuery.
-_CALC_CAT_FEATURE_STATS_SQL_PATH = viz_utils.get_absolute_path(
-    'calc_categorical_feature_stats.sql')
-# Path to the file with sql code to extract a sample of numerical features
-# from the Features table in BigQuery.
-_EXTRACT_NUM_FEATURE_SAMPLE_SQL_PATH = viz_utils.get_absolute_path(
-    'extract_numerical_features_sample.sql')
+# Path to sql files to calculate stats from the features and label
+# in the Features table in BigQuery when the label is binary.
+_BINARY_LABEL_SQL_FILES = {
+    'calc_num_feature_stats': viz_utils.get_absolute_path(
+        'calc_num_feature_stats_binary_label.sql'),
+    'calc_cat_feature_stats': viz_utils.get_absolute_path(
+        'calc_cat_feature_stats_binary_label.sql'),
+    'extract_num_feature': viz_utils.get_absolute_path(
+        'extract_num_features_sample_binary_label.sql'),
+}
+
+# Path to sql files to calculate stats from the features and label
+# in the Features table in BigQuery when the label is numerical.
+_NUMERICAL_LABEL_SQL_FILES = {
+    'calc_num_feature_stats': viz_utils.get_absolute_path(
+        'calc_num_feature_stats_numerical_label.sql'),
+    'calc_cat_feature_stats': viz_utils.get_absolute_path(
+        'calc_cat_feature_stats_numerical_label.sql'),
+    'extract_num_feature': viz_utils.get_absolute_path(
+        'extract_num_features_sample_numerical_label.sql'),
+    'calc_num_label_stats': viz_utils.get_absolute_path(
+        'calc_num_label_stats_cat_feature.sql')
+}
 
 # Type of the label values
 LabelType = Union[str, bool, int]
@@ -96,39 +114,44 @@ class _FeaturePlotStyles:
     self.yticklabels_fontsize = yticklabels_fontsize
 
 
-def _plot_numerical_feature(
+def _plot_numerical_feature_binary_label(
     df_data: pd.DataFrame, df_data_sample: pd.DataFrame, feature_name: str,
-    positive_class_label: LabelType, negative_class_label: LabelType,
+    label_column: str, positive_class_label: LabelType,
+    negative_class_label: LabelType,
     plot_style_params: _FeaturePlotStyles) -> List[axes.Axes]:
-  """Plots the statistics of a numerical feature.
+  """Plots the statistics of a numerical feature when the label is binary.
 
-  Generates following plots:
-  - distribution of values by label
-  - average with confidence interval for positive instances by snapshot_date
-  - average with confidence interval for negative instances by snapshot_date
+  Generates following plots of the feature:
+  - distribution of values (box plots) by label.
+  - distribution of values (box plots) for positive instances by snapshot_date.
+  - distribution of values (box plots) for negative instances by snapshot_date.
 
   Args:
-    df_data: data to plot containing snapshot_date, label, record_count,
-      prop_missing, prop_non_num, average and stddev columns.
-    df_data_sample: data to plot containing columns corresponding to features
+    df_data: Plot data containing the following columns: snapshot_date, feature,
+      label, record_count, prop_missing, prop_non_num, mean, stddev, med, q1,
+      q3, whislo and whishi.
+    df_data_sample: Plot data containing containing following columns: feature
       and label.
     feature_name: Name of the feature.
-    positive_class_label: label for positive class
-    negative_class_label: label for negative class
+    label_column: Name of the label column.
+    positive_class_label: label for positive class.
+    negative_class_label: label for negative class.
     plot_style_params: Plot style parameters.
 
   Returns:
-    plots: A list of Axes containing 4 plots.
+    plots: A list of Axes containing 3 plots.
   """
 
   logging.info('Plotting numerical feature %s', feature_name)
   _, plots = pyplot.subplots(
-      nrows=_NUMERICAL_ROWS_IN_SUBPLOTS_GRID,
-      ncols=_NUMERICAL_COLS_IN_SUBPLOTS_GRID,
+      nrows=_NO_PLOTS_NUM_FEATURE_BINARY_LABEL,
+      ncols=_COLS_IN_SUBPLOTS_GRID,
       figsize=(plot_style_params.fig_width, plot_style_params.fig_height))
 
-  # Plot class conditional distribution of the feature
-  plot_data = df_data_sample.pivot(columns='label', values=feature_name)
+  # Plot class conditional distribution of the feature (box plots)
+  plot_data = df_data_sample.pivot(columns=label_column, values=feature_name)
+
+  logging.info('Plotting class-conditional feature distribution.')
   box_plot = plot_data.plot.box(ax=plots[0], vert=False, grid=True)
   box_plot.yaxis.grid(True, linestyle='dashed')
   box_plot.set_title(
@@ -143,108 +166,178 @@ def _plot_numerical_feature(
   box_plot.tick_params(
       axis='y', which='both', labelsize=plot_style_params.yticklabels_fontsize)
 
-  df_data = df_data.sort_values(by='snapshot_date', ascending=True)
-  # Calculate 95% confidence intervals to plot error bars
-  # indicating estimated range of values for average.
-  df_data.loc[:, 'ci'] = (1.96 * df_data['stddev'] /
-                          np.sqrt(df_data['record_count']))
-
-  # Daily Average of feature per Snapshot for positive label
-  pos_data = df_data[df_data['label'] == positive_class_label]
-
-  common_lineplot_params = {
+  # Plot snapshot-level distribution of the feature (box plots)
+  snapshot_box_plot_common_params = {
+      'x_variable': 'snapshot_date',
       'axes': plots,
       'title_fontsize': plot_style_params.title_fontsize,
       'xlabel_fontsize': plot_style_params.xlabel_fontsize,
       'ylabel_fontsize': plot_style_params.ylabel_fontsize,
       'xticklabels_fontsize': plot_style_params.xticklabels_fontsize,
-      'yticklabels_fontsize': plot_style_params.yticklabels_fontsize
+      'yticklabels_fontsize': plot_style_params.yticklabels_fontsize,
+      'xticklabels_rotation': 45
   }
-  title_text = 'Daily Average per Snapshot for label'
 
-  viz_utils.plot_line(
-      plot_data=pos_data,
-      x_variable='snapshot_date',
-      y_variable='average',
-      line_color='limegreen',
-      title=f'[{feature_name}] | {title_text} = {positive_class_label}',
+  # For positive instances
+  pos_instance_stats = df_data[df_data[label_column] == positive_class_label]
+  pos_instance_stats = pos_instance_stats.sort_values('snapshot_date')
+
+  pos_plot_title = (f'Snapshot-level distribution of [{feature_name}] for '
+                    f'label = {positive_class_label}')
+  logging.info(
+      'Plotting snapshot-level feature distribution for positive instances.')
+  viz_utils.plot_box(
+      plot_data=pos_instance_stats,
+      title=pos_plot_title,
       subplot_index=1,
-      **common_lineplot_params)
+      **snapshot_box_plot_common_params)
 
-  # Adding error bars to subplot.
-  plots[1].errorbar(
-      x=pos_data['snapshot_date'],
-      y=pos_data['average'],
-      yerr=pos_data['ci'],
-      ecolor='limegreen',
-      linestyle='--',
-      capsize=5,
-      alpha=0.5)
+  # For negative instances
+  neg_instance_stats = df_data[df_data[label_column] == negative_class_label]
+  neg_instance_stats = neg_instance_stats.sort_values('snapshot_date')
 
-  # Daily Average of feature per Snapshot for negative label
-  neg_data = df_data[df_data['label'] == negative_class_label]
+  neg_plot_title = (f'Snapshot-level distribution of [{feature_name}] for '
+                    f'label = {negative_class_label}')
 
-  viz_utils.plot_line(
-      plot_data=neg_data,
-      x_variable='snapshot_date',
-      y_variable='average',
-      line_color='cornflowerblue',
-      title=f'[{feature_name}] | {title_text} = {negative_class_label}',
+  logging.info(
+      'Plotting snapshot-level feature distribution for negative instances.')
+  viz_utils.plot_box(
+      plot_data=neg_instance_stats,
+      title=neg_plot_title,
+      x_label='Snapshot date',
       subplot_index=2,
-      **common_lineplot_params)
-
-  # Adding error bars to subplot.
-  plots[2].errorbar(
-      x=neg_data['snapshot_date'],
-      y=neg_data['average'],
-      yerr=neg_data['ci'],
-      ecolor='cornflowerblue',
-      linestyle='--',
-      capsize=5,
-      alpha=0.5)
+      **snapshot_box_plot_common_params)
 
   return plots
 
 
-def _plot_categorical_feature(
-    df_data: pd.DataFrame, feature_name: str, positive_class_label: LabelType,
-    negative_class_label: LabelType,
+def _plot_numerical_feature_numerical_label(
+    df_data: pd.DataFrame, df_data_sample: pd.DataFrame, feature_name: str,
+    label_column: str,
     plot_style_params: _FeaturePlotStyles) -> List[axes.Axes]:
-  """Plots the statistics of a categorical feature.
+  """Plots the statistics of a numerical feature when the label is numerical.
 
   Generates following plots:
-  - Snapshot distribution of proportion of values by label
-  - Proportion of values by snapshot_date for label=True
-  - Proportion of values by snapshot_date for label=True
+  - scatter plot of the feature vs label with correlation value.
+  - distribution of values (box plots) by snapshot_date.
 
   Args:
-    df_data: data to plot containing : snapshot_date, label, record_count,
-      prop_missing, prop_non_num, average, stddev columns.
+    df_data: Plot data containing the following columns: snapshot_date, feature,
+      record_count, prop_missing, prop_non_num, mean, stddev, med, q1, q3,
+      whislo and whishi.
+    df_data_sample: Plot data containing the following columns: feature and
+      label.
     feature_name: Name of the feature.
+    label_column: Name of the label column.
+    plot_style_params: Plot style parameters.
+
+  Returns:
+    plots: A list of Axes containing 2 plots.
+  """
+
+  logging.info('Plotting numerical feature %s', feature_name)
+  _, plots = pyplot.subplots(
+      nrows=_NO_PLOTS_NUM_FEATURE_NUM_LABEL,
+      ncols=_COLS_IN_SUBPLOTS_GRID,
+      figsize=(plot_style_params.fig_width, plot_style_params.fig_height))
+
+  # Cap outliers of the label
+  label_p1 = np.quantile(df_data_sample[label_column], 0.01)  # 1st percentile
+  label_p99 = np.quantile(df_data_sample[label_column], 0.99)  # 99th percentile
+  df_data_sample.loc[df_data_sample[label_column] < label_p1,
+                     label_column] = label_p1
+  df_data_sample.loc[df_data_sample[label_column] > label_p99,
+                     label_column] = label_p99
+
+  # Cap outliers of the feature
+  feature_p1 = np.quantile(df_data_sample[feature_name], 0.01)  # 1st percentile
+  feature_p99 = np.quantile(df_data_sample[feature_name], 0.99)  # 99th perc.
+  df_data_sample.loc[df_data_sample[feature_name] < feature_p1,
+                     feature_name] = feature_p1
+  df_data_sample.loc[df_data_sample[feature_name] > feature_p99,
+                     feature_name] = feature_p99
+
+  # Calculating correlation between feature and label
+  correlation = np.corrcoef(df_data_sample[label_column],
+                            df_data_sample[feature_name])[0][1]
+
+  # Scatter plot between label and and feature
+  scatter_title = (f'Scatter plot of the Label vs [{feature_name}] | '
+                   f' correlation = {round(correlation, 2)}')
+  scatter_plot = df_data_sample.plot.scatter(
+      x=feature_name, y=label_column, ax=plots[0])
+  scatter_plot.set_title(
+      label=scatter_title, fontsize=plot_style_params.title_fontsize)
+  scatter_plot.set_xlabel(
+      xlabel=feature_name, fontsize=plot_style_params.xlabel_fontsize)
+  scatter_plot.set_ylabel(
+      ylabel='Label', fontsize=plot_style_params.ylabel_fontsize)
+  scatter_plot.tick_params(
+      axis='x', which='both', labelsize=plot_style_params.xticklabels_fontsize)
+  scatter_plot.tick_params(
+      axis='y', which='both', labelsize=plot_style_params.yticklabels_fontsize)
+
+  # Plot snapshot-level feature distribution
+  logging.info('Plotting snapshot-level feature distribution.')
+  viz_utils.plot_box(
+      plot_data=df_data,
+      title=f'Snapshot-level distribution of [{feature_name}]',
+      axes=plots,
+      subplot_index=1,
+      x_variable='snapshot_date',
+      x_label='Snapshot date',
+      title_fontsize=plot_style_params.title_fontsize,
+      xlabel_fontsize=plot_style_params.xlabel_fontsize,
+      ylabel_fontsize=plot_style_params.ylabel_fontsize,
+      xticklabels_fontsize=plot_style_params.xticklabels_fontsize,
+      yticklabels_fontsize=plot_style_params.yticklabels_fontsize,
+      xticklabels_rotation=45)
+
+  return plots
+
+
+def _plot_categorical_feature_binary_label(
+    df_data: pd.DataFrame, feature_name: str, label_column: str,
+    positive_class_label: LabelType, negative_class_label: LabelType,
+    plot_style_params: _FeaturePlotStyles) -> List[axes.Axes]:
+  """Plots the statistics of a categorical feature when label is binary.
+
+  Generates following plots of the feature:
+  - distribution of values (bor plots) by label.
+  - distribution of values (stacked bor plots) for positive instances by
+      snapshot_date.
+  - distribution of values (stacked bor plots) for negative instances by
+      snapshot_date.
+
+  Args:
+    df_data: plot data containing the following columns: snapshot_date, label,
+      record_count, prop_missing, prop_non_num, average, stddev columns.
+    feature_name: Name of the feature.
+    label_column: Name of the label column.
     positive_class_label: label for positive class
     negative_class_label: label for negative class
     plot_style_params: Plot style parameters.
 
   Returns:
-     plots: A list of Axes containing 4 plots.
+     plots: A list of Axes containing 3 plots.
   """
   logging.info('Plotting categorical feature %s', feature_name)
 
   _, plots = pyplot.subplots(
-      nrows=_CATEGORICAL_ROWS_IN_SUBPLOTS_GRID,
-      ncols=_CATEGORICAL_COLS_IN_SUBPLOTS_GRID,
+      nrows=_NO_PLOTS_CAT_FEATURE_BINARY_LABEL,
+      ncols=_COLS_IN_SUBPLOTS_GRID,
       figsize=(plot_style_params.fig_width, plot_style_params.fig_height))
 
   # Aggregating dataframe on date level to get data for the category
   # distribution plot.
-  df_value_count = df_data.groupby(['label',
+  df_value_count = df_data.groupby([label_column,
                                     'value'])[['count']].sum().reset_index()
 
-  df_total_count = df_data.groupby('label')[['count']].sum().reset_index()
+  df_total_count = df_data.groupby(label_column)[['count']].sum().reset_index()
   df_total_count = df_total_count.rename(columns={'count': 'total_count'})
 
   # Joining total counts and calculating proportions.
-  df_value_proportions = df_value_count.merge(df_total_count, on='label')
+  df_value_proportions = df_value_count.merge(df_total_count, on=label_column)
   df_value_proportions['percentage'] = (
       df_value_proportions['count'] / df_value_proportions['total_count']) * 100
 
@@ -257,24 +350,25 @@ def _plot_categorical_feature(
       'yticklabels_fontsize': plot_style_params.yticklabels_fontsize
   }
 
+  # Plot distribution of the feature values by label
   viz_utils.plot_bar(
       plot_data=df_value_proportions,
       x_variable='value',
       y_variable='percentage',
-      group_variable='label',
+      group_variable=label_column,
       title=f'Distribution of [{feature_name}]',
       subplot_index=0,
       **common_barplot_params)
 
-  # Dataframe for positive instances.
-  pos_data = df_data[df_data['label'] == positive_class_label]
-  pos_data = pos_data.sort_values(['snapshot_date', 'feature'], ascending=True)
+  # Plot the snapshot-level distribution of the feature for positive instances
+  pos_instance_stats = df_data[df_data[label_column] == positive_class_label]
+  pos_instance_stats = pos_instance_stats.sort_values(
+      ['snapshot_date', 'feature'], ascending=True)
 
-  # Plot for positive instances.
-  pos_plot_title = (f'Snapshot-level Distribution of [{feature_name}] for '
-                    'label = {positive_class_label}')
+  pos_plot_title = (f'Snapshot-level distribution of [{feature_name}] for '
+                    f'label = {positive_class_label}')
   viz_utils.plot_bar(
-      plot_data=pos_data,
+      plot_data=pos_instance_stats,
       x_variable='snapshot_date',
       y_variable='percentage',
       group_variable='value',
@@ -282,18 +376,18 @@ def _plot_categorical_feature(
       title=pos_plot_title,
       subplot_index=1,
       xticklabels_rotation=45,
-      x_label='',
+      x_label='',  # to better arrange the output plots
       **common_barplot_params)
 
-  # Dataframe for negative instances.
-  neg_data = df_data[df_data['label'] == negative_class_label]
-  neg_data = neg_data.sort_values(['snapshot_date', 'feature'], ascending=True)
+  # Plot the snapshot-level distribution of the feature for negative instances
+  neg_instance_stats = df_data[df_data[label_column] == negative_class_label]
+  neg_instance_stats = neg_instance_stats.sort_values(
+      ['snapshot_date', 'feature'], ascending=True)
 
-  # Plot for negative instances.
-  neg_plot_title = (f'Snapshot-level Distribution of [{feature_name}] for '
-                    'label = {negative_class_label}')
+  neg_plot_title = (f'Snapshot-level distribution of [{feature_name}] for '
+                    f'label = {negative_class_label}')
   viz_utils.plot_bar(
-      plot_data=neg_data,
+      plot_data=neg_instance_stats,
       x_variable='snapshot_date',
       y_variable='percentage',
       group_variable='value',
@@ -307,6 +401,74 @@ def _plot_categorical_feature(
   return plots
 
 
+def _plot_categorical_feature_numerical_label(
+    label_stats_data: pd.DataFrame, feature_stats_data: pd.DataFrame,
+    feature_name: str,
+    plot_style_params: _FeaturePlotStyles) -> List[axes.Axes]:
+  """Plots the statistics of a categorical feature when label is numerical.
+
+  Generates following plots:
+  - distribution of the label (box plots) for different category values of the
+      feature.
+  - distribution of feature values (stacked bor plots) by snapshot_date.
+
+  Args:
+    label_stats_data: Plot data containing the following columns: feature,
+      value, mean, stddev, med, q1, q3, whislo and whishi.
+    feature_stats_data: Plot data containing the following columns:
+      snapshot_date, record_count, prop_missing, prop_non_num, average and
+      stddev.
+    feature_name: Name of the feature.
+    plot_style_params: Plot style parameters.
+
+  Returns:
+     plots: A list of Axes containing 2 plots.
+  """
+  logging.info('Plotting categorical feature %s', feature_name)
+
+  _, plots = pyplot.subplots(
+      nrows=_NO_PLOTS_CAT_FEATURE_NUM_LABEL,
+      ncols=_COLS_IN_SUBPLOTS_GRID,
+      figsize=(plot_style_params.fig_width, plot_style_params.fig_height))
+
+  # Plot distribution of the label by different feature values (categories)
+  logging.info('Plotting label distribution by feature category values.')
+  viz_utils.plot_box(
+      plot_data=label_stats_data,
+      title=f'Label distribution by [{feature_name}] categories',
+      axes=plots,
+      subplot_index=0,
+      x_variable='value',
+      x_label='Category value',
+      y_label='Label distribution',
+      title_fontsize=plot_style_params.title_fontsize,
+      xlabel_fontsize=plot_style_params.xlabel_fontsize,
+      ylabel_fontsize=plot_style_params.ylabel_fontsize,
+      xticklabels_fontsize=plot_style_params.xticklabels_fontsize,
+      yticklabels_fontsize=plot_style_params.yticklabels_fontsize,
+      xticklabels_rotation=0)
+
+  # Plot snapshot-level feature distribution
+  viz_utils.plot_bar(
+      plot_data=feature_stats_data,
+      x_variable='snapshot_date',
+      y_variable='percentage',
+      group_variable='value',
+      stacked_bars=True,
+      title=f'Snapshot-level distribution of [{feature_name}]',
+      subplot_index=1,
+      axes=plots,
+      title_fontsize=plot_style_params.title_fontsize,
+      xlabel_fontsize=plot_style_params.xlabel_fontsize,
+      ylabel_fontsize=plot_style_params.ylabel_fontsize,
+      xticklabels_fontsize=plot_style_params.xticklabels_fontsize,
+      yticklabels_fontsize=plot_style_params.yticklabels_fontsize,
+      xticklabels_rotation=45,
+  )
+
+  return plots
+
+
 class FeatureVisualizer(object):
   """This class provides methods to visualize the ML features.
 
@@ -314,39 +476,61 @@ class FeatureVisualizer(object):
   MLDataWindowingPipeline.
   """
 
-  def __init__(self, bq_client: bigquery.client.Client,
-               features_table_path: str, numerical_features: Sequence[str],
-               categorical_features: Sequence[str], label_column: str,
-               positive_class_label: Union[str, bool, int],
-               negative_class_label: Union[str, bool, int],
-               num_pos_instances: int, num_neg_instances: int) -> None:
+  def __init__(self,
+               bq_client: bigquery.client.Client,
+               features_table_path: str,
+               numerical_features: Sequence[str],
+               categorical_features: Sequence[str],
+               label_column: str,
+               label_type: str,
+               positive_class_label: Optional[LabelType] = None,
+               negative_class_label: Optional[LabelType] = None,
+               num_instances: Optional[int] = 1000,
+               num_pos_instances: Optional[int] = 1000,
+               num_neg_instances: Optional[int] = 1000) -> None:
     """Initialises parameters.
 
     Args:
       bq_client: Connection object to the Bigquery account.
       features_table_path: Full path to the BigQuery Features table. example:
-        'project_id.dataset.features_table
+        'project_id.dataset.features_table'.
       numerical_features: List of numerical feature names to calculate
         statistics for.
       categorical_features: List of categorical feature names to calculate
         statistics for.
       label_column: Name of the label column of the Instance table.
+      label_type: Type of the label column. Should be either 'binary' or
+        'numerical'.
       positive_class_label: Label value representing the positive class
-        instances.
+        instances. Should contain a value when the label_type is 'binary'.
       negative_class_label: Label value representing the negative class
-        instances.
+        instances. Should contain a value when the label_type is 'binary'.
+      num_instances: Number of instances to randomly select for numerical
+        feature visualization. Active when the label_type is 'numerical'.
       num_pos_instances: Number of positive instances to randomly select for
-        numerical feature visualization.
+        numerical feature visualization. Active when the label_type is 'binary'.
       num_neg_instances: Number of negative instances to randomly select for
-        numerical feature visualization.
+        numerical feature visualization. Active when the label_type is 'binary'.
     """
+    if label_type not in ['binary', 'numerical']:
+      raise ValueError("label_type should contain either 'binary' or"
+                       "'numerical' as the value")
+
+    if ((label_type == 'binary') and
+        ((positive_class_label is None) or (negative_class_label is None))):
+      raise ValueError('When the label_type is binary, positive_class_label '
+                       'and negative_class_label should contain values other '
+                       'than None')
+
     self._bq_client = bq_client
     self._features_table_path = features_table_path
     self._numerical_feature_list = list(numerical_features)
     self._categorical_feature_list = list(categorical_features)
     self._label_column = label_column
+    self._label_type = label_type
     self._positive_class_label = positive_class_label
     self._negative_class_label = negative_class_label
+    self._num_instances = num_instances
     self._num_pos_instances = num_pos_instances
     self._num_neg_instances = num_neg_instances
 
@@ -398,8 +582,14 @@ class FeatureVisualizer(object):
         'bq_features_table': self._features_table_path,
         'sql_code_segment': sql_segment
     }
-    sql_query = viz_utils.patch_sql(_CALC_NUM_FEATURE_STATS_SQL_PATH,
-                                    query_params)
+
+    sql_template_path = ''
+    if self._label_type == 'binary':
+      sql_template_path = _BINARY_LABEL_SQL_FILES['calc_num_feature_stats']
+    else:
+      sql_template_path = _NUMERICAL_LABEL_SQL_FILES['calc_num_feature_stats']
+
+    sql_query = viz_utils.patch_sql(sql_template_path, query_params)
     logging.info('Finished creating the sql code.')
 
     logging.info('Executing the sql code.')
@@ -418,17 +608,35 @@ class FeatureVisualizer(object):
     logging.info('Creating the sql code.')
     sql_segment = self._create_column_list_sql(
         self._numerical_feature_list)
+
     query_params = {
         'bq_features_table': self._features_table_path,
         'label_column': self._label_column,
-        'positive_class_label': self._positive_class_label,
-        'negative_class_label': self._negative_class_label,
-        'num_pos_instances': self._num_pos_instances,
-        'num_neg_instances': self._num_neg_instances,
         'column_list_sql': sql_segment
     }
-    sql_query = viz_utils.patch_sql(_EXTRACT_NUM_FEATURE_SAMPLE_SQL_PATH,
-                                    query_params)
+
+    sql_template_path = ''
+    if self._label_type == 'binary':
+      sql_template_path = _BINARY_LABEL_SQL_FILES['extract_num_feature']
+
+      sql_positive_class_label = self._positive_class_label
+      sql_negative_class_label = self._negative_class_label
+      if isinstance(self._positive_class_label, str):
+        sql_positive_class_label = f"'{self._positive_class_label}'"
+      if isinstance(self._negative_class_label, str):
+        sql_negative_class_label = f"'{self._negative_class_label}'"
+
+      query_params.update({
+          'positive_class_label': sql_positive_class_label,
+          'negative_class_label': sql_negative_class_label,
+          'num_pos_instances': self._num_pos_instances,
+          'num_neg_instances': self._num_neg_instances
+      })
+    else:
+      sql_template_path = _NUMERICAL_LABEL_SQL_FILES['extract_num_feature']
+      query_params.update({'num_instances': self._num_instances})
+
+    sql_query = viz_utils.patch_sql(sql_template_path, query_params)
     logging.info('Finished creating the sql code.')
 
     logging.info('Executing the sql code.')
@@ -451,8 +659,40 @@ class FeatureVisualizer(object):
         'bq_features_table': self._features_table_path,
         'sql_code_segment': sql_segment
     }
-    sql_query = viz_utils.patch_sql(_CALC_CAT_FEATURE_STATS_SQL_PATH,
-                                    query_params)
+
+    sql_template_path = ''
+    if self._label_type == 'binary':
+      sql_template_path = _BINARY_LABEL_SQL_FILES['calc_cat_feature_stats']
+    else:
+      sql_template_path = _NUMERICAL_LABEL_SQL_FILES['calc_cat_feature_stats']
+
+    sql_query = viz_utils.patch_sql(sql_template_path, query_params)
+    logging.info('Finished creating the sql code.')
+
+    logging.info('Executing the sql code.')
+    results = viz_utils.execute_sql(self._bq_client, sql_query)
+    logging.info('Finished executing the sql code.')
+
+    return results
+
+  def _calc_label_stats_cat_feature(self) -> pd.DataFrame:
+    """Calculates the statistics for label by categorical feature values.
+
+    Returns:
+      results: Calculated statistics.
+    """
+    logging.info('Calculating statistics from label.')
+    logging.info('Creating the sql code.')
+    sql_segment = self._create_struct_column_list_sql(
+        self._categorical_feature_list)
+    query_params = {
+        'bq_features_table': self._features_table_path,
+        'label_column': self._label_column,
+        'sql_code_segment': sql_segment
+    }
+
+    sql_query = viz_utils.patch_sql(
+        _NUMERICAL_LABEL_SQL_FILES['calc_num_label_stats'], query_params)
     logging.info('Finished creating the sql code.')
 
     logging.info('Executing the sql code.')
@@ -501,11 +741,8 @@ class FeatureVisualizer(object):
     numerical_feature_stats = self._calc_numerical_feature_stats()
     numerical_feature_sample = self._extract_numerical_feature_sample()
     categorical_feature_stats = self._calc_categorical_feature_stats()
-
-    numerical_feature_stats.loc[:, 'snapshot_date'] = pd.to_datetime(
-        numerical_feature_stats['snapshot_date']).dt.date.astype(str)
-    categorical_feature_stats.loc[:, 'snapshot_date'] = pd.to_datetime(
-        categorical_feature_stats['snapshot_date']).dt.date.astype(str)
+    if self._label_type == 'numerical':
+      label_stats_cat_feature = self._calc_label_stats_cat_feature()
 
     all_plots = []
 
@@ -513,22 +750,40 @@ class FeatureVisualizer(object):
     for feature_name in self._numerical_feature_list:
       num_plot_data = numerical_feature_stats[numerical_feature_stats['feature']
                                               == feature_name]
-      cols = [feature_name, 'label']
+      cols = [feature_name, self._label_column]
       num_plot_data_sample = numerical_feature_sample[cols]
-      all_plots.append(
-          _plot_numerical_feature(num_plot_data, num_plot_data_sample,
-                                  feature_name, self._positive_class_label,
-                                  self._negative_class_label,
-                                  plot_style_params))
+      if self._label_type == 'binary':
+        all_plots.append(
+            _plot_numerical_feature_binary_label(
+                num_plot_data, num_plot_data_sample, feature_name,
+                self._label_column, self._positive_class_label,
+                self._negative_class_label, plot_style_params))
+      else:
+        all_plots.append(
+            _plot_numerical_feature_numerical_label(num_plot_data,
+                                                    num_plot_data_sample,
+                                                    feature_name,
+                                                    self._label_column,
+                                                    plot_style_params))
 
     logging.info('Plotting categorical features.')
     for feature_name in self._categorical_feature_list:
       cat_plot_data = categorical_feature_stats[
           categorical_feature_stats['feature'] == feature_name]
-      all_plots.append(
-          _plot_categorical_feature(cat_plot_data, feature_name,
-                                    self._positive_class_label,
-                                    self._negative_class_label,
-                                    plot_style_params))
+      if self._label_type == 'binary':
+        all_plots.append(
+            _plot_categorical_feature_binary_label(cat_plot_data, feature_name,
+                                                   self._label_column,
+                                                   self._positive_class_label,
+                                                   self._negative_class_label,
+                                                   plot_style_params))
+      else:
+        label_stats_data = label_stats_cat_feature[
+            label_stats_cat_feature['feature'] == feature_name]
+        all_plots.append(
+            _plot_categorical_feature_numerical_label(label_stats_data,
+                                                      cat_plot_data,
+                                                      feature_name,
+                                                      plot_style_params))
 
     return all_plots

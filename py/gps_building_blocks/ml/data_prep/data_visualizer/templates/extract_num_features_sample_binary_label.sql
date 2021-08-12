@@ -18,35 +18,38 @@
 -- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects the following parameters:
--- `bq_features_table`: Full path to the Features Table in BigQuery. Ex: project.dataset.table.
--- 'num_pos_instances': Number of rows randomly selected from the positive instances where
+-- bq_features_table: Full path to the Features Table in BigQuery. Ex: project.dataset.table.
+-- label_column: Name of the label column.
+-- positive_class_label: Label value for the positive class.
+-- negative_class_label: Label value for the negative class.
+-- num_pos_instances: Number of rows randomly selected from the positive instances where
 --    hasPositiveLabel column has value 'True'.
--- 'num_neg_instances': Number of rows randomly selected from the negative instances where
+-- num_neg_instances: Number of rows randomly selected from the negative instances where
 --    hasPositiveLabel column has value 'False'.
--- `column_list_sql`: An SQL code segment containing a comma separated list of column names.
+-- column_list_sql: An SQL code segment containing a comma separated list of column names.
 --  Ex: colum_1, column_2, ...
 WITH
   PositiveExamples AS (
     SELECT
       {column_list_sql},
-      label
+      {label_column}
     FROM `{bq_features_table}`
     WHERE
       label = true
       AND RAND() < {num_pos_instances} / (SELECT COUNT(*)
                                           FROM `{bq_features_table}`
-                                          WHERE label = true)
+                                          WHERE {label_column} = {positive_class_label})
   ),
   NegativeExamples AS (
     SELECT
       {column_list_sql},
-      label
+      {label_column}
     FROM `{bq_features_table}`
     WHERE
       label = false
       AND RAND() < {num_neg_instances} / (SELECT COUNT(*)
                                         FROM `{bq_features_table}`
-                                        WHERE label = false)
+                                        WHERE {label_column} = {negative_class_label})
   ),
   PositiveAndNegativeExamples AS (
     SELECT *

@@ -12,9 +12,9 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- Calculate statistics for categorical features in the Features table in BigQuery.
--- Features table is created by the
--- FeaturesPipeline of the MLWindowingPipeline tool. For more info:
+-- Calculate statistics for categorical features in the Features table in BigQuery at the snapshot
+-- date level when the label is numerical.
+-- Features table is created by the FeaturesPipeline of the MLWindowingPipeline tool. For more info:
 -- https://github.com/google/gps_building_blocks/tree/master/py/gps_building_blocks/ml/data_prep/ml_windowing_pipeline
 --
 -- Query expects following parameters:
@@ -26,7 +26,6 @@ WITH
     SELECT
       user_id,
       snapshot_ts AS snapshot_date,
-      label,
       [
           {sql_code_segment}
       ] AS feature_data
@@ -37,7 +36,6 @@ WITH
     SELECT
       user_id,
       snapshot_date,
-      label,
       feature_data
     FROM
       FeatureStructTable
@@ -49,34 +47,28 @@ WITH
       snapshot_date AS snapshot_date,
       feature_data.feature,
       feature_data.value,
-      label,
       COUNT(*) AS count
     FROM
       FeatureLongTable
     GROUP BY
       snapshot_date,
       feature,
-      label,
-      value
-      ),
+      value),
   TotalCountTable AS (
   SELECT
     snapshot_date AS snapshot_date,
     feature_data.feature,
-    label,
     COUNT(*) AS total
   FROM
     FeatureLongTable
   GROUP BY
     snapshot_date,
-    feature,
-    label ),
+    feature),
   DateValueAndTotalCountTable AS (
   SELECT
     DateValueCountTable.snapshot_date,
     DateValueCountTable.feature,
     DateValueCountTable.value,
-    DateValueCountTable.label,
     DateValueCountTable.count,
     TotalCountTable.total
   FROM
@@ -85,8 +77,7 @@ WITH
     TotalCountTable
   ON
     DateValueCountTable.snapshot_date = TotalCountTable.snapshot_date
-    AND DateValueCountTable.feature = TotalCountTable.feature
-    AND DateValueCountTable.label = TotalCountTable.label )
+    AND DateValueCountTable.feature = TotalCountTable.feature)
 SELECT
   *,
   SAFE_DIVIDE(count, total) * 100 AS percentage
