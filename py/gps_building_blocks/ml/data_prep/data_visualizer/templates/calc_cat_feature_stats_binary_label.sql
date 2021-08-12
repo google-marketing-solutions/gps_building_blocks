@@ -25,7 +25,7 @@ WITH
   FeatureStructTable AS (
     SELECT
       user_id,
-      snapshot_ts AS snapshot_date,
+      DATE(snapshot_ts) AS snapshot_date,
       label,
       [
           {sql_code_segment}
