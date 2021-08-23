@@ -17,6 +17,7 @@
 import copy
 import functools
 import operator
+import textwrap
 from typing import Iterable, Iterator, List, Optional, Text, Tuple, Union
 import warnings
 
@@ -72,6 +73,19 @@ class LowVarianceError(InferenceDataError):
 
 
 class LowVarianceWarning(InferenceDataWarning):
+  pass
+
+
+class SingluarDataError(InferenceDataError):
+  """Error associated with the address_collinearity_with_vif() method.
+
+  This error is raised when the dataset has a singular or nearly singular
+  correlation matrix. The solution is to reduce the condition number of the
+  correlation matrix, usually by dropping one or more problematic columns from
+  the input dataset. See the docstring for
+  InferenceData.address_collinearity_with_vif() for more details.
+  """
+
   pass
 
 
@@ -551,6 +565,54 @@ class InferenceData():
 
     return correlated_features
 
+  def _generate_vif_error_message(self,
+                                  trimmed_corr_matrix: pd.DataFrame) -> str:
+    """Generates error message for VIF when the correlation matrix is singular.
+
+    Depending on whether the correlation matrix is perfectly singular or just
+    nearly singular, the exception raised by vif.calculate_vif() will either be
+    a SingularDataError or an IllConditionedDataError.
+
+    This function is intended to run in a try/except clause, and should work for
+    either of those two types of exception. It generates an informative error
+    message for the user, to help them troubleshoot this problem.
+
+    Args:
+      trimmed_corr_matrix: correlation matrix for the inference data, but
+        trimmed to remove columns and rows corresponding to features which have
+        been dropped during the address_collinearity_with_vif() process.
+
+    Returns:
+      message: error message to display.
+    """
+    upper_triangle_corrs = np.triu(trimmed_corr_matrix, k=1)
+    sorted_indices = np.unravel_index(
+        np.argsort(np.abs(upper_triangle_corrs), axis=None),
+        upper_triangle_corrs.shape)
+    message = textwrap.dedent("""\
+        ERROR: Inference Data has a singular or nearly singular correlation matrix.
+        This could be caused by extremely correlated columns;
+        the three pairs of columns with the highest absolute correlation coefficients are:
+        """)
+    for i in range(3):
+      col1 = trimmed_corr_matrix.columns[sorted_indices[0][-1 - i]]
+      col2 = trimmed_corr_matrix.columns[sorted_indices[1][-1 - i]]
+      corr = trimmed_corr_matrix.iloc[sorted_indices[0][-1 - i],
+                                      sorted_indices[1][-1 - i]]
+      message += (f'{i+1}.: ({col1}, {col2}) -- '
+                  f'correlation coefficient = {corr :0.3f} \n')
+
+    if not self._checked_low_variance:
+      message += ('This could also be caused by columns with extremiely low '
+                  'variance. Recommend running the address_low_variance() '
+                  'method before VIF.\n')
+    message += ('Alternatively, consider running '
+                'address_collinearity_with_vif() with '
+                'use_correlation_matrix_inversion=False to avoid this error.')
+    # TODO(): add logic or a wrapper function to handle these errors
+    # by adding noise iteratively
+    return message
+
   def address_collinearity_with_vif(
       self,
       vif_threshold: int = 10,
@@ -606,12 +668,20 @@ class InferenceData():
     while True:
       tmp_data = covariates.drop(columns=columns_to_drop)
 
-      vif_data = vif.calculate_vif(
-          tmp_data,
-          sort=True,
-          use_correlation_matrix_inversion=use_correlation_matrix_inversion,
-          corr_matrix=corr_matrix.drop(columns_to_drop,
-                                       axis=0).drop(columns_to_drop, axis=1))
+      trimmed_corr_matrix = corr_matrix.drop(
+          columns_to_drop, axis=0).drop(
+              columns_to_drop, axis=1)
+      try:
+        vif_data = vif.calculate_vif(
+            tmp_data,
+            sort=True,
+            use_correlation_matrix_inversion=use_correlation_matrix_inversion,
+            raise_on_ill_conditioned=True,
+            corr_matrix=trimmed_corr_matrix)
+      except (vif.SingularDataError, vif.IllConditionedDataError):
+        message = self._generate_vif_error_message(trimmed_corr_matrix)
+        raise SingluarDataError(message)
+
       if max(vif_data['VIF']) < vif_threshold:
         break
 

@@ -126,6 +126,63 @@ class InferenceTest(parameterized.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result)
 
+  def test_vif_raises_error_on_singular_correlation_matrix(self):
+    singular_correlation_matrix_df = pd.DataFrame(
+        data=[[1.1, 2.1, 3.1, 4.1, 1.0],
+              [1.0, 2.0, 3.0, 4.0, 1.0],
+              [1.0, 2.0, 3.0, 4.0, 1.0],
+              [1.0, 2.0, 3.0, 4.0, 1.0]],
+        columns=['control', 'variable_1', 'variable_2', 'variable_3',
+                 'outcome'])
+    inference_data = data_preparation.InferenceData(
+        singular_correlation_matrix_df, target_column='outcome')
+
+    with self.assertRaises(data_preparation.SingluarDataError):
+      inference_data.address_collinearity_with_vif()
+
+  def test_vif_raises_error_on_ill_conditioned_correlation_matrix(self):
+    ill_conditioned_correlation_matrix_df = pd.DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0, 1.0],
+              [0.0, 2.0, 0.0, 1.0, 1.0],
+              [1.0, 1.0, 2.0, 5.0, 1.0],
+              [0.0, 2.0, 3.0, 0.0, 1.0]],
+        columns=['control', 'variable_1', 'variable_2', 'variable_3',
+                 'outcome'])
+    inference_data = data_preparation.InferenceData(
+        ill_conditioned_correlation_matrix_df, target_column='outcome')
+
+    with self.assertRaises(data_preparation.SingluarDataError):
+      inference_data.address_collinearity_with_vif()
+
+  def test_vif_error_has_correct_message(self):
+    ill_conditioned_correlation_matrix_df = pd.DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0, 1.0],
+              [0.0, 2.0, 0.0, 1.0, 1.0],
+              [1.0, 1.0, 2.0, 5.0, 1.0],
+              [0.0, 2.0, 3.0, 0.0, 1.0]],
+        columns=['control', 'variable_1', 'variable_2', 'variable_3',
+                 'outcome'])
+    inference_data = data_preparation.InferenceData(
+        ill_conditioned_correlation_matrix_df, target_column='outcome')
+
+    # note that parentheses here are replaced with . due to regex parsing rules
+    expected_message = (
+        'ERROR: Inference Data has a singular or nearly singular correlation '
+        'matrix.\nThis could be caused by extremely correlated columns;\nthe '
+        'three pairs of columns with the highest absolute correlation '
+        'coefficients are:\n1.: .control, variable_3. -- correlation '
+        'coefficient = 0.970 \n2.: .variable_1, variable_3. -- correlation '
+        'coefficient = -0.700 \n3.: .control, variable_1. -- correlation '
+        'coefficient = -0.577 \nThis could also be caused by columns with '
+        'extremiely low variance. Recommend running the address_low_variance.. '
+        'method before VIF.\nAlternatively, consider running '
+        'address_collinearity_with_vif.. with '
+        'use_correlation_matrix_inversion=False to avoid this error.'
+    )
+    with self.assertRaisesRegex(data_preparation.SingluarDataError,
+                                expected_message):
+      inference_data.address_collinearity_with_vif()
+
   @parameterized.named_parameters({
       'testcase_name': 'scale_10',
       'scaling': 10,
