@@ -252,7 +252,7 @@ def regression_bootstrap(
   regr_iterate_partial = functools.partial(
       regression_iterate, regressor, data, target,
       sample_frac, replacement, randomize_target)
-  cpu_count = multiprocessing.cpu_count()
+  cpu_count = multiprocessing.cpu_count()  # pytype: disable=unsupported-operands
   n_jobs = max(1, min(cpu_count + n_jobs if n_jobs < 0 else n_jobs, cpu_count))
 
   if n_jobs == 1:
