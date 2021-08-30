@@ -253,7 +253,7 @@ def regression_bootstrap(
       regression_iterate, regressor, data, target,
       sample_frac, replacement, randomize_target)
   cpu_count = multiprocessing.cpu_count()  # pytype: disable=unsupported-operands
-  n_jobs = max(1, min(cpu_count + n_jobs if n_jobs < 0 else n_jobs, cpu_count))
+  n_jobs = max(1, min(cpu_count + n_jobs if n_jobs < 0 else n_jobs, cpu_count))  # pytype: disable=unsupported-operands
 
   if n_jobs == 1:
     iterator = map(regr_iterate_partial, range(bootstraps))
