@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for gps_building_blocks.cloud.utils.bigquery."""
+from google.api_core import exceptions
 from google.auth import credentials
 from google.cloud import bigquery
 
@@ -32,6 +33,10 @@ class BigQueryTest(parameterized.TestCase):
     # Mock for google.cloud.bigquery.Client object
     self.mock_client = mock.patch.object(
         bigquery, 'Client', autospec=True).start()
+    self.mock_dataset = mock.patch.object(
+        bigquery, 'Dataset', autospec=True).start()
+    self.mock_dataset_ref = mock.patch.object(
+        bigquery, 'DatasetReference', autospec=True).start()
     self.mock_get_credentials = mock.patch.object(
         cloud_auth, 'get_default_credentials', autospec=True).start()
     self.mock_credentials = mock.Mock(credentials.Credentials, autospec=True)
@@ -78,6 +83,24 @@ class BigQueryTest(parameterized.TestCase):
     with self.assertRaises(ValueError):
       table_name = 'project.dataset.table'
       self.bigquery_client.insert_rows(table_name, [])
+
+  def test_create_dataset_creates_new_dataset_in_the_project(self):
+    dataset_name = 'test_dataset'
+    expected_arg = bigquery.Dataset(
+        bigquery.DatasetReference(self.project_id, dataset_name))
+
+    self.bigquery_client.create_dataset(dataset_name)
+    self.mock_client.return_value.create_dataset.assert_called_once_with(
+        expected_arg, timeout=30)
+
+  def test_create_dataset_raises_valueerror_if_dataset_exists(self):
+    dataset_name = 'test_dataset'
+    self.mock_client.return_value.create_dataset.side_effect = [
+        exceptions.Conflict('Dataset %s exists.', dataset_name)
+    ]
+    with self.assertRaises(ValueError):
+      self.bigquery_client.create_dataset(dataset_name, fail_if_exists=True)
+
 
 if __name__ == '__main__':
   absltest.main()

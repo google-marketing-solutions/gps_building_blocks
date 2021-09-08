@@ -19,6 +19,7 @@ import sys
 import time
 from typing import Any, Optional, Sequence
 
+from google.api_core import exceptions
 from google.cloud import bigquery
 from gps_building_blocks.cloud.utils import cloud_auth
 
@@ -65,6 +66,7 @@ class BigQueryUtils:
                    'name was provided, so using default credentials.')
       credentials = cloud_auth.get_default_credentials()
 
+    self.project_id = project_id
     self.client = bigquery.Client(project=project_id, credentials=credentials)
 
   def run_query(self, query: str) -> bigquery.table.RowIterator:
@@ -109,3 +111,30 @@ class BigQueryUtils:
       raise ValueError('There are no rows to be inserted.')
 
     return self.client.insert_rows(table, rows)
+
+  def create_dataset(self,
+                     dataset_name: str,
+                     location: str = 'US',
+                     fail_if_exists: bool = False) -> None:
+    """Creates new Dataset in the BigQuery project.
+
+    Args:
+      dataset_name: Name of the dataset.
+      location: Geographic location where the dataset should reside.
+      fail_if_exists: If dataset exists exceptions.Conflict is raised.
+
+    Raises:
+      ValueError if dataset with the same name exists in the project.
+    """
+    dataset_ref = bigquery.DatasetReference(self.project_id, dataset_name)
+    dataset = bigquery.Dataset(dataset_ref)
+    dataset.location = location
+    try:
+      self.client.create_dataset(dataset, timeout=30)
+      logging.info('Dataset "%s" has been created.', dataset.dataset_id)
+    except exceptions.Conflict as error:
+      if fail_if_exists:
+        raise ValueError(error)
+      else:
+        logging.info('Dataset "%s" already exists. Provide new dataset name.',
+                     dataset.dataset_id)
