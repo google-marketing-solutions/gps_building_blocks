@@ -137,7 +137,7 @@ class InferenceTest(parameterized.TestCase):
     inference_data = data_preparation.InferenceData(
         singular_correlation_matrix_df, target_column='outcome')
 
-    with self.assertRaises(data_preparation.SingluarDataError):
+    with self.assertRaises(data_preparation.SingularDataError):
       inference_data.address_collinearity_with_vif()
 
   def test_vif_raises_error_on_ill_conditioned_correlation_matrix(self):
@@ -151,7 +151,7 @@ class InferenceTest(parameterized.TestCase):
     inference_data = data_preparation.InferenceData(
         ill_conditioned_correlation_matrix_df, target_column='outcome')
 
-    with self.assertRaises(data_preparation.SingluarDataError):
+    with self.assertRaises(data_preparation.SingularDataError):
       inference_data.address_collinearity_with_vif()
 
   def test_vif_error_has_correct_message(self):
@@ -165,22 +165,19 @@ class InferenceTest(parameterized.TestCase):
     inference_data = data_preparation.InferenceData(
         ill_conditioned_correlation_matrix_df, target_column='outcome')
 
-    # note that parentheses here are replaced with . due to regex parsing rules
     expected_message = (
-        'ERROR: Inference Data has a singular or nearly singular correlation '
-        'matrix.\nThis could be caused by extremely correlated columns;\nthe '
-        'three pairs of columns with the highest absolute correlation '
-        'coefficients are:\n1.: .control, variable_3. -- correlation '
-        'coefficient = 0.970 \n2.: .variable_1, variable_3. -- correlation '
-        'coefficient = -0.700 \n3.: .control, variable_1. -- correlation '
-        'coefficient = -0.577 \nThis could also be caused by columns with '
-        'extremiely low variance. Recommend running the address_low_variance.. '
-        'method before VIF.\nAlternatively, consider running '
-        'address_collinearity_with_vif.. with '
+        'Inference Data has a singular or nearly singular correlation matrix. '
+        'This could be caused by extremely correlated or collinear columns. '
+        'The three pairs of columns with the highest absolute correlation '
+        'coefficients are: (control,variable_3): 0.970, (variable_1,variable_3)'
+        ': -0.700, (control,variable_1): -0.577. This could also be caused by '
+        'columns with extremiely low variance. Recommend running the '
+        'address_low_variance() method before VIF. Alternatively, consider '
+        'running address_collinearity_with_vif() with '
         'use_correlation_matrix_inversion=False to avoid this error.'
     )
-    with self.assertRaisesRegex(data_preparation.SingluarDataError,
-                                expected_message):
+    with self.assertRaises(
+        data_preparation.SingularDataError, msg=expected_message):
       inference_data.address_collinearity_with_vif()
 
   @parameterized.named_parameters({

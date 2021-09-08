@@ -17,7 +17,6 @@
 import copy
 import functools
 import operator
-import textwrap
 from typing import Iterable, Iterator, List, Optional, Text, Tuple, Union
 import warnings
 
@@ -76,7 +75,7 @@ class LowVarianceWarning(InferenceDataWarning):
   pass
 
 
-class SingluarDataError(InferenceDataError):
+class SingularDataError(InferenceDataError):
   """Error associated with the address_collinearity_with_vif() method.
 
   This error is raised when the dataset has a singular or nearly singular
@@ -578,7 +577,7 @@ class InferenceData():
     message for the user, to help them troubleshoot this problem.
 
     Args:
-      trimmed_corr_matrix: correlation matrix for the inference data, but
+      trimmed_corr_matrix: Correlation matrix for the inference data, but
         trimmed to remove columns and rows corresponding to features which have
         been dropped during the address_collinearity_with_vif() process.
 
@@ -589,29 +588,31 @@ class InferenceData():
     sorted_indices = np.unravel_index(
         np.argsort(np.abs(upper_triangle_corrs), axis=None),
         upper_triangle_corrs.shape)
-    message = textwrap.dedent("""\
-        ERROR: Inference Data has a singular or nearly singular correlation matrix.
-        This could be caused by extremely correlated columns;
-        the three pairs of columns with the highest absolute correlation coefficients are:
-        """)
+    message_parts = [(
+        'Inference Data has a singular or nearly singular correlation matrix. '
+        'This could be caused by extremely correlated or collinear columns. '
+        'The three pairs of columns with the highest absolute correlation '
+        'coefficients are: ')]
+    top3_pairs = []
     for i in range(3):
       col1 = trimmed_corr_matrix.columns[sorted_indices[0][-1 - i]]
       col2 = trimmed_corr_matrix.columns[sorted_indices[1][-1 - i]]
       corr = trimmed_corr_matrix.iloc[sorted_indices[0][-1 - i],
                                       sorted_indices[1][-1 - i]]
-      message += (f'{i+1}.: ({col1}, {col2}) -- '
-                  f'correlation coefficient = {corr :0.3f} \n')
+      top3_pairs.append(f'({col1},{col2}): {corr:0.3f}')
+
+    message_parts.append(', '.join(top3_pairs) + '. ')
 
     if not self._checked_low_variance:
-      message += ('This could also be caused by columns with extremiely low '
-                  'variance. Recommend running the address_low_variance() '
-                  'method before VIF.\n')
-    message += ('Alternatively, consider running '
-                'address_collinearity_with_vif() with '
-                'use_correlation_matrix_inversion=False to avoid this error.')
+      message_parts.append(
+          'This could also be caused by columns with extremiely low variance. '
+          'Recommend running the address_low_variance() method before VIF. ')
+    message_parts.append(
+        'Alternatively, consider running address_collinearity_with_vif() with '
+        'use_correlation_matrix_inversion=False to avoid this error.')
     # TODO(): add logic or a wrapper function to handle these errors
     # by adding noise iteratively
-    return message
+    return ''.join(message_parts)
 
   def address_collinearity_with_vif(
       self,
@@ -680,7 +681,7 @@ class InferenceData():
             corr_matrix=trimmed_corr_matrix)
       except (vif.SingularDataError, vif.IllConditionedDataError):
         message = self._generate_vif_error_message(trimmed_corr_matrix)
-        raise SingluarDataError(message)
+        raise SingularDataError(message)
 
       if max(vif_data['VIF']) < vif_threshold:
         break
