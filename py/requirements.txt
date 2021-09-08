@@ -31,8 +31,9 @@ pandas_gbq==0.14.1
 parameterized==0.8.1
 plotly==4.14.3
 requests==2.23.0
-seaborn==0.11.1
 scipy==1.2.1
+seaborn==0.11.1
+setuptools==58.0.0
 six==1.15.0
 sklearn==0.0.0
 sqlparse>=0.4.1
