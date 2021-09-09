@@ -64,20 +64,20 @@ ab_testing_design.calc_chisquared_sample_sizes_for_bins(
     labels=prediction_df['label'].values)
     probability_predictions=prediction_df['predictions'].values),
     number_bins=3,
-    uplift_percentages=(5, 10, 15),
-    power_percentages=(80, 90),
-    confidence_level_percentages=(90, 95))
+    uplift_percentages=[5, 10, 15],
+    power_percentages=[80, 90],
+    confidence_level_percentages=[90, 95])
 ```
 
 **Expected output:** a Pandas Dataframe with the following columns containing
 statistical sample size for each bin for each combination of uplift_percentage,
 statistical power and statistical confidence level.
 
-| bin_number | bin_size | conv_rate_percentage | uplift_percentage | power_percentage | confidence_level_percentage | sample_size |
-|------------|----------|----------------------|-------------------|------------------|-----------------------------|-------------|
-| 1          | 25000    | 10                   |  5                | 80               | 90                          | 22257       |
-| 1          | 25000    | 10                   | 10                | 80               | 90                          |  5565       |
-| 1          | 25000    | 10                   | 15                | 80               | 90                          |  2473       |
+| bin_number | bin_size | min_probability | conv_rate_percentage | uplift_percentage | power_percentage | confidence_level_percentage | required_sample_size |
+|------------|----------|-----------------|----------------------|-------------------|------------------|-----------------------------|----------------------|
+| 1          | 25000    | 0.235           | 20.1                 |  5                | 80               | 90                          | 22257                |
+| 1          | 25000    | 0.235           | 20.1                 | 10                | 80               | 90                          |  5565                |
+| 1          | 25000    | 0.235           | 20.1                 | 15                | 80               | 90                          |  2473                |
 ...
 
 ### Calculate Statistical Sample Size for the Top X% of Predicted Probabilities
@@ -103,21 +103,21 @@ ab_testing_design.calc_chisquared_sample_sizes_for_cumulative_bins(
     labels=prediction_df['label'].values)
     probability_predictions=prediction_df['predictions'].values),
     number_bins=10,
-    uplift_percentages=(5, 10, 15),
-    power_percentages=(80, 90),
-    confidence_level_percentages=(90, 95))
+    uplift_percentages=[5, 10, 15],
+    power_percentages=[80, 90],
+    confidence_level_percentages=[90, 95])
 ```
 
 **Expected output:** a Pandas Dataframe with the following columns containing
 statistical sample size for each cumulative bin for each combination of
 uplift_percentage, statistical power and statistical confidence level.
 
-| cumulative_bin_number | bin_size | bin_size_percentage | conv_rate_percentage | uplift_percentage | power_percentage | confidence_level_percentage | sample_size |
-|-----------------------|----------|---------------------|----------------------|-------------------|------------------|-----------------------------|-------------|
-| 1                     | 25000    | 10                  | 10                   |  5                | 80               | 90                          | 22257       |
-| 1                     | 25000    | 10                  | 10                   | 10                | 80               | 90                          |  5565       |
-| ...                   | ...      | ...                 | ...                  | ...               | ...              | ...                         | ...         |
-| 2                     | 50000    | 20                  |  7                   |  5                | 80               | 90                          | 32855       |
+| cumulative_bin_number | bin_size | bin_size_percentage | min_probability | conv_rate_percentage | uplift_percentage | power_percentage | confidence_level_percentage | required_sample_size |
+|-----------------------|----------|---------------------|-----------------|----------------------|-------------------|------------------|-----------------------------|----------------------|
+| 1                     | 25000    | 10                  | 0.235           | 20.1                 |  5                | 80               | 90                          | 22257                |
+| 1                     | 25000    | 10                  | 0.183           | 20.1                 | 10                | 80               | 90                          |  5565                |
+| ...                   | ...      | ...                 | ...             | ...                  | ...               | ...              | ...                         | ...                  |
+| 2                     | 50000    | 20                  | 18.5            | 17.8                 |  5                | 80               | 90                          | 32855                |
 ...
 
 ### Performs Chi-squared Statistical Significance Test

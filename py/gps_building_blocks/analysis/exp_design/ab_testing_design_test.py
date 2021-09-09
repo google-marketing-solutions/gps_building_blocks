@@ -46,21 +46,23 @@ class ABTestingExperimentalDesignTest(absltest.TestCase):
 
   def test_calc_chisquared_sample_sizes_for_bins_returns_correct_values(self):
     results = ab_testing_design.calc_chisquared_sample_sizes_for_bins(
-        labels=LABELS, probability_predictions=PREDICTIONS, number_bins=3)
+        labels=LABELS, probability_predictions=PREDICTIONS, number_bins=3,
+        uplift_percentages=[10, 20],
+        power_percentages=[80, 90],
+        confidence_level_percentages=[90, 95])
 
-    self.assertEqual(results.shape, (24, 7))
+    self.assertEqual(results.shape, (24, 8))
     self.assertListEqual(
         list(results.columns), [
-            'bin_number', 'bin_size', 'conv_rate_percentage',
+            'bin_number', 'bin_size', 'min_probability', 'conv_rate_percentage',
             'uplift_percentage', 'power_percentage',
-            'confidence_level_percentage', 'sample_size'
+            'confidence_level_percentage', 'required_sample_size'
         ])
     self.assertListEqual(
-        list(results['sample_size']), [
-            248.0, 314.0, 343.0, 421.0, 62.0, 79.0, 86.0, 106.0, 928.0, 1178.0,
-            1285.0, 1577.0, 232.0, 295.0, 322.0, 395.0, 1031.0, 1309.0, 1428.0,
-            1752.0, 258.0, 328.0, 357.0, 438.0
-        ])
+        list(results['required_sample_size']), [
+            106.0, 79.0, 62.0, 421.0, 343.0, 314.0, 248.0, 86.0, 526.0, 429.0,
+            393.0, 310.0, 2102.0, 1571.0, 1237.0, 1714.0, 351.0, 286.0, 262.0,
+            207.0, 1401.0, 1142.0, 1047.0, 825.0])
 
   def test_resulted_bin_metrics_does_not_contain_nas(self):
     results = ab_testing_design.calc_chisquared_sample_sizes_for_bins(
@@ -71,17 +73,21 @@ class ABTestingExperimentalDesignTest(absltest.TestCase):
   def test_calc_chisquared_sample_sizes_for_cumulative_bins_returns_right_vals(
       self):
     results = ab_testing_design.calc_chisquared_sample_sizes_for_cumulative_bins(
-        labels=LABELS, probability_predictions=PREDICTIONS, number_bins=5)
+        labels=LABELS, probability_predictions=PREDICTIONS, number_bins=5,
+        uplift_percentages=[10, 20],
+        power_percentages=[80, 90],
+        confidence_level_percentages=[90, 95])
 
-    self.assertEqual(results.shape, (40, 8))
+    self.assertEqual(results.shape, (40, 9))
     self.assertListEqual(
         list(results.columns), [
             'cumulative_bin_number', 'bin_size', 'bin_size_percentage',
-            'conv_rate_percentage', 'uplift_percentage', 'power_percentage',
-            'confidence_level_percentage', 'sample_size'
+            'min_probability', 'conv_rate_percentage', 'uplift_percentage',
+            'power_percentage', 'confidence_level_percentage',
+            'required_sample_size'
         ])
     self.assertListEqual(
-        list(results['sample_size']), [
+        list(results['required_sample_size']), [
             207.0, 262.0, 286.0, 351.0, 52.0, 66.0, 72.0, 88.0, 371.0, 471.0,
             514.0, 631.0, 93.0, 118.0, 129.0, 158.0, 442.0, 561.0, 612.0, 751.0,
             111.0, 141.0, 153.0, 188.0, 371.0, 471.0, 514.0, 631.0, 93.0, 118.0,

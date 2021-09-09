@@ -107,14 +107,15 @@ def calc_chisquared_sample_sizes_for_bins(
 
   Returns:
     bin_metrics: Following metrics calculated for each bin of the predictions.
-     bin_number: Bin number starting from 1,
-     bin_size: Total numbers of instances in the bin,
+     bin_number: Bin number starting from 1.
+     bin_size: Total numbers of instances in the bin.
+     min_probability: Minimum predicted probability within the bin.
      conversion_rate: Proportion of positive instances out of all the instances
-       in the bin (precision),
-     expected_uplift: Expected uplift_percentage,
-     power_percentage: Statistical power of the test,
-     confidence_level_percentage: Statistical confidence level of the test,
-     sample_size: Statistical sample size required.
+       in the bin (precision).
+     expected_uplift: Expected uplift_percentage.
+     power_percentage: Statistical power of the test.
+     confidence_level_percentage: Statistical confidence level of the test.
+     required_sample_size: Statistical sample size required.
   """
   utils.assert_label_values_are_valid(labels)
   utils.assert_prediction_values_are_valid(probability_predictions)
@@ -122,10 +123,13 @@ def calc_chisquared_sample_sizes_for_bins(
                                                  probability_predictions)
 
   # separate the probability_predictions into bins of equal size
-  bins = pd.qcut(probability_predictions, q=number_bins, labels=False)
   binned_data = pd.DataFrame(
-      list(zip(labels, probability_predictions, bins)),
-      columns=['label', 'prediction', 'bin_number'])
+      list(zip(labels, probability_predictions)),
+      columns=['label', 'prediction'])
+  binned_data = binned_data.sort_values('prediction').reset_index()
+  # to avoid duplicate edges of bins use the index in the qcat function below
+  binned_data['bin_number'] = pd.qcut(binned_data.index,
+                                      q=number_bins, labels=False)
 
   # calculate the conversion rate for each bin
   total_instances = (
@@ -146,16 +150,12 @@ def calc_chisquared_sample_sizes_for_bins(
       (bin_conv_rate['positive_instances'] / bin_conv_rate['bin_size'] * 100),
       2)
 
-  # reverse the order of bin numbers such that bin 1 has the highest
-  # predicted probability
-  bin_conv_rate['bin_number'] = number_bins - bin_conv_rate['bin_number']
-  bin_conv_rate = bin_conv_rate.sort_values(['bin_number'
-                                            ]).reset_index(drop=True)
-
   bin_metrics_list = list()
   for bin_number in bin_conv_rate['bin_number']:
-    conv_rate = bin_conv_rate['conversion_rate'][bin_number - 1]
-    bin_size = bin_conv_rate['bin_size'][bin_number - 1]
+    conv_rate = bin_conv_rate['conversion_rate'][bin_number]
+    bin_size = bin_conv_rate['bin_size'][bin_number]
+    min_prob = min(
+        binned_data[binned_data['bin_number'] == bin_number]['prediction'])
     for uplift_percentage in uplift_percentages:
       for power_percentage in power_percentages:
         for confidence_level_percentage in confidence_level_percentages:
@@ -163,15 +163,22 @@ def calc_chisquared_sample_sizes_for_bins(
               conv_rate, uplift_percentage, power_percentage,
               confidence_level_percentage)
           bin_metrics_list.append(
-              (bin_number, bin_size, conv_rate, uplift_percentage,
+              (bin_number, bin_size, min_prob, conv_rate, uplift_percentage,
                power_percentage, confidence_level_percentage, sample_size))
 
-  return pd.DataFrame(
+  bin_metrics = pd.DataFrame(
       bin_metrics_list,
       columns=[
-          'bin_number', 'bin_size', 'conv_rate_percentage', 'uplift_percentage',
-          'power_percentage', 'confidence_level_percentage', 'sample_size'
-      ])
+          'bin_number', 'bin_size', 'min_probability', 'conv_rate_percentage',
+          'uplift_percentage', 'power_percentage',
+          'confidence_level_percentage', 'required_sample_size'])
+
+  # reverse the order of bin numbers such that bin 1 has the highest
+  # predicted probability
+  bin_metrics['bin_number'] = number_bins - bin_metrics['bin_number']
+  bin_metrics = bin_metrics.sort_values(['bin_number']).reset_index(drop=True)
+
+  return bin_metrics
 
 
 def calc_chisquared_sample_sizes_for_cumulative_bins(
@@ -210,12 +217,13 @@ def calc_chisquared_sample_sizes_for_cumulative_bins(
       bin_size: Total numbers of instances in the bin.
       bin_size_percentage: Percentage of instances in the bin out of all the
         instances in the labels.
+      min_probability: Minimum predicted probability within the bin.
       conversion_rate: Proportion of positive instances out of all the instances
         in the bin (precision).
       expected_uplift: Expected uplift_percentage.
       power_percentage: Statistical power of the test.
       confidence_level_percentage: Statistical confidence level of the test.
-      sample_size: Statistical sample size required.
+      required_sample_size: Statistical sample size required.
   """
   utils.assert_label_values_are_valid(labels)
   utils.assert_prediction_values_are_valid(probability_predictions)
@@ -242,6 +250,7 @@ def calc_chisquared_sample_sizes_for_cumulative_bins(
     number_bin_positive_instances = bin_instances[
         positive_instance_indeces].shape[0]
     conv_rate = round(number_bin_positive_instances / current_bin_size * 100, 2)
+    min_prob = min(bin_instances['prediction'])
 
     for uplift_percentage in uplift_percentages:
       for power_percentage in power_percentages:
@@ -250,14 +259,15 @@ def calc_chisquared_sample_sizes_for_cumulative_bins(
               conv_rate, uplift_percentage, power_percentage,
               confidence_level_percentage)
           cumulative_bin_metrics_list.append(
-              (bin_number, current_bin_size, bin_size_percentage, conv_rate,
-               uplift_percentage, power_percentage, confidence_level_percentage,
-               sample_size))
+              (bin_number, current_bin_size, bin_size_percentage, min_prob,
+               conv_rate, uplift_percentage, power_percentage,
+               confidence_level_percentage, sample_size))
 
   return pd.DataFrame(
       cumulative_bin_metrics_list,
       columns=[
           'cumulative_bin_number', 'bin_size', 'bin_size_percentage',
-          'conv_rate_percentage', 'uplift_percentage', 'power_percentage',
-          'confidence_level_percentage', 'sample_size'
+          'min_probability', 'conv_rate_percentage', 'uplift_percentage',
+          'power_percentage', 'confidence_level_percentage',
+          'required_sample_size'
       ])
