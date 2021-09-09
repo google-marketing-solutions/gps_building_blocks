@@ -621,7 +621,8 @@ class InferenceData():
       interactive: bool = False,
       drop: bool = True,
       min_absolute_corr: float = 0.4,
-      use_correlation_matrix_inversion: bool = True) -> pd.DataFrame:
+      use_correlation_matrix_inversion: bool = True,
+      raise_on_ill_conditioned: bool = True) -> pd.DataFrame:
     """Uses VIF to identify columns that are collinear and optionally drop them.
 
     You can customize how collinearity will be resolved with `sequential` and
@@ -656,6 +657,9 @@ class InferenceData():
       use_correlation_matrix_inversion: If True, uses correlation matrix
         inversion algorithm to optimize VIF calculations. If False, uses
         regression algorithm.
+      raise_on_ill_conditioned: Whether to raise an exception if the correlation
+        matrix is ill-conditioned when using the correlation matrix inversion
+        algorithm.
 
     Returns:
       Data after collinearity check with vif has been applied. When drop=True
@@ -677,7 +681,7 @@ class InferenceData():
             tmp_data,
             sort=True,
             use_correlation_matrix_inversion=use_correlation_matrix_inversion,
-            raise_on_ill_conditioned=True,
+            raise_on_ill_conditioned=raise_on_ill_conditioned,
             corr_matrix=trimmed_corr_matrix)
       except (vif.SingularDataError, vif.IllConditionedDataError):
         message = self._generate_vif_error_message(trimmed_corr_matrix)
