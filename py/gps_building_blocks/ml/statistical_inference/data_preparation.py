@@ -610,8 +610,6 @@ class InferenceData():
     message_parts.append(
         'Alternatively, consider running address_collinearity_with_vif() with '
         'use_correlation_matrix_inversion=False to avoid this error.')
-    # TODO(): add logic or a wrapper function to handle these errors
-    # by adding noise iteratively
     return ''.join(message_parts)
 
   def address_collinearity_with_vif(
@@ -622,7 +620,9 @@ class InferenceData():
       drop: bool = True,
       min_absolute_corr: float = 0.4,
       use_correlation_matrix_inversion: bool = True,
-      raise_on_ill_conditioned: bool = True) -> pd.DataFrame:
+      raise_on_ill_conditioned: bool = True,
+      handle_singular_data_errors_automatically: bool = True) -> pd.DataFrame:
+    # TODO(): clean up these arguments
     """Uses VIF to identify columns that are collinear and optionally drop them.
 
     You can customize how collinearity will be resolved with `sequential` and
@@ -660,15 +660,37 @@ class InferenceData():
       raise_on_ill_conditioned: Whether to raise an exception if the correlation
         matrix is ill-conditioned when using the correlation matrix inversion
         algorithm.
+      handle_singular_data_errors_automatically: If True, then
+        SingularDataErrors and IllConditionedDataErrors will be handled
+        automatically by injecting artifical noise into the data and re-running
+        VIF. Note that the data with artifical noise is an intermediate product
+        of this method (tmp_data) and the output of the method does not contain
+        that artifical noise. The noise is random noise following a normal
+        distribution, with standard deviation for each column defined by the
+        standard deviation of the data in that column multiplied by the fraction
+        fractional_noise_to_add_per_iteration (set to 1e-4). To avoid getting
+        stuck in an infinite loop, only max_number_of_iterations (set to 1000)
+        of the noise injection procedure are allowed; after this number of
+        iterations if the correlation matrix is still singular, the method fails
+        with a SingularDataError.
 
     Returns:
-      Data after collinearity check with vif has been applied. When drop=True
+      Data after collinearity check with vif has been applied. When drop=True,
         columns with high collinearity will not be present in the returned data.
+
+    Raises:
+      SingularDataError: The correlation matrix of self.data is singular or
+        ill-conditioned, and when handle_singular_data_errors_automatically is
+        True, if the random noise injected into the data was not sufficient to
+        solve the problem.
     """
 
     covariates = self.data.drop(columns=self.target_column)
     columns_to_drop = []
     corr_matrix = covariates.corr()
+
+    fractional_noise_to_add_per_iteration = 1.0e-4
+    max_number_of_iterations = 1000
 
     while True:
       tmp_data = covariates.drop(columns=columns_to_drop)
@@ -676,17 +698,51 @@ class InferenceData():
       trimmed_corr_matrix = corr_matrix.drop(
           columns_to_drop, axis=0).drop(
               columns_to_drop, axis=1)
-      try:
-        vif_data = vif.calculate_vif(
-            tmp_data,
-            sort=True,
-            use_correlation_matrix_inversion=use_correlation_matrix_inversion,
-            raise_on_ill_conditioned=raise_on_ill_conditioned,
-            corr_matrix=trimmed_corr_matrix)
-      except (vif.SingularDataError, vif.IllConditionedDataError):
-        message = self._generate_vif_error_message(trimmed_corr_matrix)
-        raise SingularDataError(message)
+      corr_matrix_for_vif = trimmed_corr_matrix.copy()
 
+      if handle_singular_data_errors_automatically:
+        rng = np.random.default_rng()
+        variances_by_column = tmp_data.var(ddof=0)
+        variance_df = pd.DataFrame(data=[variances_by_column.to_list()] *
+                                   tmp_data.shape[0])
+
+      vif_succeeded_flag = False
+      for iteration_count in range(max_number_of_iterations):
+
+        if iteration_count > 0:
+          corr_matrix_for_vif = None
+
+        try:
+          vif_data = vif.calculate_vif(
+              tmp_data,
+              sort=True,
+              use_correlation_matrix_inversion=use_correlation_matrix_inversion,
+              raise_on_ill_conditioned=raise_on_ill_conditioned,
+              corr_matrix=corr_matrix_for_vif)
+          vif_succeeded_flag = True
+        except (vif.SingularDataError, vif.IllConditionedDataError):
+          message_postscript = ''
+          if handle_singular_data_errors_automatically:
+            if iteration_count < max_number_of_iterations - 1:
+              noise = rng.normal(
+                  size=tmp_data.shape,
+                  scale=np.sqrt(variance_df) *
+                  fractional_noise_to_add_per_iteration)
+              tmp_data += noise
+              continue
+            else:
+              message_postscript = (
+                  ' Automatic attempt to resolve SingularDataError by '
+                  'injecting artifical noise to the data has failed. This '
+                  'probably means the dataset has too many features relative '
+                  'to the number of samples.')
+
+          message = self._generate_vif_error_message(trimmed_corr_matrix)
+          message += message_postscript
+          raise SingularDataError(message)
+
+        if vif_succeeded_flag:
+          break
       if max(vif_data['VIF']) < vif_threshold:
         break
 

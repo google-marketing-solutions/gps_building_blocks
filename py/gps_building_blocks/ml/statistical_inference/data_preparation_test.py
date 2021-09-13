@@ -138,7 +138,8 @@ class InferenceTest(parameterized.TestCase):
         singular_correlation_matrix_df, target_column='outcome')
 
     with self.assertRaises(data_preparation.SingularDataError):
-      inference_data.address_collinearity_with_vif()
+      inference_data.address_collinearity_with_vif(
+          handle_singular_data_errors_automatically=False)
 
   def test_vif_raises_error_on_ill_conditioned_correlation_matrix(self):
     ill_conditioned_correlation_matrix_df = pd.DataFrame(
@@ -152,7 +153,8 @@ class InferenceTest(parameterized.TestCase):
         ill_conditioned_correlation_matrix_df, target_column='outcome')
 
     with self.assertRaises(data_preparation.SingularDataError):
-      inference_data.address_collinearity_with_vif()
+      inference_data.address_collinearity_with_vif(
+          handle_singular_data_errors_automatically=False)
 
   def test_vif_error_has_correct_message(self):
     ill_conditioned_correlation_matrix_df = pd.DataFrame(
@@ -178,7 +180,72 @@ class InferenceTest(parameterized.TestCase):
     )
     with self.assertRaises(
         data_preparation.SingularDataError, msg=expected_message):
-      inference_data.address_collinearity_with_vif()
+      inference_data.address_collinearity_with_vif(
+          handle_singular_data_errors_automatically=False)
+
+  def test_vif_noise_injection_catches_perfect_correlation(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'])
+    iris_data['perfectly_correlated_column'] = iris_data['petal length (cm)']
+    expected_result = iris_data.drop(
+        columns=['petal length (cm)', 'perfectly_correlated_column'])
+
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target')
+
+    result = inference_data.address_collinearity_with_vif(
+        sequential=False,
+        interactive=False,
+        drop=True,
+        handle_singular_data_errors_automatically=True,
+        vif_threshold=50.0)
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_vif_noise_injection_catches_perfect_collinearity(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'])
+    iris_data['perfectly_collinear_column'] = iris_data[
+        'petal length (cm)'] + iris_data['petal width (cm)']
+    expected_result = iris_data.drop(columns=[
+        'petal length (cm)', 'petal width (cm)', 'perfectly_collinear_column'
+    ])
+
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target')
+
+    result = inference_data.address_collinearity_with_vif(
+        sequential=False,
+        interactive=False,
+        drop=True,
+        handle_singular_data_errors_automatically=True,
+        vif_threshold=50.0)
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_vif_noise_injection_fails_correctly_when_too_few_samples(self):
+    too_few_samples_df = pd.DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0, 1.0],
+              [0.0, 2.0, 0.0, 1.0, 1.0],
+              [1.0, 1.0, 2.0, 5.0, 1.0]],
+        columns=['control', 'variable_1', 'variable_2', 'variable_3',
+                 'outcome'])
+    inference_data = data_preparation.InferenceData(
+        too_few_samples_df, target_column='outcome')
+
+    expected_regex = (
+        'Automatic attempt to resolve SingularDataError by '
+        'injecting artifical noise to the data has failed. This '
+        'probably means the dataset has too many features relative '
+        'to the number of samples.')
+    with self.assertRaisesRegex(data_preparation.SingularDataError,
+                                expected_regex):
+      inference_data.address_collinearity_with_vif(
+          handle_singular_data_errors_automatically=True)
 
   @parameterized.named_parameters({
       'testcase_name': 'scale_10',
