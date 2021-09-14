@@ -16,11 +16,15 @@
 Specially useful when diagnosing a Lifetime Value (LTV) model.
 """
 
-from typing import Optional
 import dataclasses
+from typing import Optional
+
+from matplotlib import axes
+from matplotlib import pyplot
 import numpy as np
 import scipy as sp
 from sklearn import metrics
+
 from gps_building_blocks.ml import utils
 
 
@@ -80,3 +84,57 @@ def calc_performance_metrics(
       mean_absolute_percentage_error=round(mape, decimal_points),
       r_squared=round(r2, decimal_points),
       pearson_correlation=round(corr, decimal_points))
+
+
+def plot_prediction_residuals(labels: np.ndarray,
+                              predictions: np.ndarray,
+                              fig_width: Optional[int] = 12,
+                              fig_height: Optional[int] = 12,
+                              title_fontsize: Optional[int] = 12,
+                              axis_label_fontsize: Optional[int] = 10,
+                              use_log: Optional[bool] = False) -> axes.Axes:
+  """Plots scatter plots of true labels and residuals versus the predicted values.
+
+  Args:
+    labels: An array of true labels containing numeric values.
+    predictions: An array of predictions containing numeric values.
+    fig_width: Width of the figure.
+    fig_height: Height of the figure.
+    title_fontsize: Title font size of the plots.
+    axis_label_fontsize: Axis label font size of the plots.
+    use_log: Boolean value indicating taking logarithm of the actual and
+      predicted values.
+
+  Returns:
+    plots: Scatter plots of true values and residuals versus the predicted
+    values.
+  """
+  utils.assert_label_and_prediction_length_match(labels, predictions)
+
+  _, plots = pyplot.subplots(nrows=2, figsize=(fig_width, fig_height))
+  if use_log:
+    plots[0].scatter(x=np.log1p(predictions), y=np.log1p(labels))
+    plots[0].set_title(
+        'Scatter plot of true label values versus predicted values with log transformation',
+        fontsize=title_fontsize)
+    plots[0].set_xlabel(
+        'Logarithm of predicted values', fontsize=axis_label_fontsize)
+    plots[0].set_ylabel(
+        'Logarithm of label values', fontsize=axis_label_fontsize)
+  else:
+    plots[0].scatter(x=predictions, y=labels)
+    plots[0].set_title(
+        'Scatter plot of true label values versus predicted values',
+        fontsize=title_fontsize)
+    plots[0].set_xlabel('Predicted values', fontsize=axis_label_fontsize)
+    plots[0].set_ylabel('Label values', fontsize=axis_label_fontsize)
+
+  plots[1].scatter(x=predictions, y=labels - predictions)
+  plots[1].set_title(
+      'Scatter plot of residuals versus predicted values',
+      fontsize=title_fontsize)
+  plots[1].set_xlabel('Predicted values', fontsize=axis_label_fontsize)
+  plots[1].set_ylabel('Residuals', fontsize=axis_label_fontsize)
+  plots[1].axhline(0, linestyle='--')
+
+  return plots

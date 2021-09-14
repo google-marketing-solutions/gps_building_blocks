@@ -14,7 +14,9 @@
 """Tests for gps_building_blocks.ml.diagnostics.regression."""
 
 from absl.testing import absltest
+import numpy as np
 import pandas as pd
+from absl.testing import parameterized
 from gps_building_blocks.ml.diagnostics import regression
 
 _TEST_DATA = pd.DataFrame({
@@ -27,7 +29,7 @@ _TEST_DATA = pd.DataFrame({
 })
 
 
-class RegressionDiagnosticsTest(absltest.TestCase):
+class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
 
   def test_calc_performance_metrics_returns_correct_values(self):
     mean_squared_error = 39.7459
@@ -56,6 +58,63 @@ class RegressionDiagnosticsTest(absltest.TestCase):
                            results.r_squared)
     self.assertAlmostEqual(pearson_correlation,
                            results.pearson_correlation)
+
+  @parameterized.named_parameters(
+      dict(testcase_name='test_plot_using_log', use_log_parameter=True),
+      dict(testcase_name='test_plot_without_log', use_log_parameter=False))
+  def test_plot_prediction_residuals(self, use_log_parameter):
+    if use_log_parameter:
+      plots = regression.plot_prediction_residuals(
+          labels=np.array(_TEST_DATA['label']),
+          predictions=np.array(_TEST_DATA['prediction']),
+          use_log=use_log_parameter)
+      plot_1 = plots[0]
+      plot_2 = plots[1]
+      x_data_expected = list(np.log1p(_TEST_DATA['prediction']))
+      y_data_expected = list(np.log1p(_TEST_DATA['label']))
+      expected_title = ('Scatter plot of true label values versus predicted '
+                        'values with log transformation')
+      x_data_residual_expected = list(_TEST_DATA['prediction'])
+      y_data_residual_expected = list(_TEST_DATA['label'] -
+                                      _TEST_DATA['prediction'])
+      expected_title_residual = ('Scatter plot of residuals versus predicted '
+                                 'values')
+    elif not use_log_parameter:
+      plots = regression.plot_prediction_residuals(
+          labels=np.array(_TEST_DATA['label']),
+          predictions=np.array(_TEST_DATA['prediction']),
+          use_log=use_log_parameter)
+      plot_1 = plots[0]
+      plot_2 = plots[1]
+      x_data_expected = list(_TEST_DATA['prediction'])
+      y_data_expected = list(_TEST_DATA['label'])
+      expected_title = ('Scatter plot of true label values versus predicted '
+                        'values')
+      x_data_residual_expected = x_data_expected
+      y_data_residual_expected = list(_TEST_DATA['label'] -
+                                      _TEST_DATA['prediction'])
+      expected_title_residual = ('Scatter plot of residuals versus predicted '
+                                 'values')
+    else:
+      raise NotImplementedError('use_log %s is not included in the tests')
+    with self.subTest(name='test the title of scatter plot'):
+      self.assertEqual(expected_title, plot_1.get_title())
+    with self.subTest(name='test the title of scatter plot of residuals'):
+      self.assertEqual(expected_title_residual, plot_2.get_title())
+    with self.subTest(name='test the elements of true label value plot'):
+      self.assertListEqual(
+          x_data_expected,
+          [xydata[0] for xydata in plot_1.collections[0].get_offsets()])
+      self.assertListEqual(
+          y_data_expected,
+          [xydata[1] for xydata in plot_1.collections[0].get_offsets()])
+    with self.subTest(name='test the elements of residuals plot'):
+      self.assertListEqual(
+          x_data_residual_expected,
+          [xydata[0] for xydata in plot_2.collections[0].get_offsets()])
+      self.assertListEqual(
+          y_data_residual_expected,
+          [xydata[1] for xydata in plot_2.collections[0].get_offsets()])
 
 
 if __name__ == '__main__':
