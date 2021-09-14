@@ -20,12 +20,14 @@ from absl.testing import parameterized
 from gps_building_blocks.ml.diagnostics import regression
 
 _TEST_DATA = pd.DataFrame({
-    'label': [60.54, 51.74, 31.52, 12.56, 37.98, 74.24, 55.36, 58.16, 39.93,
-              26.3, 89.17, 31.98, 10.61, 40.15, 60.62, 54.33, 68.9, 34.09,
-              25.33, 79.46],
-    'prediction': [65.55, 58.08, 32.97, 21.39, 42.53, 79.83, 63.19, 68.28,
-                   48.45, 29.57, 95.5, 36.91, 17.45, 46.88, 62.13, 55.53, 75.3,
-                   43.0, 33.19, 82.34]
+    'label': [
+        60.54, 51.74, 31.52, 12.56, 37.98, 74.24, 55.36, 58.16, 39.93, 26.3,
+        89.17, 31.98, 10.61, 40.15, 60.62, 54.33, 68.9, 34.09, 25.33, 79.46
+    ],
+    'prediction': [
+        65.55, 58.08, 32.97, 21.39, 42.53, 79.83, 63.19, 68.28, 48.45, 29.57,
+        95.5, 36.91, 17.45, 46.88, 62.13, 55.53, 75.3, 43.0, 33.19, 82.34
+    ]
 })
 
 
@@ -44,59 +46,43 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
         labels=_TEST_DATA['label'].values,
         predictions=_TEST_DATA['prediction'].values)
 
-    self.assertAlmostEqual(mean_squared_error,
-                           results.mean_squared_error)
+    self.assertAlmostEqual(mean_squared_error, results.mean_squared_error)
     self.assertAlmostEqual(root_mean_squared_error,
                            results.root_mean_squared_error)
     self.assertAlmostEqual(mean_squared_log_error,
                            results.mean_squared_log_error)
-    self.assertAlmostEqual(mean_absolute_error,
-                           results.mean_absolute_error)
+    self.assertAlmostEqual(mean_absolute_error, results.mean_absolute_error)
     self.assertAlmostEqual(mean_absolute_percentage_error,
                            results.mean_absolute_percentage_error)
-    self.assertAlmostEqual(r_squared,
-                           results.r_squared)
-    self.assertAlmostEqual(pearson_correlation,
-                           results.pearson_correlation)
+    self.assertAlmostEqual(r_squared, results.r_squared)
+    self.assertAlmostEqual(pearson_correlation, results.pearson_correlation)
 
   @parameterized.named_parameters(
       dict(testcase_name='test_plot_using_log', use_log_parameter=True),
       dict(testcase_name='test_plot_without_log', use_log_parameter=False))
   def test_plot_prediction_residuals(self, use_log_parameter):
+    predictions = np.array(_TEST_DATA['prediction'])
+    labels = np.array(_TEST_DATA['label'])
+
+    plots = regression.plot_prediction_residuals(
+        labels=labels, predictions=predictions, use_log=use_log_parameter)
+    plot_1, plot_2 = plots
     if use_log_parameter:
-      plots = regression.plot_prediction_residuals(
-          labels=np.array(_TEST_DATA['label']),
-          predictions=np.array(_TEST_DATA['prediction']),
-          use_log=use_log_parameter)
-      plot_1 = plots[0]
-      plot_2 = plots[1]
-      x_data_expected = list(np.log1p(_TEST_DATA['prediction']))
-      y_data_expected = list(np.log1p(_TEST_DATA['label']))
+      x_data_expected = list(np.log1p(predictions))
+      y_data_expected = list(np.log1p(labels))
       expected_title = ('Scatter plot of true label values versus predicted '
                         'values with log transformation')
-      x_data_residual_expected = list(_TEST_DATA['prediction'])
-      y_data_residual_expected = list(_TEST_DATA['label'] -
-                                      _TEST_DATA['prediction'])
-      expected_title_residual = ('Scatter plot of residuals versus predicted '
-                                 'values')
-    elif not use_log_parameter:
-      plots = regression.plot_prediction_residuals(
-          labels=np.array(_TEST_DATA['label']),
-          predictions=np.array(_TEST_DATA['prediction']),
-          use_log=use_log_parameter)
-      plot_1 = plots[0]
-      plot_2 = plots[1]
-      x_data_expected = list(_TEST_DATA['prediction'])
-      y_data_expected = list(_TEST_DATA['label'])
+    else:
+      x_data_expected = list(predictions)
+      y_data_expected = list(labels)
       expected_title = ('Scatter plot of true label values versus predicted '
                         'values')
-      x_data_residual_expected = x_data_expected
-      y_data_residual_expected = list(_TEST_DATA['label'] -
-                                      _TEST_DATA['prediction'])
-      expected_title_residual = ('Scatter plot of residuals versus predicted '
-                                 'values')
-    else:
-      raise NotImplementedError('use_log %s is not included in the tests')
+
+    x_data_residual_expected = list(predictions)
+    y_data_residual_expected = list(labels - predictions)
+    expected_title_residual = ('Scatter plot of residuals versus predicted '
+                               'values')
+
     with self.subTest(name='test the title of scatter plot'):
       self.assertEqual(expected_title, plot_1.get_title())
     with self.subTest(name='test the title of scatter plot of residuals'):
