@@ -315,3 +315,53 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
   plots[3, 1].axis('off')
 
   return plots
+
+
+def plot_confusion_matrix_bin_heatmap(
+    labels: np.ndarray,
+    predictions: np.ndarray,
+    number_bins: Optional[int] = 10,
+    fig_width: Optional[int] = 12,
+    fig_height: Optional[int] = 12,
+    title_fontsize: Optional[int] = 12,
+    axis_label_fontsize: Optional[int] = 10,
+    heatmap_color: Optional[str] = 'YlGnBu') -> axes.Axes:
+  """Plots the heatmap of the bins of the actual and predicted values.
+
+  Args:
+    labels: An array of true labels containing numeric values.
+    predictions: An array of predictions containing numeric values.
+    number_bins: Number of bins that we want to divide the ranked predictions
+      into. Default is deciles (10 bins) such that the 1st bin contains the
+      highest 10% of the predictions, the 2nd bin contains the next 10% of the
+      predictions and so on.
+    fig_width: Width of the figure.
+    fig_height: Height of the figure.
+    title_fontsize: Title font size of the plots.
+    axis_label_fontsize: Axis label font size of the plots.
+    heatmap_color: Color of the heatmap plot.
+
+  Returns:
+    plot: Heatmap of the bins of the actual and predicted values.
+  """
+  utils.assert_label_and_prediction_length_match(labels, predictions)
+
+  bins = pd.qcut(predictions, q=number_bins, labels=False, duplicates='drop')
+  bins_label = pd.qcut(labels, q=number_bins, labels=False, duplicates='drop')
+  binned_data = pd.DataFrame(
+      list(zip(labels, predictions, bins, bins_label)),
+      columns=['labels', 'predictions', 'bin_number', 'bin_number_label'])
+
+  conf_matrix = metrics.confusion_matrix(binned_data['bin_number_label'],
+                                         binned_data['bin_number'])
+  conf_matrix = conf_matrix / np.sum(conf_matrix)
+
+  _, plot = pyplot.subplots(figsize=(fig_width, fig_height))
+  plot = sns.heatmap(conf_matrix, cbar=False, cmap=heatmap_color, annot=True)
+  plot.set_title(
+      'Heatmap of the bins of the actual and predicted values',
+      fontsize=title_fontsize)
+  plot.set_xlabel('Actual value bins', fontsize=axis_label_fontsize)
+  plot.set_ylabel('Prediction value bins', fontsize=axis_label_fontsize)
+
+  return plot

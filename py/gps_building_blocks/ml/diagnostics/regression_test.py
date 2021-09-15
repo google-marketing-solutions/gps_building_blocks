@@ -160,6 +160,22 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
         self.assertListEqual(y_data_expected,
                              [h.get_height() for h in plot.patches])
 
+  def test_heatmap_returns_correct_values(self):
+    predictions = np.array(_TEST_DATA['prediction'])
+    labels = np.array(_TEST_DATA['label'])
+
+    plot = regression.plot_confusion_matrix_bin_heatmap(
+        labels, predictions, number_bins=3)
+    bin_number = [0, 1, 2]
+    with self.subTest(name='test the title of heatmap'):
+      self.assertEqual('Heatmap of the bins of the actual and predicted values',
+                       plot.get_title())
+    with self.subTest(name='test the axis elements of heatmap'):
+      self.assertListEqual(
+          bin_number, [int(tick.get_text()) for tick in plot.get_xticklabels()])
+      self.assertListEqual(
+          bin_number, [int(tick.get_text()) for tick in plot.get_yticklabels()])
+
 
 if __name__ == '__main__':
   absltest.main()
