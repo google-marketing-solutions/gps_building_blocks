@@ -268,6 +268,11 @@ def regression_bootstrap(
         bootstrap_list = list(
             _yield_bootstraps_print_eta(iterator, t_init, n_jobs, bootstraps,
                                         verbose))
+      # Calling manually garbage collector below to try avoiding triggering an
+      # OSError("handle is closed") until gps-building-blocks will support
+      # python 3.9+.
+      # https://stackoverflow.com/questions/63926326/python-concurrent-futures-error-in-atexit-run-exitfuncs-oserror-handle-is-clo
+      gc.collect()
       if len(bootstrap_list) != bootstraps:
         warnings.warn(
             f'Returning {len(bootstrap_list)} bootstraps instead of {bootstraps}'
@@ -278,7 +283,12 @@ def regression_bootstrap(
       warn_msg = ('Couldn\'t run multiprocessing using\n', 'Process Pool.')
       warnings.warn(warn_msg)  # pytype: disable=wrong-arg-types
       return pd.DataFrame([])
-    gc.collect()
+    finally:
+      # Calling manually garbage collector below to try avoiding triggering an
+      # OSError("handle is closed") until gps-building-blocks will support
+      # python 3.9+.
+      # https://stackoverflow.com/questions/63926326/python-concurrent-futures-error-in-atexit-run-exitfuncs-oserror-handle-is-clo
+      gc.collect()
 
 
 def _tune_hyperparams(
