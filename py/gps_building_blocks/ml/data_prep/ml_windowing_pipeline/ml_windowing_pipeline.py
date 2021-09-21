@@ -89,7 +89,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from google.cloud import bigquery
 import jinja2
@@ -392,11 +392,14 @@ def generate_features_table(client: bigquery.client.Client,
   _run_sql(client, params['features_sql'], params)
 
 
-def run_end_to_end_pipeline(params: Dict[str, Any]):
+def run_end_to_end_pipeline(params: Dict[str, Any],
+                            client: Optional[bigquery.Client] = None):
   """Runs the ML Windowing Pipeline with the given params end to end.
 
   Args:
     params: Dict from ml_windowing_pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
   """
   check_gcp_params(params)
   assert 'analytics_table' in params
@@ -406,7 +409,9 @@ def run_end_to_end_pipeline(params: Dict[str, Any]):
   check_prediction_window_params(params)
   update_params_with_defaults(params)
 
-  client = bigquery.Client()
+  if not client:
+    client = bigquery.Client()
+
   generate_conversions_table(client, params)
   generate_sessions_table(client, params)
   update_fact_params(client, params)
@@ -417,7 +422,8 @@ def run_end_to_end_pipeline(params: Dict[str, Any]):
   generate_features_table(client, params)
 
 
-def run_data_extraction_pipeline(params: Dict[str, Any]):
+def run_data_extraction_pipeline(params: Dict[str, Any],
+                                 client: Optional[bigquery.Client] = None):
   """Runs Pipeline 1: The Data Extraction Pipeline.
 
   Extracts conversion and session data from the specified analytics table. Use
@@ -427,17 +433,22 @@ def run_data_extraction_pipeline(params: Dict[str, Any]):
 
   Args:
     params: Dict from pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
   """
   check_gcp_params(params)
   assert 'analytics_table' in params
   update_params_with_defaults(params)
 
-  client = bigquery.Client()
+  if not client:
+    client = bigquery.Client()
+
   generate_conversions_table(client, params)
   generate_sessions_table(client, params)
 
 
-def run_data_exploration_pipeline(params: Dict[str, Any]):
+def run_data_exploration_pipeline(params: Dict[str, Any],
+                                  client: Optional[bigquery.Client] = None):
   """Runs Pipeline 2: The Data Exploration Pipeline.
 
   Extracts numeric and categorical facts into BigQuery tables for data
@@ -454,6 +465,8 @@ def run_data_exploration_pipeline(params: Dict[str, Any]):
 
   Args:
     params: Dict from pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
   """
   check_gcp_params(params)
   check_snapshot_date_params(params)
@@ -461,14 +474,17 @@ def run_data_exploration_pipeline(params: Dict[str, Any]):
   check_prediction_window_params(params)
   update_params_with_defaults(params)
 
-  client = bigquery.Client()
+  if not client:
+    client = bigquery.Client()
+
   update_fact_params(client, params)
   generate_numeric_facts_table(client, params)
   generate_categorical_facts_table(client, params)
   generate_instances_table(client, params)
 
 
-def run_windowing_pipeline(params: Dict[str, Any]):
+def run_windowing_pipeline(params: Dict[str, Any],
+                           client: Optional[bigquery.Client] = None):
   """Runs Pipeline 3: The Windowing Pipeline.
 
   Segments the user data into multiple, potentially overlapping, time windows,
@@ -485,6 +501,8 @@ def run_windowing_pipeline(params: Dict[str, Any]):
 
   Args:
     params: Dict from pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
   """
   check_gcp_params(params)
   check_snapshot_date_params(params)
@@ -492,7 +510,9 @@ def run_windowing_pipeline(params: Dict[str, Any]):
   check_prediction_window_params(params)
   update_params_with_defaults(params)
 
-  client = bigquery.Client()
+  if not client:
+    client = bigquery.Client()
+
   update_fact_params(client, params)
   if params['windows_sql'] == 'sliding_windows.sql':
     assert 'slide_interval_in_days' in params
@@ -500,7 +520,8 @@ def run_windowing_pipeline(params: Dict[str, Any]):
   generate_windows_table(client, params)
 
 
-def run_features_pipeline(params: Dict[str, Any]):
+def run_features_pipeline(params: Dict[str, Any],
+                          client: Optional[bigquery.Client] = None):
   """Runs Pipeline 4: The Feature Generation Pipeline.
 
   Generates features from the windows of data computed in Pipeline 3. By
@@ -510,16 +531,22 @@ def run_features_pipeline(params: Dict[str, Any]):
 
   Args:
     params: Dict from pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
   """
   check_gcp_params(params)
   update_params_with_defaults(params)
 
-  client = bigquery.Client()
+  if not client:
+    client = bigquery.Client()
+
   update_fact_params(client, params)
   generate_features_table(client, params)
 
 
-def generate_features_sql_template(params: Dict[str, Any]) -> str:
+def generate_features_sql_template(params: Dict[str, Any],
+                                   client: Optional[bigquery.Client] = None
+                                   ) -> str:
   """Returns a SQL template string equivalent to the input feature parameters.
 
   Feature generation using features_from_input.sql allows the user to specify
@@ -529,6 +556,8 @@ def generate_features_sql_template(params: Dict[str, Any]) -> str:
 
   Args:
     params: Dict from pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
 
   Returns:
     SQL Jinja template string for generating features.
@@ -544,13 +573,17 @@ def generate_features_sql_template(params: Dict[str, Any]) -> str:
       'features_table': '{{features_table}}',
   })
   _set_jinja_env(params)
-  client = bigquery.Client()
+
+  if not client:
+    client = bigquery.Client()
+
   params.update(_get_feature_options_params(params))
   params.update(_get_value_to_column_suffix_mapping_params(client, params))
   return params['jinja_env'].get_template(params['features_sql']).render(params)
 
 
-def run_prediction_pipeline(params: Dict[str, Any]):
+def run_prediction_pipeline(params: Dict[str, Any],
+                            client: Optional[bigquery.Client] = None):
   """Runs the prediction pipeline, generating features for a single window.
 
   Before running this pipeline, first run the end-to-end windowing pipeline, and
@@ -561,6 +594,8 @@ def run_prediction_pipeline(params: Dict[str, Any]):
 
   Args:
     params: Dict from pipeline parameter names to values.
+    client: If provided, use this BigQuery Client. Otherwise, build a new
+        Client with default credentials.
   """
   params['prediction_mode'] = True
   params['slide_interval_in_days'] = 1
@@ -605,7 +640,9 @@ def run_prediction_pipeline(params: Dict[str, Any]):
   if fact_value_map_table:
     params['categorical_fact_value_to_column_name_table'] = fact_value_map_table
 
-  client = bigquery.Client()
+  if not client:
+    client = bigquery.Client()
+
   generate_conversions_table(client, params)
   generate_sessions_table(client, params)
   update_fact_params(client, params)
