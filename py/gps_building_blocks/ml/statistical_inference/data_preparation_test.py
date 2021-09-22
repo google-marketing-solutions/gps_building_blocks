@@ -196,8 +196,7 @@ class InferenceTest(parameterized.TestCase):
         iris_data, target_column='target')
 
     result = inference_data.address_collinearity_with_vif(
-        sequential=False,
-        interactive=False,
+        vif_method='quick',
         drop=True,
         handle_singular_data_errors_automatically=True,
         vif_threshold=50.0)
@@ -219,8 +218,7 @@ class InferenceTest(parameterized.TestCase):
         iris_data, target_column='target')
 
     result = inference_data.address_collinearity_with_vif(
-        sequential=False,
-        interactive=False,
+        vif_method='quick',
         drop=True,
         handle_singular_data_errors_automatically=True,
         vif_threshold=50.0)
@@ -246,6 +244,12 @@ class InferenceTest(parameterized.TestCase):
                                 expected_regex):
       inference_data.address_collinearity_with_vif(
           handle_singular_data_errors_automatically=True)
+
+  def test_vif_method_fails_correctly_with_unknown_value(self):
+    inference_data = data_preparation.InferenceData(self._missing_data)
+    with self.assertRaises(ValueError):
+      inference_data.address_collinearity_with_vif(
+          vif_method='incorrect_value')
 
   @parameterized.named_parameters({
       'testcase_name': 'scale_10',
@@ -306,8 +310,7 @@ class InferenceTest(parameterized.TestCase):
     inference_data = data_preparation.InferenceData(
         iris_data, target_column='target')
     result = inference_data.address_collinearity_with_vif(
-        sequential=True,
-        interactive=False,
+        vif_method='sequential',
         drop=True)
 
     pd.testing.assert_frame_equal(result, expected_result)
@@ -337,14 +340,13 @@ class InferenceTest(parameterized.TestCase):
     pd.testing.assert_frame_equal(result, expected_result)
 
   @parameterized.named_parameters(
-      ('single_selections', ['1', '2', '3'], ['1', '2', '3'], True),
-      ('double_selection', ['1,2', '3'], ['1', '2', '3'], True),
-      ('early_stopping', ['1', ''], ['1'], True),
-      ('all_at_once', ['1,2,3'], ['1', '2', '3'], True),
-      ('not_sequential', ['1,2'], ['1', '2'], False),
+      ('single_selections', ['1', '2', '3'], ['1', '2', '3']),
+      ('double_selection', ['1,2', '3'], ['1', '2', '3']),
+      ('early_stopping', ['1', ''], ['1']),
+      ('all_at_once', ['1,2,3'], ['1', '2', '3']),
   )
   def test_address_collinearity_with_vif_interactive(
-      self, user_inputs, expected_dropped, sequential):
+      self, user_inputs, expected_dropped):
     dataframe = pd.DataFrame(
         data=[[1.1, 2.1, 3.1, 4.1, 0],
               [1.0, 2.0, 3.0, 4.0, 0],
@@ -360,8 +362,7 @@ class InferenceTest(parameterized.TestCase):
         input_mock.side_effect = lambda x: user_inputs.pop()
 
         result = data.address_collinearity_with_vif(
-            sequential=sequential,
-            interactive=True,
+            vif_method='interactive',
             drop=True,
             use_correlation_matrix_inversion=False
             )

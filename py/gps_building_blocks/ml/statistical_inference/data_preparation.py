@@ -15,6 +15,7 @@
 """Module containing the InferenceData class."""
 
 import copy
+import enum
 import functools
 import operator
 from typing import Iterable, Iterator, List, Optional, Text, Tuple, Union
@@ -25,6 +26,13 @@ import pandas as pd
 from sklearn import model_selection
 from sklearn import preprocessing
 from gps_building_blocks.ml.preprocessing import vif
+
+
+class VifMethod(enum.Enum):
+  """Options for the vif_method argument in address_collinearity_with_vif()."""
+  SEQUENTIAL = 'sequential'
+  INTERACTIVE = 'interactive'
+  QUICK = 'quick'
 
 
 class InferenceDataError(Exception):
@@ -614,76 +622,88 @@ class InferenceData():
 
   def address_collinearity_with_vif(
       self,
+      vif_method: Union[str, VifMethod] = 'sequential',
       vif_threshold: int = 10,
-      sequential: bool = True,
-      interactive: bool = False,
       drop: bool = True,
-      min_absolute_corr: float = 0.4,
       use_correlation_matrix_inversion: bool = True,
       raise_on_ill_conditioned: bool = True,
+      min_absolute_corr: float = 0.4,
       handle_singular_data_errors_automatically: bool = True) -> pd.DataFrame:
-    # TODO(): clean up these arguments
     """Uses VIF to identify columns that are collinear and optionally drop them.
 
-    You can customize how collinearity will be resolved with `sequential` and
-    `interactive` parameters. By default, the VIF score will re-calculated every
-    time the column with the highest VIF score is dropped until the threshold is
-    met. If you wish to remove all the columns with VIF score higher than the
-    threshold, you can set `sequential=False`.
-    If you want to have a say on which column is going to removed, rather than
-    automatically pick the column with the highest VIF score, you can set
-    `interactive=True`. This will prompt for your input every time columns are
-    found with VIF score higher than your threshold, whether `sequential` is set
-    to True or False.
+    The 'vif_method' argument specifies the control flow for the variance
+    inflation factor analysis. It can be either 'sequential', 'interactive', or
+    'quick'.
 
-    In interactive mode, to assist in choosing which features to drop, each
-    listed feature will also display the other features that correlate with that
-    feature, for all other features with a minimum absolute (positive or
-    negative) correlation of at least min_absolute_corr (default = 0.4).
+    * sequential: Sequentially remove a column with the highest VIF value until
+    all columns meet the vif_threshold.
+    * interactive: Same as `sequential` but the user is prompted which column(s)
+    to remove at each iteration.
+    * quick: Remove all columns with VIF value greater than vif_threshold.
+
+    To remove problematic collinear features, the 'sequential' method performs
+    the VIF analysis iteratively, removing the column with the highest VIF each
+    time until all the columns meet the `vif_threshold` without user input.
+
+    If you want to manually decide which column or columns you want to drop in
+    each iteration, you can choose the 'interactive' method to be prompted to
+    screen the columns to remove. To assist in choosing which column(s) to drop,
+    a list of correlated features will be shown having at least a minimum
+    correlation of `min_absolute_corr`.
+
+    As alternative to the iterative methods, a quicker solution is to remove all
+    columns having VIF value higher than `vif_threshold`. In this case the VIF
+    analysis will be performed only once. Note that removing multiple variables
+    at once like this leads to removing variables that otherwise wouldn't be
+    removed using the sequential approach.
 
     Args:
+      vif_method: Specify the control flow for the analysis. It can be either
+        'sequential', 'quick', or 'interactive'.
       vif_threshold: Threshold to identify which columns have high collinearity
         and anything higher than this threshold is dropped or used for warning.
-      sequential: Whether you want to sequentially re-calculate VIF each time
-        after a set column(s) have been removed or only once.
-      interactive: Whether you want to manually specify which column(s) you want
-        to remove.
-      drop: Boolean to either drop columns with high VIF or print message,
-        default is set to True.
-      min_absolute_corr: Float, default = 0.4. Minimum absolute correlation
-        required to display a feature as "correlated" to another feature in
-        interactive mode. Only used when interactive=True. Should be between 0
-        and 1, though this is not currently enforced.
+      drop: Boolean to either drop columns with high VIF or just print a
+        message, default is set to True.
       use_correlation_matrix_inversion: If True, uses correlation matrix
         inversion algorithm to optimize VIF calculations. If False, uses
         regression algorithm.
       raise_on_ill_conditioned: Whether to raise an exception if the correlation
-        matrix is ill-conditioned when using the correlation matrix inversion
-        algorithm.
+        matrix is ill-conditioned. Only applies when
+        use_correlation_matrix_inversion=True.
+      min_absolute_corr: Minimum absolute correlation required to display a
+        feature as "correlated" to another feature in interactive mode. Only
+        applies when vif_method='interactive'. Should be between 0 and 1, though
+        this is not currently enforced.
       handle_singular_data_errors_automatically: If True, then
-        SingularDataErrors and IllConditionedDataErrors will be handled
-        automatically by injecting artifical noise into the data and re-running
-        VIF. Note that the data with artifical noise is an intermediate product
-        of this method (tmp_data) and the output of the method does not contain
-        that artifical noise. The noise is random noise following a normal
-        distribution, with standard deviation for each column defined by the
-        standard deviation of the data in that column multiplied by the fraction
-        fractional_noise_to_add_per_iteration (set to 1e-4). To avoid getting
-        stuck in an infinite loop, only max_number_of_iterations (set to 1000)
-        of the noise injection procedure are allowed; after this number of
-        iterations if the correlation matrix is still singular, the method fails
-        with a SingularDataError.
+        SingularDataErrors and IllConditionedDataErrors from vif.calculate_vif()
+        will be handled automatically by injecting artifical noise into the data
+        and re-running. Note that the data with artifical noise is an
+        intermediate product of this method (tmp_data) and the output of the
+        method does not contain that artifical noise. The noise is random noise
+        following a normal distribution, with standard deviation for each column
+        defined by the standard deviation of the data in that column multiplied
+        by the fraction fractional_noise_to_add_per_iteration (set to 1e-4). To
+        avoid getting stuck in an infinite loop, only max_number_of_iterations
+        (set to 1000) of the noise injection procedure are allowed; after this
+        number of iterations if the correlation matrix is still singular, the
+        method fails with a SingularDataError. This argument is only relevant
+        when use_correlation_matrix_inversion=True.
 
     Returns:
       Data after collinearity check with vif has been applied. When drop=True,
         columns with high collinearity will not be present in the returned data.
 
     Raises:
-      SingularDataError: The correlation matrix of self.data is singular or
-        ill-conditioned, and when handle_singular_data_errors_automatically is
-        True, if the random noise injected into the data was not sufficient to
-        solve the problem.
+      SingularDataError: Raised when use_correlation_matrix_inversion=True and
+        the correlation matrix of self.data is singular or ill-conditioned.
+        Also raised when use_correlation_matrix_inversion=True and
+        handle_singular_data_errors_automatically=True, if the random noise
+        injected into the data was not sufficient to resolve the problem.
+      ValueError: Raised when vif_method is not one of the three expected values
+        ('sequential', 'quick', or 'interactive').
     """
+
+    vif_method = VifMethod(vif_method)
 
     covariates = self.data.drop(columns=self.target_column)
     columns_to_drop = []
@@ -702,15 +722,15 @@ class InferenceData():
 
       if handle_singular_data_errors_automatically:
         rng = np.random.default_rng()
-        variances_by_column = tmp_data.var(ddof=0)
-        variance_df = pd.DataFrame(data=[variances_by_column.to_list()] *
+        variances_for_each_column = tmp_data.var(ddof=0)
+        variance_df = pd.DataFrame(data=[variances_for_each_column.to_list()] *
                                    tmp_data.shape[0])
 
       vif_succeeded_flag = False
       for iteration_count in range(max_number_of_iterations):
 
         if iteration_count > 0:
-          corr_matrix_for_vif = None
+          corr_matrix_for_vif = tmp_data.corr()
 
         try:
           vif_data = vif.calculate_vif(
@@ -746,7 +766,7 @@ class InferenceData():
       if max(vif_data['VIF']) < vif_threshold:
         break
 
-      if interactive:
+      if vif_method == VifMethod.INTERACTIVE:
         correlated_features = self._get_list_of_correlated_features(
             vif_data,
             corr_matrix.drop(columns_to_drop,
@@ -754,7 +774,7 @@ class InferenceData():
             min_absolute_corr)
         vif_data['correlated_features'] = correlated_features
         selected_columns = _vif_interactive_input_and_validation(vif_data)
-      elif sequential:
+      elif vif_method == VifMethod.SEQUENTIAL:
         selected_columns = [vif_data.iloc[0].features]
       else:
         vif_filter = vif_data['VIF'] >= vif_threshold
@@ -762,7 +782,7 @@ class InferenceData():
 
       columns_to_drop.extend(selected_columns)
 
-      if not sequential or not selected_columns:
+      if (vif_method == VifMethod.QUICK) or not selected_columns:
         break
 
     if drop:
