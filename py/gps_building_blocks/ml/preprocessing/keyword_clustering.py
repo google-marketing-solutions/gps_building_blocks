@@ -92,10 +92,10 @@ class KeywordClustering(object):
 
   def cluster_keywords(
       self,
-      data: Optional[pd.DataFrame] = None,
-      colname_real: Optional[str] = None,
-      colname_mean_embed: Optional[str] = None,
-      n_clusters: Optional[int] = None,
+      data: pd.DataFrame,
+      colname_real: str,
+      colname_mean_embed: str,
+      n_clusters: int,
       num_of_closest_words: int = 2) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Clusters words using K-Means into num_clusters clusters.
 
@@ -117,21 +117,21 @@ class KeywordClustering(object):
     k_means = self.k_means()
     k_means.n_clusters = n_clusters
     k_means = k_means.fit(entityname_matrix)
-    data["labels"] = k_means.labels_  # pytype: disable=unsupported-operands
+    data["labels"] = k_means.labels_
 
     # Calculate normalized distance of each point from its cluster center
-    data["center_diff"] = np.nan  # pytype: disable=unsupported-operands
+    data["center_diff"] = np.nan
 
     for i in range(0, n_clusters):
       dist_from_cluster_center = data[data["labels"] == i][
           colname_mean_embed].apply(lambda x: x - k_means.cluster_centers_[i])
       data.loc[data["labels"] == i, "center_diff"] = linalg.norm(
-          dist_from_cluster_center.to_list(), axis=1)  # pytype: disable=attribute-error
+          dist_from_cluster_center.to_list(), axis=1)
 
     # pick out num_of_closest_words closest words to center to describe cluster
-    closest = data.groupby("labels")["center_diff"].nsmallest(  # pytype: disable=attribute-error
+    closest = data.groupby("labels")["center_diff"].nsmallest(
         num_of_closest_words)
-    data_cluster_description = data.loc[closest.index.get_level_values(level=1)]  # pytype: disable=attribute-error
+    data_cluster_description = data.loc[closest.index.get_level_values(level=1)]
     data_cluster_description = data_cluster_description.groupby(
         ["labels"], as_index=False).agg({colname_real: ", ".join})
     return data, data_cluster_description
