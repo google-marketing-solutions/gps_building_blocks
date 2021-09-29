@@ -43,7 +43,9 @@ python run_prediction_pipeline.py \
 --features_sql='features_from_input.sql' \
 --sum_values='totals_visits;totals_hits' \
 --avg_values='totals_visits;totals_hits' \
+--avgbyday_values='totals_visits;totals_hits' \
 --count_values='geoNetwork_metro:[Providence-New Bedford///,MA",Rochester-Mason City-Austin///,IA]:[Others]' \
+--countdistinct_values='hits_eventInfo_eventAction' \
 --mode_values='hits_eCommerceAction_action_type:[3]:[Others]' \
 --proportions_values='channelGrouping:[Organic Search,Social,Direct,Referral,Paid Search,Affiliates]:[Others]' \
 --latest_values='device_isMobile:[false,true]:[Others]'
@@ -107,7 +109,10 @@ flags.DEFINE_string('categorical_fact_value_to_column_name_table', None,
 # Alternative feature extraction using command line flags.
 flags.DEFINE_string('sum_values', '', 'Feature Options for Sum')
 flags.DEFINE_string('avg_values', '', 'Feature Options for Average')
+flags.DEFINE_string('avgbyday_values', '', 'Feature Options for Average by Day')
 flags.DEFINE_string('count_values', '', 'Feature Options for Count')
+flags.DEFINE_string('countdistinct_values', '',
+                    'Feature Options for Count Distinct')
 flags.DEFINE_string('mode_values', '', 'Feature Options for Mode')
 flags.DEFINE_string('proportions_values', '', 'Feature Options for Proportion')
 flags.DEFINE_string('latest_values', '', 'Feature Options for Recent')

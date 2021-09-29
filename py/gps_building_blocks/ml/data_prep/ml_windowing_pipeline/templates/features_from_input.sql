@@ -41,6 +41,13 @@ AS (
       SELECT IFNULL(AVG(value), 0) FROM UNNEST({{feature_option.fact_name}})
     ) AS avg_{{feature_option.fact_name}},
     {% endfor %}
+    {% for feature_option in avgbyday_feature_options %}
+    (
+      SELECT
+        SAFE_DIVIDE(IFNULL(SUM(value), 0), TIMESTAMP_DIFF(MAX(ts), MIN(ts), DAY))
+      FROM UNNEST({{feature_option.fact_name}})
+    ) AS avgbyday_{{feature_option.fact_name}},
+    {% endfor %}
     {% for feature_option in max_feature_options %}
     (
       SELECT MAX(value) FROM UNNEST({{feature_option.fact_name}})
@@ -55,6 +62,11 @@ AS (
     (
       SELECT COUNT(*) FROM UNNEST({{feature_option.fact_name}})
     ) AS count_{{feature_option.fact_name}},
+    {% endfor %}
+    {% for feature_option in countdistinct_feature_options %}
+    (
+      SELECT COUNT(DISTINCT value) FROM UNNEST({{feature_option.fact_name}})
+    ) AS countdistinct_{{feature_option.fact_name}},
     {% endfor %}
     {% for feature_option in mode_feature_options %}
     (
@@ -169,6 +181,10 @@ AS (
     {% for feature_option in avg_feature_options %}
     Features.avg_{{feature_option.fact_name}},
     {% endfor %}
+    # Avg by day features
+    {% for feature_option in avgbyday_feature_options %}
+    Features.avgbyday_{{feature_option.fact_name}},
+    {% endfor %}
     # Mode features
     {% for feature_option in mode_feature_options %}
     Features.mode_{{feature_option.fact_name}},
@@ -204,6 +220,10 @@ AS (
     Features.count_{{opt.fact_name}}_others AS count_{{opt.remainder_column_name}},
         {% endif %}
       {% endif %}
+    {% endfor %}
+    # Count distinct features
+    {% for feature_option in countdistinct_feature_options %}
+    Features.countdistinct_{{feature_option.fact_name}},
     {% endfor %}
     # Max features
     {% for feature_option in max_feature_options %}

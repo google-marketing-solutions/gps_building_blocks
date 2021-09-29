@@ -76,7 +76,9 @@ top_n_values_per_fact: Extract the top n values by count for each categorical
 # Alternative feature extraction using command line flags.
 sum_values: Feature Options for Sum.
 avg_values: Feature Options for Average.
+avgbyday_values: Feature Options for Average by Day.
 count_values: Feature Options for Count.
+countdistinct_values: Feature Options for Count Distinct.
 mode_values: Feature Options for Mode.
 proportions_values: Feature Options for Proportion.
 latest_values: Feature Options for Recent.
@@ -221,8 +223,12 @@ def _get_feature_options_params(params: Dict[str, Any]) -> Dict[str, Any]:
       params['sum_values'])
   feature_option_params['avg_feature_options'] = parse_feature_option(
       params['avg_values'])
+  feature_option_params['avgbyday_feature_options'] = parse_feature_option(
+      params['avgbyday_values'])
   feature_option_params['count_feature_options'] = parse_feature_option(
       params['count_values'])
+  feature_option_params['countdistinct_feature_options'] = parse_feature_option(
+      params['countdistinct_values'])
   feature_option_params['mode_feature_options'] = parse_feature_option(
       params['mode_values'])
   feature_option_params['proportions_feature_options'] = parse_feature_option(
@@ -283,7 +289,9 @@ def update_params_with_defaults(params):
   params.setdefault('top_n_values_per_fact', 3)
   params.setdefault('sum_values', '')
   params.setdefault('avg_values', '')
+  params.setdefault('avgbyday_values', '')
   params.setdefault('count_values', '')
+  params.setdefault('countdistinct_values', '')
   params.setdefault('mode_values', '')
   params.setdefault('proportions_values', '')
   params.setdefault('latest_values', '')
