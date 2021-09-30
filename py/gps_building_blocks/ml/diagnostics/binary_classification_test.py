@@ -20,7 +20,7 @@ import sklearn.metrics
 from absl.testing import parameterized
 from gps_building_blocks.ml.diagnostics import binary_classification
 
-TEST_DATA = pd.DataFrame({
+_TEST_DATA = pd.DataFrame({
     'label': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     'prediction': [
         0.7, 0.63, 0.4, 0.77, 0.45, 0.8, 0.41, 0.82, 0.7, 0.6, 0.5, 0.45, 0.74,
@@ -55,16 +55,16 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
 
     rerults = (
         binary_classification.calc_performance_metrics(
-            labels=np.array(TEST_DATA['label']),
-            probability_predictions=np.array(TEST_DATA['prediction'])))
+            labels=_TEST_DATA['label'].values,
+            probability_predictions=_TEST_DATA['prediction'].values))
 
     self.assertDictEqual(expected_results, rerults)
 
   def test_resulted_bin_metrics_does_not_contain_nas(self):
     results = (
         binary_classification.calc_bin_metrics(
-            labels=np.array(TEST_DATA['label']),
-            probability_predictions=np.array(TEST_DATA['prediction']),
+            labels=_TEST_DATA['label'].values,
+            probability_predictions=_TEST_DATA['prediction'].values,
             number_bins=3))
 
     self.assertFalse(results.isna().values.any())
@@ -80,8 +80,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
 
     results = (
         binary_classification.calc_bin_metrics(
-            labels=np.array(TEST_DATA['label']),
-            probability_predictions=np.array(TEST_DATA['prediction']),
+            labels=_TEST_DATA['label'].values,
+            probability_predictions=_TEST_DATA['prediction'].values,
             number_bins=3))
 
     self.assertListEqual(results['bin_number'].tolist(), bin_number)
@@ -96,8 +96,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
   def test_plot_bin_metrics_returns_bar_plots_with_correct_elements(self):
     bin_metrics = (
         binary_classification.calc_bin_metrics(
-            labels=np.array(TEST_DATA['label']),
-            probability_predictions=np.array(TEST_DATA['prediction']),
+            labels=_TEST_DATA['label'].values,
+            probability_predictions=_TEST_DATA['prediction'].values,
             number_bins=3))
     x_data = list(bin_metrics['bin_number'])
     y_data_precision = list(bin_metrics['precision'])
@@ -137,8 +137,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
 
     results = (
         binary_classification.calc_cumulative_bin_metrics(
-            labels=np.array(TEST_DATA['label']),
-            probability_predictions=np.array(TEST_DATA['prediction']),
+            labels=_TEST_DATA['label'].values,
+            probability_predictions=_TEST_DATA['prediction'].values,
             number_bins=3))
 
     self.assertListEqual(results['cumulative_bin_number'].tolist(),
@@ -157,8 +157,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
   def test_plot_cumulative_bin_metrics_returns_correct_plots(self):
     cumulative_bin_metrics = (
         binary_classification.calc_cumulative_bin_metrics(
-            labels=np.array(TEST_DATA['label']),
-            probability_predictions=np.array(TEST_DATA['prediction']),
+            labels=np.array(_TEST_DATA['label']),
+            probability_predictions=np.array(_TEST_DATA['prediction']),
             number_bins=3))
     x_data = list(cumulative_bin_metrics['cumulative_bin_number'])
     y_data_precision = list(cumulative_bin_metrics['precision'])
@@ -193,7 +193,7 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
     prediction_column_name = 'prediction'
 
     # prepare results
-    test_data = TEST_DATA.sort_values(
+    test_data = _TEST_DATA.sort_values(
         by=prediction_column_name, ascending=False)
     test_data['bin_number'] = (
         number_bins -
@@ -227,7 +227,7 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
 
     num_plot, cat_plot = (
         binary_classification.plot_binned_features(
-            data=TEST_DATA,
+            data=_TEST_DATA,
             number_bins=number_bins,
             prediction_column_name=prediction_column_name,
             feature_names=('num_feature_1', 'cat_feature_1'),
@@ -252,8 +252,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
 
   def test_plot_predicted_probabilities(self):
     plot = binary_classification.plot_predicted_probabilities(
-        labels=np.array(TEST_DATA['label']),
-        probability_predictions=np.array(TEST_DATA['prediction']),
+        labels=_TEST_DATA['label'].values,
+        probability_predictions=_TEST_DATA['prediction'].values,
         colors=('b', 'g'),
         print_stats=True,
         fig_width=20,
@@ -263,8 +263,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
       self.assertEqual('Distribution of predicted probabilities',
                        plot.get_title())
     with self.subTest(name='test the label of the plot'):
-      preds_plot0 = TEST_DATA[TEST_DATA['label'] == 0]['prediction']
-      preds_plot1 = TEST_DATA[TEST_DATA['label'] == 1]['prediction']
+      preds_plot0 = _TEST_DATA[_TEST_DATA['label'] == 0]['prediction']
+      preds_plot1 = _TEST_DATA[_TEST_DATA['label'] == 1]['prediction']
       expect_legends = [
           'class[%s]' % (str(0)) + ': mean=%.4f, std=%.4f, median=%.4f' %
           (np.mean(preds_plot0), np.std(preds_plot0), np.median(preds_plot0)),
@@ -293,8 +293,8 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
                  curve_color):
     if plot_name == 'roc':
       plot = binary_classification.plot_roc_curve(
-          labels=np.array(TEST_DATA['label']),
-          probability_predictions=np.array(TEST_DATA['prediction']),
+          labels=_TEST_DATA['label'].values,
+          probability_predictions=_TEST_DATA['prediction'].values,
           print_stats=print_stats,
           fig_width=fig_width,
           fig_height=fig_height,
@@ -302,14 +302,14 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
       expected_title = 'AUC=0.7100'
     elif plot_name == 'precision-recall':
       plot = binary_classification.plot_precision_recall_curve(
-          labels=np.array(TEST_DATA['label']),
-          probability_predictions=np.array(TEST_DATA['prediction']),
+          labels=_TEST_DATA['label'].values,
+          probability_predictions=_TEST_DATA['prediction'].values,
           print_stats=print_stats,
           fig_width=fig_width,
           fig_height=fig_height,
           curve_color=curve_color)
       expected_title = 'Average Precision=%.4f' % sklearn.metrics.average_precision_score(
-          np.array(TEST_DATA['label']), np.array(TEST_DATA['prediction']))
+          np.array(_TEST_DATA['label']), np.array(_TEST_DATA['prediction']))
     else:
       raise NotImplementedError('plot name %s is not included in the tests.')
 

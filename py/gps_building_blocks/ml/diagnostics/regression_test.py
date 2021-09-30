@@ -27,6 +27,14 @@ _TEST_DATA = pd.DataFrame({
     'prediction': [
         65.55, 58.08, 32.97, 21.39, 42.53, 79.83, 63.19, 68.28, 48.45, 29.57,
         95.5, 36.91, 17.45, 46.88, 62.13, 55.53, 75.3, 43.0, 33.19, 82.34
+    ],
+    'num_feature_1': [
+        20, 30, 22.5, 19, 30, 32, 15.6, 17.87, 25.45, 17.3, 30.2, 33, 27.5,
+        25.1, 35.6, 33.26, 38.5, 31.23, 28.44, 30.32
+    ],
+    'cat_feature_1': [
+        'M', 'M', 'F', 'M', 'M', 'F', 'M', 'M', 'F', 'F', 'F', 'F', 'M', 'M',
+        'F', 'M', 'F', 'M', 'M', 'F'
     ]
 })
 
@@ -175,6 +183,72 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
           bin_number, [int(tick.get_text()) for tick in plot.get_xticklabels()])
       self.assertListEqual(
           bin_number, [int(tick.get_text()) for tick in plot.get_yticklabels()])
+
+  def test_binned_features_returns_correct_elements(self):
+    number_bins = 3
+    prediction_column_name = 'prediction'
+
+    # Prepare results.
+    test_data = _TEST_DATA.sort_values(
+        by=prediction_column_name, ascending=False)
+    test_data['bin_number'] = (
+        number_bins -
+        pd.qcut(test_data[prediction_column_name], q=number_bins, labels=False))
+
+    # Stats for the numerical feature.
+    num_binned_test_data = test_data[['bin_number', 'num_feature_1']]
+    num_binned_test_data = num_binned_test_data.rename(
+        columns={'num_feature_1': 'v'})
+    num_bin_stats = (
+        num_binned_test_data[['bin_number',
+                              'v']].groupby('bin_number',
+                                            as_index=False).agg('mean'))
+    num_bin_stats.columns = ['bin_number', 'var_mean']
+
+    # Stats for the categorical feature.
+    cat_binned_test_data = test_data[['bin_number', 'cat_feature_1']]
+    cat_binned_test_data = cat_binned_test_data.rename(
+        columns={'cat_feature_1': 'categories'})
+    bin_counts = (
+        cat_binned_test_data.groupby('bin_number', as_index=False).count())
+    bin_counts.columns = ['bin_number', 'total_count']
+    # Add the 'temp_column' to support the following 'groupby' requiring at
+    # least one column not included in `by` parameter.
+    cat_binned_test_data['temp_column'] = 1
+    bin_category_counts = (
+        cat_binned_test_data.groupby(['bin_number', 'categories'],
+                                     as_index=False).count())
+    bin_category_counts.columns = ['bin_number', 'categories', 'count']
+    cat_bin_stats = pd.merge(bin_category_counts, bin_counts, on='bin_number')
+    cat_bin_stats['proportion'] = (
+        round((cat_bin_stats['count'] / cat_bin_stats['total_count']) * 100, 5))
+    cat_bin_stats = cat_bin_stats.sort_values('categories')
+
+    num_plot, cat_plot = (
+        regression.plot_binned_features(
+            data=_TEST_DATA,
+            number_bins=number_bins,
+            prediction_column_name=prediction_column_name,
+            feature_names=('num_feature_1', 'cat_feature_1'),
+            feature_types=('numerical', 'categorical')))
+
+    with self.subTest(name='test the elements of numerical feature plot'):
+      self.assertEqual('num_feature_1', num_plot.get_title())
+      self.assertListEqual(
+          list(num_bin_stats['bin_number']),
+          [int(tick.get_text()) for tick in num_plot.get_xticklabels()])
+      self.assertListEqual(
+          list(num_bin_stats['var_mean']),
+          [h.get_height() for h in num_plot.patches])
+
+    with self.subTest(name='test the elements of categorical feature plot'):
+      self.assertEqual('cat_feature_1', cat_plot.get_title())
+      self.assertListEqual(
+          list(set(cat_bin_stats['bin_number'])),
+          [int(tick.get_text()) for tick in cat_plot.get_xticklabels()])
+      self.assertSequenceAlmostEqual(
+          list(cat_bin_stats['proportion']),
+          [h.get_height() for h in cat_plot.patches], 5)
 
 
 if __name__ == '__main__':

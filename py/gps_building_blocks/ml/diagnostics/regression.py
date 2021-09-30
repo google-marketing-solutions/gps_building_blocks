@@ -17,8 +17,7 @@ Specially useful when diagnosing a Lifetime Value (LTV) model.
 """
 
 import dataclasses
-from typing import Optional
-
+from typing import List, Optional, Sequence
 from matplotlib import axes
 from matplotlib import pyplot
 import numpy as np
@@ -26,8 +25,8 @@ import pandas as pd
 import scipy as sp
 import seaborn as sns
 from sklearn import metrics
-
 from gps_building_blocks.ml import utils
+from gps_building_blocks.ml.diagnostics import feature_insights
 
 
 @dataclasses.dataclass
@@ -365,3 +364,59 @@ def plot_confusion_matrix_bin_heatmap(
   plot.set_ylabel('Prediction value bins', fontsize=axis_label_fontsize)
 
   return plot
+
+
+def plot_binned_features(
+    data: pd.DataFrame,
+    prediction_column_name: str,
+    feature_names: Sequence[str],
+    feature_types: Sequence[str],
+    number_bins: Optional[int] = 10,
+    fig_width: Optional[int] = 10,
+    fig_height: Optional[int] = 5,
+    numerical_feature_color: Optional[str] = 'coral',
+    title_fontsize: Optional[int] = 12,
+    x_label_fontsize: Optional[int] = 12,
+    y_label_fontsize: Optional[int] = 12,
+    tick_label_fontsize: Optional[int] = 10,
+    legend_font_size: Optional[int] = 10) -> List[axes.Axes]:
+  """Plots the distributions of features for the bins of the predictions.
+
+  Args:
+    data: Dataset containing the features to be plotted with the regression
+      predictions.
+    prediction_column_name: Column name of the predictions.
+    feature_names: Columns names of the features to be plotted.
+    feature_types: Types of the corresponding features to be plotted in order of
+      the values in feature_names. Should only contain 'numerical' and
+      'categorical' as values.
+    number_bins: Number of bins that we want to divide the ranked predictions
+      into. Default is deciles (10 bins) such that the 1st bin contains the
+      highest 10% of the predictions, the 2nd bin contains the next 10% of the
+      predictions and so on.
+    fig_width: Width of the figure.
+    fig_height: Height of the figure.
+    numerical_feature_color: Color of the numerical feature bar plot.
+    title_fontsize: Font size of the figure title.
+    x_label_fontsize: Font size of the x axis labels.
+    y_label_fontsize: Font size of the y axis labels.
+    tick_label_fontsize: Font size of the x and y axis tick labels.
+    legend_font_size: Font size of the legend.
+
+  Returns:
+    plots: Plots of the selected features.
+  """
+  return feature_insights.plot_binned_features(
+      data=data,
+      prediction_column_name=prediction_column_name,
+      feature_names=feature_names,
+      feature_types=feature_types,
+      number_bins=number_bins,
+      fig_width=fig_width,
+      fig_height=fig_height,
+      numerical_feature_color=numerical_feature_color,
+      title_fontsize=title_fontsize,
+      x_label_fontsize=x_label_fontsize,
+      y_label_fontsize=y_label_fontsize,
+      tick_label_fontsize=tick_label_fontsize,
+      legend_font_size=legend_font_size)
