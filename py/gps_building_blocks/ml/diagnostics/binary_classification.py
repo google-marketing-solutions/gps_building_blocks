@@ -138,11 +138,14 @@ def calc_bin_metrics(labels: np.ndarray,
   utils.assert_label_and_prediction_length_match(labels,
                                                  probability_predictions)
 
-  # Separate the probability_predictions into bins.
-  bins = pd.qcut(probability_predictions, q=number_bins, labels=False)
+  # Separate the probability_predictions into bins of equal size.
   binned_data = pd.DataFrame(
-      list(zip(labels, probability_predictions, bins)),
-      columns=['label', 'prediction', 'bin_number'])
+      list(zip(labels, probability_predictions)),
+      columns=['label', 'prediction'])
+  binned_data = binned_data.sort_values('prediction').reset_index()
+  # To avoid duplicate edges of bins use the index in the qcat function below.
+  binned_data['bin_number'] = pd.qcut(binned_data.index,
+                                      q=number_bins, labels=False)
 
   # Calculate the metrics for each bin.
   total_instances = (
@@ -627,8 +630,8 @@ def plot_predicted_probabilities(labels: np.ndarray,
   utils.assert_prediction_values_are_valid(probability_predictions)
   utils.assert_label_and_prediction_length_match(labels,
                                                  probability_predictions)
-  assert len(np.unique(labels)) == len(colors),\
-         'number of colors should be the same as number of unique labels.'
+  assert len(np.unique(labels)) == len(colors), (
+      'number of colors should be the same as number of unique labels.')
 
   unique_labels = np.sort(np.unique(labels))
 

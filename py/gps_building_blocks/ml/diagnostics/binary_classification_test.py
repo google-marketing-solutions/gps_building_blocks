@@ -71,11 +71,11 @@ class BinaryClassificationDiagnosticsTest(parameterized.TestCase,
 
   def test_calc_bin_metrics_returns_correct_values(self):
     bin_number = [1, 2, 3]
-    bin_size = [7, 5, 8]
+    bin_size = [7, 6, 7]
     positive_instances = [5, 2, 3]
-    precision = [0.7143, 0.4000, 0.3750]
+    precision = [0.7143, 0.3333, 0.4286]
     prop_positives = [0.5000, 0.5000, 0.5000]
-    precision_uplift = [1.4286, 0.8000, 0.7500]
+    precision_uplift = [1.4286, 0.6666, 0.8572]
     coverage = [0.5000, 0.2000, 0.3000]
 
     results = (
