@@ -59,11 +59,18 @@ helping to generate new business insights. Further, it produces plots to
 understand the model performance in relation to the predictions helping to
 design media experiments in the case of propensity models.
 
-The different functionalities are explained below.
+The different functionalities of this module are explained below and
+demonstrated in [this Python Notebook](binary_classification_diagnostics_example.ipynb).
 
 NOTE: Following functions require a Pandas DataFrame with columns containing the
 binary label (1.0 and 0.0 values) and predicted probabilities (between 0.0 and
 1.0).
+
+#### Import the Module
+
+```python
+from gps_building_blocks.ml.diagnostics import binary_classification
+```
 
 #### Calculate Performance Metrics
 
@@ -73,8 +80,6 @@ performance metrics related to a binary classification model.
 **Usage example:**
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 binary_classification.calc_performance_metrics(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values)
@@ -124,8 +129,6 @@ Under The Curve) is also printed.
 **Usage example:**
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 binary_classification.plot_roc_curve(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values,
@@ -154,8 +157,6 @@ also printed for the evaluation of precision recall curve.
 **Usage example:**
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 binary_classification.plot_precision_recall_curve(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values,
@@ -177,8 +178,6 @@ the predicted probabilities for different classes are.
 **Usage example:**
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 binary_classification.plot_predicted_probabilities(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values,
@@ -208,8 +207,6 @@ bins of the predicted probabilities. It does following:
 **Usage example:**
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 bin_metrics = binary_classification.calc_bin_metrics(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values)
@@ -248,8 +245,6 @@ metrics for cumulative bins of the predicted probabilities. It does following:
 **Usage example:**
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 cumulative_bin_metrics = binary_classification.calc_cumulative_bin_metrics(
     labels=df_pred['label'].values,
     probability_predictions=df_pred['prob'].values)
@@ -282,8 +277,6 @@ NOTE: Following functions require a Pandas DataFrame with columns containing the
 predicted probabilities (between 0.0 and 1.0) and features.
 
 ```python
-from google3.third_party.gps_building_blocks.ml.diagnostics import binary_classification
-
 feature_names = ('recency', 'history', 'channel', 'zip_code')
 feature_types = ('numerical', 'numerical', 'categorical', 'categorical')
 binary_classification.plot_binned_features(
