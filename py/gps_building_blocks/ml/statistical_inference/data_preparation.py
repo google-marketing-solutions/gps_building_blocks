@@ -209,7 +209,7 @@ class InferenceData():
     self._checked_collinearity = False
 
     if target_column and target_column not in initial_data:
-      raise KeyError('Target "{target_column}" not in data.')
+      raise KeyError(f'Target "{target_column}" not in data.')
 
     self._check_missing_values(raise_on_error=False)
 
