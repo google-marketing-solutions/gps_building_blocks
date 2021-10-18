@@ -333,7 +333,8 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
 
     # Backup coefficients and intercept.
     coefficients = self.model.coef_.copy()
-    intercept = self.model.intercept_.copy()
+    if self.model.fit_intercept:
+      intercept = self.model.intercept_.copy()
 
     try:
       self._bootstrap_results = bootstrap.regression_bootstrap(
@@ -347,7 +348,8 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
     finally:
       # Restore coefficients and intercept.
       self.model.coef_ = coefficients
-      self.model.intercept_ = intercept
+      if self.model.fit_intercept:
+        self.model.intercept_ = intercept
 
   def _predict(self, data: pd.DataFrame, **kwargs) -> pd.Series:
     """Predicts using the underlying model implementation."""
