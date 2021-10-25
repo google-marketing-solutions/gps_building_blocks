@@ -273,7 +273,7 @@ class InferenceModel(metaclass=abc.ABCMeta):
             for fit_metric in valid_fit_metrics}
 
 
-class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
+class _InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
   """Parent class for all `Scikit-Learn` linear models.
 
   This class is not meant to be user directly.
@@ -322,8 +322,7 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
         time for bootstrap.
 
     Raises:
-      RuntimeError: if the InferenceLinearRegressionModel has not being fit
-        before calling this method.
+      RuntimeError: If the object has not being fit before calling this method.
     """
     if not self._is_fit:
       raise RuntimeError(
@@ -371,7 +370,7 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
         time for bootstrap.
 
     Raises:
-      RuntimeError: if the InferenceLinearRegressionModel has not being fit
+      RuntimeError: if the _InferenceLinearRegressionModel has not being fit
         before calling this method.
     """
     if not self._is_fit:
@@ -400,7 +399,7 @@ class InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
         self.model.intercept_ = intercept
 
 
-class InferenceLinearRegression(InferenceLinearRegressionModel):
+class InferenceLinearRegression(_InferenceLinearRegressionModel):
   """Ordinary least squares Linear Regression.
 
   You can customize the model passing any existing parameters of the original
@@ -415,7 +414,7 @@ class InferenceLinearRegression(InferenceLinearRegressionModel):
     super().__init__(model)
 
 
-class InferenceRidge(InferenceLinearRegressionModel):
+class InferenceRidge(_InferenceLinearRegressionModel):
   """Linear least squares with l2 regularization.
 
   This model solves a regression model where the loss function is the linear
@@ -433,7 +432,7 @@ class InferenceRidge(InferenceLinearRegressionModel):
     super().__init__(model)
 
 
-class InferenceElasticNet(InferenceLinearRegressionModel):
+class InferenceElasticNet(_InferenceLinearRegressionModel):
   """Linear regression with combined L1 and L2 priors as regularizer.
 
   You can customize the model passing any existing parameters of the original
@@ -452,7 +451,7 @@ class InferenceElasticNet(InferenceLinearRegressionModel):
     super().__init__(model)
 
 
-class InferenceElasticNetCV(InferenceLinearRegressionModel):
+class InferenceElasticNetCV(_InferenceLinearRegressionModel):
   """Elastic Net model with iterative fitting along a regularization path.
 
   You can customize the model passing any existing parameters of the original
