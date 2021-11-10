@@ -174,7 +174,7 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
 
     plot = regression.plot_confusion_matrix_bin_heatmap(
         labels, predictions, number_bins=3)
-    bin_number = [0, 1, 2]
+    bin_number = [1, 2, 3]
     with self.subTest(name='test the title of heatmap'):
       self.assertEqual('Heatmap of the bins of the actual and predicted values',
                        plot.get_title())
@@ -249,6 +249,22 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
       self.assertSequenceAlmostEqual(
           list(cat_bin_stats['proportion']),
           [h.get_height() for h in cat_plot.patches], 5)
+
+  def test_plot_binned_preds_labels_returns_correct_values(self):
+    predictions = np.array(_TEST_DATA['prediction'])
+    labels = np.array(_TEST_DATA['label'])
+    number_bins = 5
+
+    plot = regression.plot_binned_preds_labels(
+        labels=labels, predictions=predictions, number_bins=number_bins)
+    bin_labels = list(range(1, number_bins + 1))
+
+    with self.subTest(name='test the plot title'):
+      self.assertEqual('Distribution of actual labels over prediction bins',
+                       plot.get_title())
+    with self.subTest(name='test the x axis elements of the plot'):
+      self.assertListEqual(
+          bin_labels, [int(tick.get_text()) for tick in plot.get_xticklabels()])
 
 
 if __name__ == '__main__':

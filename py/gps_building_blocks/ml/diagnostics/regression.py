@@ -320,6 +320,7 @@ def plot_confusion_matrix_bin_heatmap(
     labels: np.ndarray,
     predictions: np.ndarray,
     number_bins: Optional[int] = 10,
+    normalize: Optional[str] = 'true',
     fig_width: Optional[int] = 12,
     fig_height: Optional[int] = 12,
     title_fontsize: Optional[int] = 12,
@@ -334,6 +335,9 @@ def plot_confusion_matrix_bin_heatmap(
       into. Default is deciles (10 bins) such that the 1st bin contains the
       highest 10% of the predictions, the 2nd bin contains the next 10% of the
       predictions and so on.
+    normalize: Normalizes confusion matrix over the true labels (rows),
+      predictions (columns) conditions or all the population. Takes the values
+      'true', 'pred' and 'all' respectively.
     fig_width: Width of the figure.
     fig_height: Height of the figure.
     title_fontsize: Title font size of the plots.
@@ -345,23 +349,75 @@ def plot_confusion_matrix_bin_heatmap(
   """
   utils.assert_label_and_prediction_length_match(labels, predictions)
 
-  bins = pd.qcut(predictions, q=number_bins, labels=False, duplicates='drop')
-  bins_label = pd.qcut(labels, q=number_bins, labels=False, duplicates='drop')
-  binned_data = pd.DataFrame(
-      list(zip(labels, predictions, bins, bins_label)),
-      columns=['labels', 'predictions', 'bin_number', 'bin_number_label'])
+  assert str(normalize).lower() in ['true', 'pred', 'all'], (
+      "normalize parameter value should be either 'true', 'pred' or 'all'")
 
-  conf_matrix = metrics.confusion_matrix(binned_data['bin_number_label'],
-                                         binned_data['bin_number'])
-  conf_matrix = conf_matrix / np.sum(conf_matrix)
+  data = pd.DataFrame(list(zip(labels, predictions)),
+                      columns=['labels', 'predictions'])
+  data = data.sort_values('labels', ascending=False)
+  data['labels_rank'] = range(data.shape[0])
+  data = data.sort_values('predictions', ascending=False)
+  data['prediction_rank'] = range(data.shape[0])
+  data['bin_number_label'] = pd.qcut(data['labels_rank'],
+                                     q=number_bins, labels=False)
+  data['bin_number_predictions'] = pd.qcut(data['prediction_rank'],
+                                           q=number_bins, labels=False)
 
+  conf_matrix = metrics.confusion_matrix(y_true=data['bin_number_label'],
+                                         y_pred=data['bin_number_predictions'],
+                                         normalize=normalize)
+
+  tick_labels = range(1, number_bins + 1)
   _, plot = pyplot.subplots(figsize=(fig_width, fig_height))
-  plot = sns.heatmap(conf_matrix, cbar=False, cmap=heatmap_color, annot=True)
+  plot = sns.heatmap(conf_matrix, cbar=False, cmap=heatmap_color, annot=True,
+                     xticklabels=tick_labels, yticklabels=tick_labels)
   plot.set_title(
       'Heatmap of the bins of the actual and predicted values',
       fontsize=title_fontsize)
-  plot.set_xlabel('Actual value bins', fontsize=axis_label_fontsize)
-  plot.set_ylabel('Prediction value bins', fontsize=axis_label_fontsize)
+  plot.set_xlabel('Prediction value bins [Highest to Lowest]',
+                  fontsize=axis_label_fontsize)
+  plot.set_ylabel('Actual value bins [Highest to Lowest]',
+                  fontsize=axis_label_fontsize)
+
+  return plot
+
+
+def plot_binned_preds_labels(labels: np.ndarray,
+                             predictions: np.ndarray,
+                             number_bins: Optional[int] = 10,
+                             fig_width: Optional[int] = 10,
+                             fig_height: Optional[int] = 7) -> axes.Axes:
+  """Plots the actual label distributions (box plots) for prediction bins.
+
+  Args:
+    labels: An array of true labels containing numeric values.
+    predictions: An array of predictions containing numeric values.
+    number_bins: Number of bins that we want to divide the ranked predictions
+      into. Default is deciles (10 bins) such that the 1st bin contains the
+      highest 10% of the predictions, the 2nd bin contains the next 10% of the
+      predictions and so on.
+    fig_width: Width of the figure.
+    fig_height: Height of the figure.
+
+  Returns:
+    plot: Box plots of the actual label distributions for prediction bins.
+  """
+  utils.assert_label_and_prediction_length_match(labels, predictions)
+
+  # Separate the predictions into bins.
+  data = pd.DataFrame(list(zip(labels, predictions)),
+                      columns=['labels', 'predictions'])
+  data = data.sort_values('predictions', ascending=False)
+  data['prediction_rank'] = range(data.shape[0])
+  # To avoid duplicate edges of bins use the index in the qcat function below.
+  data['prediction_bin_number'] = pd.qcut(data['prediction_rank'],
+                                          q=number_bins, labels=False) + 1
+
+  _, plot = pyplot.subplots(figsize=(fig_width, fig_height))
+  data.pivot(columns='prediction_bin_number', values='labels').boxplot()
+  plot.set_title('Distribution of actual labels over prediction bins')
+  plot.set_ylabel('Actual label distribution')
+  plot.set_xlabel('Prediction bin [Highest to Lowest]')
 
   return plot
 
