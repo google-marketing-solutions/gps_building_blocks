@@ -35,7 +35,6 @@ class _PerformanceMetrics:
 
   Mean squared error.
   Root mean squared error.
-  Mean squared log error.
   Mean absolute error.
   Mean absolute percentage error.
   R-squared (Coefficient of Determination).
@@ -43,7 +42,6 @@ class _PerformanceMetrics:
   """
   mean_squared_error: float
   root_mean_squared_error: float
-  mean_squared_log_error: float
   mean_absolute_error: float
   mean_absolute_percentage_error: float
   r_squared: float
@@ -71,7 +69,6 @@ def calc_performance_metrics(
 
   mse = metrics.mean_squared_error(labels, predictions)
   rmse = np.sqrt(mse)
-  msle = np.sqrt(metrics.mean_squared_log_error(labels, predictions))
   mae = metrics.mean_absolute_error(labels, predictions)
   mape = metrics.mean_absolute_percentage_error(labels, predictions)
   r2 = metrics.r2_score(labels, predictions)
@@ -80,7 +77,6 @@ def calc_performance_metrics(
   return _PerformanceMetrics(
       mean_squared_error=round(mse, decimal_points),
       root_mean_squared_error=round(rmse, decimal_points),
-      mean_squared_log_error=round(msle, decimal_points),
       mean_absolute_error=round(mae, decimal_points),
       mean_absolute_percentage_error=round(mape, decimal_points),
       r_squared=round(r2, decimal_points),
@@ -161,20 +157,19 @@ def calc_reg_bin_metrics(labels: np.ndarray,
     bin_metrics: Following metrics calculated for each bin:
       mean_label: Mean of actual values in the bin.
       mean_prediction: Mean of predictions in the bin.
-      mse: Mean squared error.
       rmse: Root mean squared error.
-      msle: Mean squared log error
       mape: Mean absolute percentage error.
-      r_squared: R-squared (Coefficient of Determination).
       corr: pearson_correlation coefficient.
   """
   utils.assert_label_and_prediction_length_match(labels, predictions)
 
   # Separate the predictions into bins.
-  bins = pd.qcut(predictions, q=number_bins, labels=False, duplicates='drop')
   binned_data = pd.DataFrame(
-      list(zip(labels, predictions, bins)),
-      columns=['label', 'prediction', 'bin_number'])
+      list(zip(labels, predictions)), columns=['label', 'prediction'])
+  binned_data = binned_data.sort_values('prediction').reset_index()
+  # To avoid duplicate edges of bins use the index in the qcat function below.
+  binned_data['bin_number'] = pd.qcut(
+      binned_data.index, q=number_bins, labels=False)
 
   bin_metrics = binned_data.groupby(
       'bin_number', as_index=False).agg({
@@ -187,11 +182,8 @@ def calc_reg_bin_metrics(labels: np.ndarray,
   bin_metrics['mean_label'] = round(bin_metrics['mean_label'], decimal_points)
   bin_metrics['mean_prediction'] = round(bin_metrics['mean_prediction'],
                                          decimal_points)
-  bin_metrics['mse'] = 0
   bin_metrics['rmse'] = 0
-  bin_metrics['msle'] = 0
   bin_metrics['mape'] = 0
-  bin_metrics['r_squared'] = 0
   bin_metrics['corr'] = 0
 
   for i in range(number_bins):
@@ -200,11 +192,8 @@ def calc_reg_bin_metrics(labels: np.ndarray,
         binned_data[binned_data.bin_number == i]['prediction'].values)
     bin_perf_metrics = calc_performance_metrics(bin_labels, bin_predictions,
                                                 decimal_points)
-    bin_metrics.loc[i, 'mse'] = bin_perf_metrics.mean_squared_error
     bin_metrics.loc[i, 'rmse'] = bin_perf_metrics.root_mean_squared_error
-    bin_metrics.loc[i, 'msle'] = bin_perf_metrics.mean_squared_log_error
     bin_metrics.loc[i, 'mape'] = bin_perf_metrics.mean_absolute_percentage_error
-    bin_metrics.loc[i, 'r_squared'] = bin_perf_metrics.r_squared
     bin_metrics.loc[i, 'corr'] = bin_perf_metrics.pearson_correlation
 
   bin_metrics['bin_number'] = number_bins - bin_metrics['bin_number']
@@ -234,7 +223,7 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
     plots: Bar plots of the mean, mape, mse, rmse, msle, rsquared and
     correlation of bins of the actual values and predictions.
   """
-  _, plots = pyplot.subplots(nrows=4, ncols=2, figsize=(fig_width, fig_height))
+  _, plots = pyplot.subplots(nrows=2, ncols=2, figsize=(fig_width, fig_height))
 
   bin_metrics_mean = bin_metrics[[
       'bin_number', 'mean_label', 'mean_prediction'
@@ -265,53 +254,22 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
   plot_3 = sns.barplot(
       ax=plots[1, 0],
       x='bin_number',
-      y='mse',
+      y='rmse',
       data=bin_metrics,
       palette=bar_color)
-  plot_3.set_title('MSE in each bin', fontsize=title_fontsize)
+  plot_3.set_title('RMSE in each bin', fontsize=title_fontsize)
   plot_3.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
-  plot_3.set_ylabel('MSE', fontsize=axis_label_fontsize)
+  plot_3.set_ylabel('RMSE', fontsize=axis_label_fontsize)
 
   plot_4 = sns.barplot(
       ax=plots[1, 1],
       x='bin_number',
-      y='rmse',
-      data=bin_metrics,
-      palette=bar_color)
-  plot_4.set_title('RMSE in each bin', fontsize=title_fontsize)
-  plot_4.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
-  plot_4.set_ylabel('RMSE', fontsize=axis_label_fontsize)
-
-  plot_5 = sns.barplot(
-      ax=plots[2, 0],
-      x='bin_number',
-      y='msle',
-      data=bin_metrics,
-      palette=bar_color)
-  plot_5.set_title('MSLE in each bin', fontsize=title_fontsize)
-  plot_5.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
-  plot_5.set_ylabel('MSLE', fontsize=axis_label_fontsize)
-
-  plot_6 = sns.barplot(
-      ax=plots[2, 1],
-      x='bin_number',
-      y='r_squared',
-      data=bin_metrics,
-      palette=bar_color)
-  plot_6.set_title('R squared in each bin', fontsize=title_fontsize)
-  plot_6.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
-  plot_6.set_ylabel('R squared', fontsize=axis_label_fontsize)
-
-  plot_7 = sns.barplot(
-      ax=plots[3, 0],
-      x='bin_number',
       y='corr',
       data=bin_metrics,
       palette=bar_color)
-  plot_7.set_title('Correlation in each bin', fontsize=title_fontsize)
-  plot_7.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
-  plot_7.set_ylabel('Correlation', fontsize=axis_label_fontsize)
-  plots[3, 1].axis('off')
+  plot_4.set_title('Correlation in each bin', fontsize=title_fontsize)
+  plot_4.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
+  plot_4.set_ylabel('Correlation', fontsize=axis_label_fontsize)
 
   return plots
 

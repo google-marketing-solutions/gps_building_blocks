@@ -44,7 +44,6 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
   def test_calc_performance_metrics_returns_correct_values(self):
     mean_squared_error = 39.7459
     root_mean_squared_error = 6.3044
-    mean_squared_log_error = 0.1963
     mean_absolute_error = 5.755
     mean_absolute_percentage_error = 0.1794
     r_squared = 0.9108
@@ -57,8 +56,6 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
     self.assertAlmostEqual(mean_squared_error, results.mean_squared_error)
     self.assertAlmostEqual(root_mean_squared_error,
                            results.root_mean_squared_error)
-    self.assertAlmostEqual(mean_squared_log_error,
-                           results.mean_squared_log_error)
     self.assertAlmostEqual(mean_absolute_error, results.mean_absolute_error)
     self.assertAlmostEqual(mean_absolute_percentage_error,
                            results.mean_absolute_percentage_error)
@@ -114,11 +111,8 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
     bin_number = [1, 2, 3]
     mean_label = [69.4043, 46.8100, 25.1829]
     mean_prediction = [75.7129, 52.3450, 30.5729]
-    mse = [44.1993, 40.1978, 34.9053]
     rmse = [6.6483, 6.3402, 5.9081]
-    msle = [0.0976, 0.1437, 0.2880]
     mape = [0.0962, 0.1353, 0.3003]
-    r_squared = [0.6629, 0.5406, 0.6079]
     corr = [0.9856, 0.9791, 0.9741]
 
     results = (
@@ -130,11 +124,8 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
     self.assertListEqual(results['bin_number'].tolist(), bin_number)
     self.assertListEqual(results['mean_label'].tolist(), mean_label)
     self.assertListEqual(results['mean_prediction'].tolist(), mean_prediction)
-    self.assertListEqual(results['mse'].tolist(), mse)
     self.assertListEqual(results['rmse'].tolist(), rmse)
-    self.assertListEqual(results['msle'].tolist(), msle)
     self.assertListEqual(results['mape'].tolist(), mape)
-    self.assertListEqual(results['r_squared'].tolist(), r_squared)
     self.assertListEqual(results['corr'].tolist(), corr)
 
   def test_plot_reg_bin_metrics_returns_bar_plots_with_correct_elements(self):
@@ -146,21 +137,16 @@ class RegressionDiagnosticsTest(parameterized.TestCase, absltest.TestCase):
     x_data = list(bin_metrics['bin_number'])
     y_data_mean = list(bin_metrics['mean_label']) + list(
         bin_metrics['mean_prediction'])
-    y_data_mse = list(bin_metrics['mse'])
     y_data_rmse = list(bin_metrics['rmse'])
-    y_data_msle = list(bin_metrics['msle'])
     y_data_mape = list(bin_metrics['mape'])
-    y_data_rsquared = list(bin_metrics['r_squared'])
     y_data_corr = list(bin_metrics['corr'])
 
     with self.subTest(name='test the elements of each metirc bar plot'):
       for plot, x_data_expected, y_data_expected in [
-          (plots[0, 0], x_data, y_data_mean), (plots[0,
-                                                     1], x_data, y_data_mape),
-          (plots[1, 0], x_data, y_data_mse), (plots[1, 1], x_data, y_data_rmse),
-          (plots[2, 0], x_data, y_data_msle),
-          (plots[2, 1], x_data, y_data_rsquared),
-          (plots[3, 0], x_data, y_data_corr)
+          (plots[0, 0], x_data, y_data_mean),
+          (plots[0, 1], x_data, y_data_mape),
+          (plots[1, 0], x_data, y_data_rmse),
+          (plots[1, 1], x_data, y_data_corr),
       ]:
         self.assertListEqual(
             x_data_expected,
