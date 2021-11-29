@@ -207,7 +207,8 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
                          fig_height: Optional[int] = 25,
                          title_fontsize: Optional[int] = 12,
                          axis_label_fontsize: Optional[int] = 10,
-                         bar_color: Optional[str] = 'coolwarm') -> axes.Axes:
+                         color_palette: Optional[str] = 'coolwarm',
+                         bar_color: Optional[str] = 'salmon') -> axes.Axes:
   """Plots the mean and mape of the bins of the actual and predicted probabilities.
 
   Args:
@@ -217,6 +218,7 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
     fig_height: Height of the figure.
     title_fontsize: Title font size of the plots.
     axis_label_fontsize: Axis label font size of the plots.
+    color_palette: Colors to use for different labels of the 'hue' variable.
     bar_color: Color of the bar plot.
 
   Returns:
@@ -234,7 +236,7 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
       y='value',
       hue='variable',
       data=bin_metrics_mean,
-      palette=bar_color)
+      palette=color_palette)
   plot_1.set_title(
       'Mean of actual and prediction value in each bin',
       fontsize=title_fontsize)
@@ -246,7 +248,7 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
       x='bin_number',
       y='mape',
       data=bin_metrics,
-      palette=bar_color)
+      color=bar_color)
   plot_2.set_title('MAPE in each bin', fontsize=title_fontsize)
   plot_2.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
   plot_2.set_ylabel('MAPE', fontsize=axis_label_fontsize)
@@ -256,7 +258,7 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
       x='bin_number',
       y='rmse',
       data=bin_metrics,
-      palette=bar_color)
+      color=bar_color)
   plot_3.set_title('RMSE in each bin', fontsize=title_fontsize)
   plot_3.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
   plot_3.set_ylabel('RMSE', fontsize=axis_label_fontsize)
@@ -266,7 +268,7 @@ def plot_reg_bin_metrics(bin_metrics: pd.DataFrame,
       x='bin_number',
       y='corr',
       data=bin_metrics,
-      palette=bar_color)
+      color=bar_color)
   plot_4.set_title('Correlation in each bin', fontsize=title_fontsize)
   plot_4.set_xlabel('Bins of predicted values', fontsize=axis_label_fontsize)
   plot_4.set_ylabel('Correlation', fontsize=axis_label_fontsize)
