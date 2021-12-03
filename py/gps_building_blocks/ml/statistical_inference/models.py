@@ -86,7 +86,7 @@ class InferenceModel(metaclass=abc.ABCMeta):
 
     `fit` to train the model accordingly.
     `_extract_effects` to retrieve the effect for each feature.
-    `_extract_confidence_intervals` to retrieve the confidence intervals for
+    `_extract_bootstrap_intervals` to retrieve the confidence intervals for
       each feature.
   """
 
@@ -101,7 +101,7 @@ class InferenceModel(metaclass=abc.ABCMeta):
   def _extract_effects(self) -> MutableMapping[Text, float]:
     """Returns effect for each feature in the model."""
 
-  def _extract_confidence_intervals(
+  def _extract_bootstrap_intervals(
       self, confidence_level: float = 0.95) -> MutableMapping[Text, float]:
     """Returns the confidence interval around the effect for each feature."""
     if isinstance(self._bootstrap_results, pd.DataFrame):
@@ -147,7 +147,7 @@ class InferenceModel(metaclass=abc.ABCMeta):
 
     Returns:
       A DataFrame with the following information for each features. `effect`,
-      `confidence_interval` and `significant` if statistically significant.
+      `bootstrap_interval` and `significant` if statistically significant.
       Results will be sorted in descending order by effect magnitude.
 
     Raises:
@@ -158,18 +158,18 @@ class InferenceModel(metaclass=abc.ABCMeta):
           'InferenceModel must be fit before requesting results.')
 
     effects = self._extract_effects()
-    confidence_intervals = self._extract_confidence_intervals(confidence_level)
+    bootstrap_intervals = self._extract_bootstrap_intervals(confidence_level)
 
     results = pd.Series(effects).rename('effect').to_frame()
     results['bootstrap_std'] = pd.Series(
         self._extract_boostrap_std(), dtype='float64')
-    results['confidence_interval'] = pd.Series(
-        confidence_intervals, dtype='float64')
+    results['bootstrap_interval'] = pd.Series(
+        bootstrap_intervals, dtype='float64')
     results['significant_bootstrap'] = np.nan
-    if confidence_intervals:
+    if bootstrap_intervals:
       # populate only if bootstrap intervals are available
       results['significant_bootstrap'] = (
-          results['effect'].abs() > results['confidence_interval'])
+          results['effect'].abs() > results['bootstrap_interval'])
 
     permutation_results = self._calculate_permutation_test_results(
         results['effect'], 1 - confidence_level)

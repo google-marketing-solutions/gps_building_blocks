@@ -105,7 +105,7 @@ class LinearModelTest(absltest.TestCase):
               [0.0123, 0.0384, 0.0643, False],
               [-0.010, 0.0332, 0.0541, False]],
         columns=['effect', 'bootstrap_std',
-                 'confidence_interval', 'significant_bootstrap'],
+                 'bootstrap_interval', 'significant_bootstrap'],
         index=['Intercept', 1, 0, 4, 2, 3])
     model.fit(data)
 
@@ -154,7 +154,7 @@ class LinearModelTest(absltest.TestCase):
               [0.000000000, np.nan, np.nan, np.nan, False],
               [0.000000000, np.nan, np.nan, np.nan, False]],
         columns=[
-            'effect', 'bootstrap_std', 'confidence_interval',
+            'effect', 'bootstrap_std', 'bootstrap_interval',
             'significant_bootstrap', 'significant_permutation'],
         index=[1, 'Intercept', 0, 4, 3, 2])
 
