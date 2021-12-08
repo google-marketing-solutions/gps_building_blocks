@@ -12,6 +12,7 @@ scalability to the data science workflow.
 -   [Modules overview](#modules-overview)
     -   [1. Bootstrap](#1-bootstrap)
     -   [2. Binary classification diagnostics](#binary-classification-diagnostics)
+    -   [3. Regression diagnostics](#regression-diagnostics)
 
 ## Key Features
 
@@ -317,3 +318,171 @@ in the plot below) that would require more investigation to make sure that
 distribution change is not due to data collection or processing issues.
 
 <img src="images/feature_exp_sus.png" width="80%">
+
+## Regression diagnostics
+
+This module helps to diagnose the performance of a regression model, including
+standard performance metrics and plots of residuals and bins of prediction
+values. It also extracts model insights (the relationship between features and
+the bins of the predictions/label) helping to generate new business insights.
+
+NOTE: Following functions require a Pandas DataFrame with columns containing
+both the actual values and prediction values.
+
+#### Import the Module
+
+```python
+from gps_building_blocks.ml.diagnostics import regression
+```
+
+#### Calculate Performance Metrics
+
+The function `regression.calc_performance_metrics()` calculates a series of
+performance metrics related to a regression model.
+
+**Usage example:**
+
+```python
+regression.calc_performance_metrics(
+    labels=df_pred['labels'].values,
+    predictions=df_pred['predictions'].values,
+    decimal_points=4)
+```
+
+**Expected output:**
+
+```python
+{
+    'mean_squared_error': 26.8588,
+    'root_mean_squared_error': 5.1825,
+    'mean_absolute_error': 4.8555,
+    'mean_absolute_percentage_error': 0.0946,
+    'r_squared': 0.8725,
+    'pearson_correlation': 0.9936
+}
+```
+
+The description of above metrics:
+
+*   `Mean squared error`: a risk metric corresponding to the expected value of
+the squared error, calculated by taking the mean of squared error.
+*   `Root mean squared error`: the root value of the mean squared error.
+*   `Mean absolute error`: a risk metric corresponding to the expected of the
+absolute value, calculated by taking the mean of absolute error.
+*   `Mean absolute percentage error`: an evaluation metric for regression
+problems, sensitive to relative errors, calculated by taking the mean of the
+absolute percentage error.
+*   `R-squared`: coefficient of determination, representing the proportion of
+variance that has been explained by the independent variables in the model.
+*   `Pearson correlation`: a correlation metric between actual and predicted
+labels.
+
+#### Plot the prediction and the residual scatter plots
+
+The function `regression.plot_prediction_residuals()` returns the scatter plot
+of actual values versus prediction values and
+the scatter plot of residuals versus predicted values. These plots illustrate
+how prediction values differ from actual values and how the residuals deviate
+from the line at zero since the residual equals to the actual value minus the
+prediction value. Ideal residual plots would be symmetrically distributed and
+cluster close to y=0 value.
+
+**Usage example:**
+
+```python
+regression.plot_prediction_residuals(
+    labels=df_pred['labels'].values,
+    predictions=df_pred['predictions'].values)
+```
+
+**Expected output:**
+<img src="images/reg_scatter.png" width="40%">
+
+#### Calculate and plot performance metrics for the bins of the prediction values
+
+The function `regression.calc_reg_bin_metrics()` calculates performance metrics
+for bins of the predicted values. It does the following:
+
+1. Sort predicted values in the descending order and divide them into
+`number_bins` bins. For example, in the following example `number_bins = 10`,
+the first bin contains the highest 10% of the predictions and the second bin
+contains the next 10% of the predictions and so on.
+2. The following metrics are calculated for each bin:
+ - mean_label: mean of actual values in the bin.
+ - mean_prediction: mean of predictions in the bin.
+ - rmse: root mean squared error.
+ - mape: mean absolute percentage error.
+ - corr: Pearson correlation coefficient.
+
+The function `regression.plot_reg_bin_metrics()` then plots performance metrics
+described above using `bin_metrics` calculated from
+`regression.calc_reg_bin_metrics()`. These plots allow us to have better
+understanding of the performance in each bins of the predictions.
+
+**Usage example:**
+
+```python
+bin_metrics = regression.calc_reg_bin_metrics(
+    labels=df_pred['labels'].values,
+    predictions=df_pred['predictions'].values,
+    number_bins=10)
+
+regression.plot_reg_bin_metrics(
+    bin_metrics=bin_metrics,
+    fig_width=25,
+    fig_height=20)
+```
+
+**Expected output:**
+<img src="images/reg_bin_metrics_mean.png" width="40%">
+<img src="images/reg_bin_metrics_mape.png" width="40%">
+<img src="images/reg_bin_metrics_rmse.png" width="40%">
+<img src="images/reg_bin_metrics_corr.png" width="40%">
+
+#### Plot actual label distribution over the bins of the prediction values
+
+The function `regression.plot_binned_preds_labels()` provides better observation
+for the actual value distribution in each bin of the predictions. From the
+boxplots we can have a good understanding of the median, the range and outliers
+in each bin, expecting a monotonically decreasing trend over the bins from the
+highest to the lowest.
+
+**Usage example:**
+
+```python
+regression.plot_binned_preds_labels(
+    labels=df_pred['labels'].values,
+    predictions=df_pred['predictions'].values,
+    number_bins=10)
+```
+
+**Expected output:**
+<img src="images/reg_actual_over_pred_bin.png" width="40%">
+
+#### Plot heatmap for confusion matrix of the actual vs predicted bins
+
+The function `regression.plot_confusion_matrix_bin_heatmap()` helps to visualize
+and compare the distribution of the bins of both the actual value and the
+predicted value. It does the following:
+
+1. Sort both actual value and predicted value in the descending order and divide
+them into `number_bins` bins.
+2. Calculate confusion matrix and normalize it over the true labels when the
+parameter `normalize = true`. It can also normalize the confusion matrix over
+the predictions or over all population. It takes the values 'pred' and 'all'
+respectively.
+3. Plot heatmap of the actual and predited bins from the highest to the lowest.
+
+**Usage example:**
+
+```python
+regression.plot_confusion_matrix_bin_heatmap(
+    labels=df_pred['labels'].values,
+    predictions=df_pred['predictions'].values,
+    number_bins=10,
+    normalize='true')
+```
+**Expected output:**
+<img src="images/reg_heatmap.png" width="40%">
+
+
