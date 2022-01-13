@@ -25,6 +25,17 @@ class ABTestingExperimentalAnalysisTest(absltest.TestCase):
 
     self.assertAlmostEqual(p_value, 0.0008762418739832738)
 
+  def test_calc_t_pvalue_returns_correct_value(self):
+    p_value = ab_testing_analysis.calc_t_pvalue(
+        test_group_average=155.25,
+        test_group_stdev=50.45,
+        test_group_nobs=657,
+        control_group_average=150.75,
+        control_group_stdev=45.55,
+        control_group_nobs=754)
+
+    self.assertAlmostEqual(p_value, 0.0806558557631375)
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -18,6 +18,7 @@
 
 from typing import Sequence
 import numpy as np
+from scipy import stats
 from statsmodels.stats import proportion
 
 
@@ -41,4 +42,34 @@ def calc_chisquared_pvalue(group_counts: Sequence[int],
 
   _, p_val, _ = proportion.proportions_chisquare(count=converter_counts,
                                                  nobs=group_counts)
+  return p_val
+
+
+def calc_t_pvalue(test_group_average: np.float64,
+                  test_group_stdev: np.float64,
+                  test_group_nobs: np.float64,
+                  control_group_average: np.float64,
+                  control_group_stdev: np.float64,
+                  control_group_nobs: np.float64) -> np.float64:
+  """Performs the T-test to compare two averages.
+
+  Args:
+    test_group_average: Average KPI value for the test group.
+    test_group_stdev: Standard deviation of KPI value for the test group.
+    test_group_nobs: Number of observations in the test group.
+    control_group_average: Average KPI value for the test group.
+    control_group_stdev: Standard deviation of KPI value for the test group.
+    control_group_nobs: Number of observations in the test group.
+
+  Returns:
+    p-value from the T-test.
+  """
+  _, p_val = stats.ttest_ind_from_stats(
+      mean1=test_group_average,
+      std1=test_group_stdev,
+      nobs1=test_group_nobs,
+      mean2=control_group_average,
+      std2=control_group_stdev,
+      nobs2=control_group_nobs,
+      equal_var=False)
   return p_val
