@@ -28,5 +28,8 @@ AS (
   FROM `{{analytics_table}}`
   WHERE
     event_name = 'in_app_purchase'
-    AND (user_pseudo_id IS NOT NULL OR user_id IS NOT NULL)
+    # Exclude user_ids that are NULL or empty. Otherwise, the NULL/empty user_id will aggregate
+    # sessions from many users with an unknown id.
+    AND COALESCE(user_id, user_pseudo_id) IS NOT NULL
+    AND LOWER(COALESCE(user_id, user_pseudo_id)) NOT IN ('', 'null')
 );

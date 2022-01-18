@@ -146,6 +146,10 @@ AS (
         END IGNORE NULLS)
       AS trafficSource_source,
   FROM `{{analytics_table}}`
-  WHERE (user_pseudo_id IS NOT NULL OR user_id IS NOT NULL)
+  WHERE
+    # Exclude user_ids that are NULL or empty. Otherwise, the NULL/empty user_id will aggregate
+    # sessions from many users with an unknown id.
+    COALESCE(user_id, user_pseudo_id) IS NOT NULL
+    AND LOWER(COALESCE(user_id, user_pseudo_id)) NOT IN ('', 'null')
   GROUP BY user_id, session_id
 );

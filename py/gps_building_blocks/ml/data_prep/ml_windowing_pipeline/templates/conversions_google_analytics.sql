@@ -38,4 +38,9 @@ AS (
     `{{analytics_table}}` AS GaTable, UNNEST(GaTable.hits) as hits
   WHERE
     hits.eCommerceAction.action_type = '6'  -- Google Analytics code for "Completed purchase"
+    # Exclude user_ids that are NULL or empty. Otherwise, the NULL/empty user_id will aggregate
+    # sessions from many users with an unknown id.
+    AND IFNULL(NULLIF(GaTable.clientId, ''), GaTable.fullVisitorId) IS NOT NULL
+    AND LOWER(IFNULL(NULLIF(GaTable.clientId, ''), GaTable.fullVisitorId)) NOT IN ('', 'null')
+
 );

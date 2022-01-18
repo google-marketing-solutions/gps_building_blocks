@@ -332,4 +332,9 @@ AS (
     ) AS hits_product_productBrand,
   FROM
     `{{analytics_table}}`
+  WHERE
+    # Exclude user_ids that are NULL or empty. Otherwise, the NULL/empty user_id will aggregate
+    # sessions from many users with an unknown id.
+    IFNULL(NULLIF(clientId, ''), fullVisitorId) IS NOT NULL
+    AND LOWER(IFNULL(NULLIF(clientId, ''), fullVisitorId)) NOT IN ('', 'null')
 );
