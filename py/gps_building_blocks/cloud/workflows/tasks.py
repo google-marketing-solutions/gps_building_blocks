@@ -175,7 +175,7 @@ class Job:
     self.topic_path = self.pubsub.topic_path(project, schedule_topic)
     # create the topic for scheduling messages if not exist
     try:
-      self.pubsub.create_topic(self.topic_path)
+      self.pubsub.create_topic(name=self.topic_path)
     except exceptions.GoogleAPICallError as e:
       if e.grpc_status_code.value[0] != _ALREADY_EXISTS_CODE:
         raise
