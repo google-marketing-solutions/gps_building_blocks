@@ -474,8 +474,8 @@ def calc_t_sample_sizes_for_cumulative_bins(
     bin_size_percentage = round(current_bin_size / number_total_instances * 100,
                                 2)
     bin_instances = label_predictions.head(current_bin_size)
-    mean_actual_val = round(np.mean(bin_instances['prediction']), 2)
-    stdev_actual_val = round(np.std(bin_instances['prediction']), 2)
+    mean_actual_val = np.mean(bin_instances['prediction'])
+    stdev_actual_val = np.std(bin_instances['prediction'])
     min_predicted_val = min(bin_instances['prediction'])
 
     for uplift_percentage in uplift_percentages:

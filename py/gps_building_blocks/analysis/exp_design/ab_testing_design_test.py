@@ -162,7 +162,7 @@ class ABTestingExperimentalDesignTest(absltest.TestCase):
     self.assertListEqual(
         list(results['required_sample_size']),
         [70, 89, 97, 119, 36, 46, 50, 61, 227, 288, 314, 386, 116, 148, 161,
-         197, 743, 944, 1030, 1263, 380, 482, 526, 645])
+         197, 743, 944, 1029, 1263, 380, 482, 526, 645])
 
 
 if __name__ == '__main__':
