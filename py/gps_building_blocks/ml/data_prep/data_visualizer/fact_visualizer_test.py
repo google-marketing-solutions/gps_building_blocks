@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for google3.corp.gtech.ads.data_catalyst.components.data_preparation.data_visualizer.fact_visualizer."""
 
 from absl.testing import absltest
