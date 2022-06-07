@@ -174,6 +174,18 @@ Every row/session in the Google Analytics BigQuery table has up to approximately
 350 facts. For efficiency, you should only extract the data you need. More
 instructions on how to use/modify the script is given in this SQL file itself.
 
+`templates/sessions_firebase.sql` file provides the templates to extract the
+eventParams value corresponding with event name and other information like
+trafficSource and geo into an internal format called facts. The example events
+and params are selected based on the list of recommended events as in
+[here](https://support.google.com/analytics/answer/9267735?hl=en&ref_topic=9756175).
+Please find the description for the existing extract functions in the template here:
+
+| Function | Description |
+|------------|-------------|
+| ExtractEventParamStringValue | Extract string value from event_params. |
+| ExtractEventParamNumericValue | Extract int, double or float value from event_params. |
+
 ### 1.3. Run data extraction
 After the above steps, now you can run the data extraction pipeline. This
 pipeline extracts the selected GA variables and labels and writes them into
@@ -267,6 +279,8 @@ Parameters:
 | prediction_window_gap_in_days | Required. The gap between the snapshot date and the prediction window start date in days. The prediction window starts on (snapshot date + prediction_window_gap_in_days). Conversions outside the prediction window are ignored. Minimum value is 1. | *1* |
 | prediction_window_size_in_days | Required. Duration of the prediction window in days. The prediction window ends on (snapshot date + prediction_window_gap_in_days + prediction_window_size_in_days). Conversions outside the prediction window are ignored. Minimum value is 1. | 14 |
 | prediction_window_conversions_to_label_sql | Optional. Default value is prediction_window_conversions_to_label_binary.sql. Name of the SQL file that converts an array of conversions into a label extraction SQL file in templates directory . | *'prediction_window_conversions_to_label_regression.sql'* |
+| numeric_facts_sql | Optional. Default value is numeric_facts.sql. Name of the SQL file to generate numerical facts table that will be later used in data visualizer. Firebase data is recommended to use numeric_facts_firebase.sql to generate all numeric facts | numeric_facts_firebase.sql |
+| categorical_facts_sql | Optional. Default value is categorical_facts.sql. Name of the SQL file to generate categorical facts table that will be later used in data visualizer. Firebase data is recommended to use categorical_facts_firebase.sql to generate all numeric facts | categorical_facts_firebase.sql |
 | timezone | Optional. Timezone for Google Analytics Data. Default value is UTC. | *'Australia/Sydney'* |
 | run_id | Optional. Suffix for the output tables. Must be compatible with BigQuery table naming requirements. Note the same run_id must be used for all pipelines in the same run. Helpful to separate outputs in multiple runs. | *'01'*, *'20210301'*  |
 | verbose | Optional. Outputs sql commands being executed for debugging. Default value is False. | *True* |

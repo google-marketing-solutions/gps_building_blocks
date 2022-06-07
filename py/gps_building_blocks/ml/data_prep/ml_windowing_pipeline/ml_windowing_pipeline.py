@@ -283,6 +283,8 @@ def update_params_with_defaults(params):
   params.setdefault('conversions_sql', 'conversions_google_analytics.sql')
   params.setdefault('sessions_sql', 'sessions_google_analytics.sql')
   params.setdefault('windows_sql', 'sliding_windows.sql')
+  params.setdefault('numeric_facts_sql', 'numeric_facts.sql')
+  params.setdefault('categorical_facts_sql', 'categorical_facts.sql')
   params.setdefault('prediction_mode', False)
   params.setdefault('features_sql', 'automatic_features.sql')
   params.setdefault('top_n_values_per_fact', 3)
@@ -365,13 +367,13 @@ def update_fact_params(client: bigquery.client.Client, params: Dict[str, Any]):
 def generate_numeric_facts_table(client: bigquery.client.Client,
                                  params: Dict[str, Any]):
   """Generates the table of numerical facts."""
-  _run_sql(client, 'numeric_facts.sql', params)
+  _run_sql(client, params['numeric_facts_sql'], params)
 
 
 def generate_categorical_facts_table(client: bigquery.client.Client,
                                      params: Dict[str, Any]):
   """Generates the table of categorical facts."""
-  _run_sql(client, 'categorical_facts.sql', params)
+  _run_sql(client, params['categorical_facts_sql'], params)
 
 
 def generate_instances_table(client: bigquery.client.Client,

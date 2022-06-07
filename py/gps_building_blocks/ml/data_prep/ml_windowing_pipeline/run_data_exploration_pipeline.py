@@ -58,6 +58,10 @@ flags.DEFINE_string('prediction_window_conversions_to_label_sql',
                     'prediction_window_conversions_to_label_binary.sql',
                     'Name of the mapping label to prediction window SQL file '
                     'in templates/.')
+flags.DEFINE_string('numeric_facts_sql', 'numeric_facts.sql',
+                    'sql file to extract numeric facts')
+flags.DEFINE_string('categorical_facts_sql', 'categorical_facts.sql',
+                    'sql file to extract categorical facts')
 
 # Windowing flags.
 flags.DEFINE_string('snapshot_start_date', None,

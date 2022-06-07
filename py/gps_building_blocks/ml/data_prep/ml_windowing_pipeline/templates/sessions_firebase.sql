@@ -21,6 +21,7 @@
 # This is only a sample file. All Firebase events of a user in a day are grouped into 1 session.
 # Override it with your own query to extracts more information that you want to train over.
 #
+#
 # Note that the input data is not limited to Firebase data. The only requirement is that the output
 # of the query matches the following schema:
 #
@@ -36,7 +37,7 @@
 #   factname.ts: TIMESTAMP
 
 # Sample function to extract event parameter string value. Returns an array of string value.
-CREATE TEMP FUNCTION ExtractEventParamValue(
+CREATE TEMP FUNCTION ExtractEventParamStringValue(
   paramKey STRING, eventParams ANY TYPE, eventTimestamp INT64)
 AS (
   ARRAY(
@@ -50,13 +51,19 @@ AS (
   )
 );
 
-CREATE TEMP FUNCTION ExtractEventParamDoubleValue(
+# Function to extract event parameter numerical value. Return an array of numerical value.
+# It will take the first value that's populated from int, double or float value.
+CREATE TEMP FUNCTION ExtractEventParamNumericValue(
   paramKey STRING, eventParams ANY TYPE, eventTimestamp INT64)
 AS (
   ARRAY(
     SELECT
       STRUCT(
-        params.value.double_value AS value,
+        CAST(
+          COALESCE(
+            params.value.int_value,
+            params.value.double_value,
+            params.value.float_value) AS NUMERIC) AS value,
         TIMESTAMP_MICROS(eventTimestamp) AS ts)
         AS event_name,
     FROM UNNEST(eventParams) AS params
@@ -76,18 +83,43 @@ AS (
       AS event_name,
     -- Event Param
     ARRAY_CONCAT_AGG(
-      ExtractEventParamValue('source', event_params, event_timestamp))
+      ExtractEventParamStringValue('source', event_params, event_timestamp))
       AS event_param_source,
     ARRAY_CONCAT_AGG(
-      ExtractEventParamValue(
+      ExtractEventParamStringValue(
         'previous_os_version', event_params, event_timestamp))
       AS event_param_previous_os_version,
     ARRAY_CONCAT_AGG(
-      ExtractEventParamValue('product_id', event_params, event_timestamp))
+      ExtractEventParamStringValue('product_id', event_params, event_timestamp))
       AS event_param_product_id,
     ARRAY_CONCAT_AGG(
-      ExtractEventParamDoubleValue('score', event_params, event_timestamp))
+      ExtractEventParamNumericValue('score', event_params, event_timestamp))
       AS event_param_score,
+    -- SAMPLE: Custom event_name + event_params + value_type variables.
+    --
+    -- Example of extracting event param value by event name, based on some of the recommended events:
+    -- https://support.google.com/analytics/answer/9267735?hl=en
+    --
+    -- Please modify based on your data.
+    --
+    -- If the event_name or event_params value used in the example do not exist in the dataset,
+    -- it will generate the column but no data will be appended.
+    --
+    -- Int Example: event_name: 'add_payment_info', paramKey: 'value' and type:'int'.
+    ARRAY_CONCAT_AGG(
+      IF (event_name = 'add_payment_info',
+          ExtractEventParamNumericValue('value', event_params, event_timestamp),
+          NULL)) AS add_payment_info_int_value,
+    -- Double Example: event_name: 'purchase', paramKey: 'value' and type:'double'.
+    ARRAY_CONCAT_AGG(
+      IF (event_name = 'purchase',
+          ExtractEventParamNumericValue('value', event_params, event_timestamp),
+          NULL)) AS purchase_double_value,
+    -- String Example: event_name: 'add_to_wishlist', paramKey: 'product_name' and type:'string'.
+    ARRAY_CONCAT_AGG(
+      IF (event_name = 'add_to_wishlist',
+          ExtractEventParamStringValue('product_name', event_params, event_timestamp),
+          NULL)) AS add_to_wishlist_string_product_name,
     -- Geo
     ARRAY_AGG(
       CASE
