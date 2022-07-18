@@ -15,3 +15,4 @@ This model also uses
 [Variance Inflation Factor](https://en.wikipedia.org/wiki/Variance_inflation_factor)
 to deal with
 [Multicollinearity](shttps://en.wikipedia.org/wiki/Multicollinearity).
+
