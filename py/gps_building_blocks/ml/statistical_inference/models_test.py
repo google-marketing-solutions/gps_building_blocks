@@ -98,12 +98,12 @@ class LinearModelTest(absltest.TestCase):
     data = _prepare_data_and_target()
     model = models.InferenceElasticNet(random_state=18)
     expected_result = pd.DataFrame(
-        data=[[-0.173, 0.2715, 0.4477, False],
-              [-0.135, 0.0784, 0.1287, True],
-              [0.0445, 0.0893, 0.1473, False],
-              [0.0357, 0.0548, 0.0883, False],
-              [0.0123, 0.0384, 0.0643, False],
-              [-0.010, 0.0332, 0.0541, False]],
+        data=[[-0.173, 0.2715, 0.5321, False],
+              [-0.135, 0.0784, 0.1537, False],
+              [0.0445, 0.0893, 0.1750, False],
+              [0.0357, 0.0548, 0.1074, False],
+              [0.0123, 0.0384, 0.0752, False],
+              [-0.010, 0.0332, 0.0651, False]],
         columns=['effect', 'bootstrap_std',
                  'bootstrap_interval', 'significant_bootstrap'],
         index=['Intercept', 1, 0, 4, 2, 3])

@@ -101,12 +101,14 @@ class InferenceModel(metaclass=abc.ABCMeta):
   def _extract_effects(self) -> MutableMapping[Text, float]:
     """Returns effect for each feature in the model."""
 
-  def _extract_bootstrap_intervals(
+  def _extract_bootstrap_margin_of_error(
       self, confidence_level: float = 0.95) -> MutableMapping[Text, float]:
-    """Returns the confidence interval around the effect for each feature."""
+    """Returns the margin of error for the confidence interval of each feature."""
     if isinstance(self._bootstrap_results, pd.DataFrame):
-      significance_level = scipy.stats.norm.ppf(confidence_level)
-      return (significance_level * self._bootstrap_results.std()).to_dict()
+      significance_level = 1 - confidence_level
+      # Find critival value for two sided test
+      critical_value = scipy.stats.norm.ppf(1 - (significance_level) / 2)
+      return (critical_value * self._bootstrap_results.std()).to_dict()
     else:
       return {}
 
@@ -158,16 +160,17 @@ class InferenceModel(metaclass=abc.ABCMeta):
           'InferenceModel must be fit before requesting results.')
 
     effects = self._extract_effects()
-    bootstrap_intervals = self._extract_bootstrap_intervals(confidence_level)
+    bootstrap_margin_of_error = self._extract_bootstrap_margin_of_error(
+        confidence_level)
 
     results = pd.Series(effects).rename('effect').to_frame()
     results['bootstrap_std'] = pd.Series(
         self._extract_boostrap_std(), dtype='float64')
     results['bootstrap_interval'] = pd.Series(
-        bootstrap_intervals, dtype='float64')
+        bootstrap_margin_of_error, dtype='float64')
     results['significant_bootstrap'] = np.nan
-    if bootstrap_intervals:
-      # populate only if bootstrap intervals are available
+    if bootstrap_margin_of_error:
+      # populate only if bootstrap margin of errors are available
       results['significant_bootstrap'] = (
           results['effect'].abs() > results['bootstrap_interval'])
 
