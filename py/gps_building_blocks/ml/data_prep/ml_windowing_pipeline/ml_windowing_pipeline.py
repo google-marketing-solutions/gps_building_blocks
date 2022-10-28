@@ -672,6 +672,7 @@ def run_prediction_pipeline(params: Dict[str, Any],
                 'sentinel_ga_sessions.sql')
     _export_sql(params, 'sliding_windows.sql', 'sentinel_windows.sql')
     _export_sql(params, 'features_from_input.sql', 'sentinel_features.sql')
+    _export_sql(params, 'batch_scoring.sql', 'sentinel_batch_scoring.sql')
 
 
 def _export_sql(params: Dict[str, Any], template_sql: str, output_file: str):
