@@ -88,6 +88,7 @@ min_values: Feature Options for Min.
 import datetime
 import logging
 import os
+import re
 import sys
 import time
 from typing import Any, Dict, Optional
@@ -96,6 +97,7 @@ from google.cloud import bigquery
 import jinja2
 import pytz
 
+from gps_building_blocks.cloud.utils import cloud_storage
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline import fact
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import merge_feature_option_list
 from gps_building_blocks.ml.data_prep.ml_windowing_pipeline.feature_utils import parse_feature_option
@@ -657,3 +659,50 @@ def run_prediction_pipeline(params: Dict[str, Any],
   update_fact_params(client, params)
   generate_windows_table(client, params)
   generate_features_table(client, params)
+
+  if params['cloud_storage_bucket'] and params['cloud_storage_file_path']:
+    params['conversions_table'] = 'conversions_${RUN_ID}'
+    params['windows_table'] = 'windows_${RUN_ID}'
+    params['features_table'] = 'features_${RUN_ID}'
+    params['sessions_table'] = 'sessions_${RUN_ID}'
+    params['snapshot_start_date'] = '${SNAPSHOT_DATE}'
+    _export_sql(params, 'conversions_google_analytics.sql',
+                'sentinel_ga_conversions.sql')
+    _export_sql(params, 'sessions_google_analytics.sql',
+                'sentinel_ga_sessions.sql')
+    _export_sql(params, 'sliding_windows.sql', 'sentinel_windows.sql')
+    _export_sql(params, 'features_from_input.sql', 'sentinel_features.sql')
+
+
+def _export_sql(params: Dict[str, Any], template_sql: str, output_file: str):
+  """Exports the prediction pipeline sql files to cloud storage.
+
+  This will be primarily used for the Sentinel automation.
+
+  Args:
+    params: Dict from pipeline parameter names to values.
+    template_sql: The sql template file name.
+    output_file: The file name for the output file in cloud storage.
+  """
+  cs_utils = cloud_storage.CloudStorageUtils(project_id=params['project_id'])
+  sql = params['jinja_env'].get_template(template_sql).render(params)
+  sql = _refine_sql_for_sentinel(sql)
+  cs_utils.write_to_file(sql, params['cloud_storage_bucket'],
+                         params['cloud_storage_file_path'] + output_file)
+
+
+def _refine_sql_for_sentinel(content: str) -> str:
+  """Refines the sql content to make it work for Sentinel.
+
+  Sentinel link:
+  https://github.com/GoogleCloudPlatform/cloud-for-marketing/tree/main/marketing-analytics/activation/data-tasks-coordinator
+  Removes CREATE OR REPLACE TABLE statements and just leave it with SELECT
+  statements. This will be primarily used for the Sentinel automation.
+
+  Args:
+    content: SQL content.
+
+  Returns:
+    Refined SQL content.
+  """
+  return re.sub(r'CREATE OR REPLACE TABLE.*\n.*AS', '', content)
