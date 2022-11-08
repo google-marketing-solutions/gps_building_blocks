@@ -392,6 +392,89 @@ const AdvertiserAdServerConfigMapper = {
 };
 
 /**
+ * Defines a campaign's budget configuration.
+ * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.campaigns#CampaignBudget
+ *
+ * @typedef {
+ *   {
+ *     budgetId: string,
+ *     displayName: string,
+ *     budgetUnit: string,
+ *     budgetAmountMicros: string,
+ *     dateRange: {
+ *        startDate: !ApiDate,
+ *        endDate: !ApiDate,
+ *     },
+ *   }
+ * }
+ */
+let CampaignBudget;
+
+/**
+ * @const {{
+ *     map: function(*): !Array<!CampaignBudget>,
+ *     toJson: function(!Array<!CampaignBudget>): !Array<!Object<string, *>>,
+ * }}
+ */
+const CampaignBudgetMapper = {
+  /**
+   * Converts a resource object returned by the API into a concrete
+   * `CampaignBudget` instance with the current budget.
+   *
+   * @param {*} resource The API resource object
+   * @return {!Array<!CampaignBudget>} The concrete instance, or null if the
+   *     resource did not contain the expected properties
+   */
+  map: (resource) => {
+    if (!Array.isArray(resource)) {
+      return [];
+    }
+    const budgets = [];
+    const expectedKeys = [
+      'budgetId', 'displayName', 'budgetUnit', 'budgetAmountMicros', 'dateRange'
+    ];
+
+    for (const budget of resource) {
+      if (ObjectUtil.hasOwnProperties(budget, expectedKeys)) {
+        budget['dateRange']['startDate'] =
+            ApiDate.fromApiResource(budget['dateRange']['startDate']);
+        budget['dateRange']['endDate'] =
+            ApiDate.fromApiResource(budget['dateRange']['endDate']);
+
+        if (budget['dateRange']['startDate'] &&
+            budget['dateRange']['endDate']) {
+          budgets.push(budget);
+        }
+      } else {
+        console.warn(
+            Object.keys(budget), 'does not match expected', expectedKeys);
+      }
+    }
+    return budgets;
+  },
+
+  /**
+   * Converts an `Array<CampaignBudget>` to its expected JSON representation.
+   *
+   * @param {!Array<!CampaignBudget>} budgets The budgets to convert
+   * @return {!Array<!Object<string, *>>} The custom JSON representation of the
+   *     `CampaignBudget`
+   */
+  toJson: (budgets) => {
+    return budgets.map(budget => ({
+      budgetId: budget.budgetId,
+      displayName: budget.displayName,
+      budgetUnit: budget.budgetUnit,
+      budgetAmountMicros: budget.budgetAmountMicros,
+      dateRange: {
+        startDate: budget.dateRange.startDate.toJSON(),
+        endDate: budget.dateRange.endDate.toJSON(),
+      },
+    }));
+  },
+};
+
+/**
  * Defines a campaign's flight configuration.
  * @see https://developers.google.com/display-video/api/reference/rest/v1/advertisers.campaigns#campaignflight
  *
@@ -921,6 +1004,13 @@ class ApiDate {
       month: this.getMonth(),
       day: this.getDay(),
     };
+  }
+
+  /**
+   * @return {!Date}
+   */
+  toDate() {
+    return new Date(this.getYear(), this.getMonth(), this.getDay());
   }
 
   /**
