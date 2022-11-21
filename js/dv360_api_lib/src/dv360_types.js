@@ -456,7 +456,7 @@ const CampaignBudgetMapper = {
   /**
    * Converts an `Array<CampaignBudget>` to its expected JSON representation.
    *
-   * @param {!Array<!CampaignBudget>} budgets The budgets to convert
+   * @param {!Array<?CampaignBudget>} budgets The budgets to convert
    * @return {!Array<!Object<string, *>>} The custom JSON representation of the
    *     `CampaignBudget`
    */

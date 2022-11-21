@@ -323,11 +323,11 @@ class Campaign extends DisplayVideoResource {
    *     id: ?string,
    *     displayName: string,
    *     advertiserId: string,
-   *     campaignBudgets: !Array<!CampaignBudget>,
    *     campaignGoal: !CampaignGoal,
    *     frequencyCap: !FrequencyCap,
    * }} requiredParams
    * @param {{
+   *     campaignBudgets: (!Array<!CampaignBudget>|undefined),
    *     campaignFlight: (!CampaignFlight|undefined),
    *     status: (!Status|undefined),
    * }=} optionalParams
@@ -338,10 +338,10 @@ class Campaign extends DisplayVideoResource {
         displayName,
         advertiserId,
         campaignGoal,
-        campaignBudgets,
         frequencyCap,
       },
       {
+        campaignBudgets,
         campaignFlight = {plannedDates: {startDate: ApiDate.now()}},
         status = Status.ACTIVE,
       } = {}) {
@@ -360,7 +360,7 @@ class Campaign extends DisplayVideoResource {
     this.campaignFlight_ = campaignFlight;
 
     /** @private @const { !Array<!CampaignBudget>} */
-    this.campaignBudgets_ = campaignBudgets;
+    this.campaignBudgets_ = campaignBudgets || [];
   }
 
   /**
@@ -378,7 +378,6 @@ class Campaign extends DisplayVideoResource {
       'displayName',
       'advertiserId',
       'entityStatus',
-      'campaignBudgets',
       'campaignGoal',
       'campaignFlight',
       'frequencyCap',
@@ -393,8 +392,7 @@ class Campaign extends DisplayVideoResource {
       const mappedCampaignFlight = CampaignFlightMapper.map(campaignFlight);
       const mappedFrequencyCap = FrequencyCapMapper.map(frequencyCap);
 
-      if (mappedCampaignBudgets && mappedCampaignGoal && mappedCampaignFlight &&
-          mappedFrequencyCap) {
+      if (mappedCampaignGoal && mappedCampaignFlight && mappedFrequencyCap) {
         return new Campaign(
             {
               id: String(resource['campaignId']),
