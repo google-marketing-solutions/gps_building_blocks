@@ -22,7 +22,7 @@ learning data.
 Function to calculate the VIFs for the columns in pandas DataFrame.
 
 ```python
-from google3.third_party.gps_building_blocks.py.ml.preprocessing import vif
+from gps_building_blocks.ml.preprocessing import vif
 
 vif_df = vif.calculate_vif(data_df, sort=False)
 ```
@@ -43,7 +43,7 @@ All pretrained TF embedding models can be found in [TF hub] (https://tfhub.dev/s
 import re
 import tensorflow_hub as hub
 
-from google3.third_party.gps_building_blocks.py.ml.preprocessing.keyword_clustering import KeywordClustering
+from gps_building_blocks.ml.preprocessing.keyword_clustering import KeywordClustering
 
 embed = hub.load("https://tfhub.dev/google/nnlm-en-dim50/2")
 kwrd_clustering = KeywordClustering()
@@ -79,7 +79,7 @@ See [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V)
 
 ```python
 import numpy as np
-from google3.third_party.gps_building_blocks.py.ml.preprocessing import cramer_v
+from gps_building_blocks.ml.preprocessing import cramer_v
 
 N = 200
 x1 = np.random.poisson(10, size=N)
