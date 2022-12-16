@@ -53,7 +53,7 @@ setuptools.setup(
         "google-cloud-storage==1.28.1",
         "google-cloud-pubsub==1.3.1",
         "importlib-resources==1.5.0",
-        "matplotlib==3.3.3",
+        "matplotlib==3.3.4",
         "networkx==2.5.0",
         "numpy==1.19.5",
         "pandas==1.0.5",
