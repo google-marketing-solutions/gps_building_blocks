@@ -53,6 +53,7 @@ setuptools.setup(
         "google-cloud-storage==1.28.1",
         "google-cloud-pubsub==1.3.1",
         "importlib-resources==1.5.0",
+        "lightgbm>=3.3",
         "matplotlib==3.3.4",
         "networkx==2.5.0",
         "numpy==1.19.5",
@@ -64,11 +65,12 @@ setuptools.setup(
         "scipy==1.2.1",
         "six==1.15.0",
         "sklearn==0.0.0",
+        "statsmodels==0.12.1",
         "tensorflow~=2.5",
         "tensorflow-hub~=0.11",
-        "statsmodels==0.12.1",
         "dataclasses; python_version<'3.7'"
     ],
+
     classifiers=[
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Python Modules",

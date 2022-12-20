@@ -13,16 +13,19 @@
 # limitations under the License.
 """Tests for impute module."""
 
+import numpy as np
 import pandas as pd
 from pandas import testing
+from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unused-import
+from sklearn.impute import IterativeImputer
 
 from absl.testing import absltest
 from gps_building_blocks.ml.preprocessing import impute
 
 data_dict = {
-    'cat': list('abcdefg'),
-    'num': [1, 2, 3, 4, 5, 6, 7],
-    'binary': [0, 0, 0, 1, 1, 1, 1]
+    'cat': list('abcdefg') + [np.nan],
+    'num': [1, 2, 3, 4, 5, np.nan, 7, 8],
+    'binary': [0, 0, np.nan, 1, 1, 1, 1, 0]
 }
 _MOCK_DATA = pd.DataFrame(data_dict)
 _expected_data_types = ['categorical', 'numerical', 'binary']
@@ -43,13 +46,54 @@ class ImputeTest(absltest.TestCase):
     self.assertLen(detected_data_types, len(_MOCK_DATA.columns))
 
   def test_numerical_data_remain_same_after_encoding(self):
-    detected_data_types = impute.detect_data_types(
-        _MOCK_DATA, categorical_cutoff=3)
     encoded_data, _ = impute.encode_categorical_data(_MOCK_DATA,
-                                                     detected_data_types)
+                                                     _expected_data_types)
 
     testing.assert_frame_equal(encoded_data[['num', 'binary']],
                                _MOCK_DATA[['num', 'binary']])
+
+  def test_data_remains_unchanged_if_no_missings(self):
+    data_no_missing = _MOCK_DATA.dropna()
+    detected_data_types = impute.detect_data_types(
+        _MOCK_DATA, categorical_cutoff=3)
+    encoded_data, _ = impute.encode_categorical_data(data_no_missing,
+                                                     detected_data_types)
+    data_imputed = encoded_data.copy()
+    data_imputed['cat'], _ = impute.impute_categorical_data(
+        encoded_data, encoded_data['cat'], detected_data_types)
+    data_imputed = impute.impute_numerical_data(data_imputed,
+                                                detected_data_types,
+                                                IterativeImputer())
+    testing.assert_frame_equal(encoded_data, data_imputed)
+
+  def test_no_nans_after_imputation(self):
+    encoded_data, _ = impute.encode_categorical_data(_MOCK_DATA,
+                                                     _expected_data_types)
+    data_imputed = encoded_data.copy()
+    data_imputed['cat'], _ = impute.impute_categorical_data(
+        encoded_data, encoded_data['cat'], _expected_data_types)
+    data_imputed, _ = impute.impute_numerical_data(data_imputed,
+                                                   _expected_data_types,
+                                                   IterativeImputer())
+    sum_nans = data_imputed.isna().sum().sum()
+    self.assertEqual(sum_nans, 0)
+
+  def test_ValueError_if_nans_in_categorical(self):
+    detected_data_types = impute.detect_data_types(
+        _MOCK_DATA, categorical_cutoff=3)
+    data_imputed = _MOCK_DATA.copy()
+    with self.assertRaises(ValueError):
+      data_imputed, _ = impute.impute_numerical_data(data_imputed,
+                                                     detected_data_types,
+                                                     IterativeImputer())
+
+  def test_LGBM_raises_warning_for_using_categorical_featues(self):
+    detected_data_types = impute.detect_data_types(
+        _MOCK_DATA, categorical_cutoff=3)
+    data_imputed = _MOCK_DATA.copy()
+    with self.assertWarns(UserWarning):
+      data_imputed['cat'], _ = impute.impute_categorical_data(
+          data_imputed, data_imputed['cat'], detected_data_types)
 
 
 if __name__ == '__main__':
