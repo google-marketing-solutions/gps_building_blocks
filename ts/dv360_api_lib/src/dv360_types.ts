@@ -236,8 +236,7 @@ export const FrequencyCapMapper: Mapper<FrequencyCap> = {
   map(resource) {
     if (
       (ObjectUtil.hasOwnProperties(resource, ['unlimited']) &&
-        typeof resource.unlimited === 'boolean' &&
-        resource.unlimited === true) ||
+          typeof resource.unlimited === 'boolean' && resource.unlimited) ||
       (ObjectUtil.hasOwnProperties(resource, [
         'timeUnit',
         'timeUnitCount',
@@ -892,16 +891,16 @@ export const LineItemFlightMapper: MapperWithJsonOut<LineItemFlight> = {
     if (!flight.dateRange) {
       return flight;
     }
-    return Object.assign(
-      {
+    return {
+      ...{
         flightDateType: flight.flightDateType,
         dateRange: {
           startDate: flight.dateRange.startDate,
           endDate: flight.dateRange.endDate,
         },
       },
-      flight.triggerId ? {triggerId: flight.triggerId} : {}
-    );
+      ...(flight.triggerId ? {triggerId: flight.triggerId} : {})
+    };
   },
 };
 
@@ -961,7 +960,7 @@ export const LineItemPartnerRevenueModelMapper: Mapper<LineItemPartnerRevenueMod
      */
     map(resource) {
       if (ObjectUtil.hasOwnProperties(resource, ['markupType'])) {
-        return resource as unknown as LineItemPartnerRevenueModel;
+        return resource;
       }
       return undefined;
     },

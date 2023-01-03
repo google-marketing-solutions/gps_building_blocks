@@ -33,21 +33,13 @@ import {
   LineItem,
   TargetingOption,
 } from './dv360_resources';
-import {STATUS, TargetingType, TARGETING_TYPE} from './dv360_types';
-import {FilterExpression, Rule, RuleOperator, UriUtil} from './utils';
+import {TargetingType, TARGETING_TYPE} from './dv360_types';
+import {UriUtil} from './utils';
+import {FilterExpression, ListParams, Rule, RuleOperator} from 'google3/third_party/gps_building_blocks/ts/dv360_api_lib/src/utils';
+import {STATUS} from 'google3/third_party/gps_building_blocks/ts/dv360_api_lib/src/dv360_types';
 const API_SCOPE: string = 'displayvideo';
 
 const API_VERSION: string = 'v1';
-
-/**
- * Returns a `FilterExpression` for active entities.
- *
- */
-function activeEntityFilter(): FilterExpression {
-  return new FilterExpression([
-    new Rule('entityStatus', RuleOperator.EQ, STATUS.ACTIVE),
-  ]);
-}
 
 /**
  * An abstract API client for the DV360 API that extends `BaseApiClient`.
@@ -253,17 +245,21 @@ export class Advertisers extends DisplayVideoApiClient {
    * recommended to collect all retrieved resources into a single `Array` as
    * this would highly likely break for accounts with a significantly large
    * number of entities.
+   *
+   * @param callback Callback to
+   *     trigger after fetching every 'page' of targeting options
+   * @param params The parameters to pass. Unless explicitly set to `null`,
+   *     filter will be set to active here.
+   * @param maxPages The max number of pages to fetch. Defaults to -1
+   *     indicating 'fetch all'
    */
   list(
     callback: (p1: Advertiser[]) => void,
-    filter: FilterExpression | null = activeEntityFilter(),
-    maxPages: number = -1
+    params?: ListParams,
+    maxPages: number = -1,
   ) {
-    const filterQueryString = filter
-      ? `&filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
-      `advertisers?partnerId=${this.getPartnerId()}${filterQueryString}`,
+      `advertisers?partnerId=${this.getPartnerId()}${buildParamString(params, {prependStr: '&', defaults: {filter: activeEntityFilter()}})}`,
       callback,
       maxPages
     );
@@ -364,22 +360,19 @@ export class Campaigns extends DisplayVideoApiClient {
    * of data.
    *
    * @param callback Callback to
-   *     trigger after fetching every 'page' of campaigns
-   * @param filter Optional filter for filtering retrieved
-   *     results. Defaults to filtering for 'active' campaign resources
+   *     trigger after fetching every 'page' of targeting options
+   * @param params The parameters to pass. Unless explicitly set to `null`,
+   *     filter will be set to active here.
    * @param maxPages The max number of pages to fetch. Defaults to -1
    *     indicating 'fetch all'
    */
   list(
     callback: (p1: Campaign[]) => void,
-    filter: FilterExpression | null = activeEntityFilter(),
+    params?: ListParams,
     maxPages: number = -1
   ) {
-    const filterQueryString = filter
-      ? `?filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
-      `advertisers/${this.getAdvertiserId()}/campaigns${filterQueryString}`,
+      `advertisers/${this.getAdvertiserId()}/campaigns${buildParamString(params, {defaults: {filter: activeEntityFilter() }})}`,
       callback,
       maxPages
     );
@@ -488,23 +481,20 @@ export class InsertionOrders extends DisplayVideoApiClient {
    * 'page' of data.
    *
    * @param callback Callback to
-   *     trigger after fetching every 'page' of insertion orders
-   * @param filter Optional filter for filtering retrieved
-   *     results. Defaults to filtering for 'active' insertion order resources
+   *     trigger after fetching every 'page' of targeting options
+   * @param params The parameters to pass. Unless explicitly set to `null`,
+   *     filter will be set to active here.
    * @param maxPages The max number of pages to fetch. Defaults to -1
    *     indicating 'fetch all'
    */
   list(
     callback: (p1: InsertionOrder[]) => void,
-    filter: FilterExpression | null = activeEntityFilter(),
+    params?: ListParams,
     maxPages: number = -1
   ) {
-    const filterQueryString = filter
-      ? `?filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
       `advertisers/${this.getAdvertiserId()}/` +
-        `insertionOrders${filterQueryString}`,
+        `insertionOrders${buildParamString(params, {defaults: {filter: activeEntityFilter() }})}`,
       callback,
       maxPages
     );
@@ -619,22 +609,17 @@ export class LineItems extends DisplayVideoApiClient {
    * 'page' of data.
    *
    * @param callback Callback to
-   *     trigger after fetching every 'page' of line items
-   * @param filter Optional filter for filtering retrieved
-   *     results. Defaults to filtering for 'active' line item resources
+   *     trigger after fetching every 'page' of targeting options
    * @param maxPages The max number of pages to fetch. Defaults to -1
    *     indicating 'fetch all'
    */
   list(
     callback: (p1: InsertionOrder[]) => void,
-    filter: FilterExpression | null = activeEntityFilter(),
+    params?: ListParams,
     maxPages: number = -1
   ) {
-    const filterQueryString = filter
-      ? `?filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
-      `advertisers/${this.getAdvertiserId()}/lineItems${filterQueryString}`,
+      `advertisers/${this.getAdvertiserId()}/lineItems${buildParamString(params, {defaults: {filter: activeEntityFilter()}})}`,
       callback,
       maxPages
     );
@@ -747,25 +732,22 @@ export class InventorySources extends DisplayVideoApiClient {
    * 'page' of data.
    *
    * @param callback Callback to
-   *     trigger after fetching every 'page' of inventory sources
-   * @param filter Optional filter for filtering retrieved
-   *     results. Defaults to filtering for 'active' inventory source resources
+   *     trigger after fetching every 'page' of targeting options
+   * @param params The parameters to pass. Unless explicitly set to `null`,
+   *     filter will be set to active here.
    * @param maxPages The max number of pages to fetch. Defaults to -1
    *     indicating 'fetch all'
    */
   list(
     callback: (p1: InventorySource[]) => void,
-    filter: FilterExpression | null = activeEntityFilter(),
+    params?: ListParams,
     maxPages: number = -1
   ) {
     const [key, value] = this.getAdvertiserId()
       ? ['advertiserId', this.getAdvertiserId()]
       : ['partnerId', this.getPartnerId()];
-    const filterQueryString = filter
-      ? `&filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
-      `inventorySources?${key}=${value}${filterQueryString}`,
+      `inventorySources?${key}=${value}${buildParamString(params, {prependStr: '&', defaults: {filter: activeEntityFilter()}})}`,
       callback,
       maxPages
     );
@@ -876,22 +858,17 @@ export class TargetingOptions extends DisplayVideoApiClient {
    *
    * @param callback Callback to
    *     trigger after fetching every 'page' of targeting options
-   * @param filter Optional filter for filtering retrieved
-   *     results. Defaults to null
    * @param maxPages The max number of pages to fetch. Defaults to -1
    *     indicating 'fetch all'
    */
   list(
     callback: (p1: TargetingOption[]) => void,
-    filter: FilterExpression | null = null,
+    params?: ListParams,
     maxPages: number = -1
   ) {
-    const filterQueryString = filter
-      ? `&filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
       `targetingTypes/${this.getTargetingType()}/targetingOptions` +
-        `?advertiserId=${this.getAdvertiserId()}${filterQueryString}`,
+        `?advertiserId=${this.getAdvertiserId()}${buildParamString(params, {prependStr: '&'})}`,
       callback,
       maxPages
     );
@@ -1014,12 +991,6 @@ export class TargetingOptions extends DisplayVideoApiClient {
   }
 }
 
-interface AssignedTargetingOptionsParams {
-  campaignId?: string | null;
-  insertionOrderId?: string | null;
-  lineItemId?: string | null;
-}
-
 /**
  * An extension of `DisplayVideoApiClient` to handle
  * {@link AssignedTargetingOption} resources.
@@ -1027,18 +998,22 @@ interface AssignedTargetingOptionsParams {
  */
 export class AssignedTargetingOptions extends DisplayVideoApiClient {
 
-  private readonly campaignId: string | null;
+  private readonly campaignId?: string;
 
-  private readonly insertionOrderId: string | null;
+  private readonly insertionOrderId?: string;
 
-  private readonly lineItemId: string | null;
+  private readonly lineItemId?: string;
 
   /**
    * Assigned targeting options are read-only (list & get operations only) for
    * campaigns and insertion orders.
-   *
    */
   private readonly readOnly: boolean;
+
+  constructor(targetingType: TargetingType, advertiserId: string, assignedTargetingOption: {campaignId: string});
+  constructor(targetingType: TargetingType, advertiserId: string, assignedTargetingOption: {lineItemId: string});
+  constructor(targetingType: TargetingType, advertiserId: string, assignedTargetingOption: {insertionOrderId: string});
+  constructor(targetingType: TargetingType, advertiserId: string);
 
   /**
    * Constructs an instance of `AssignedTargetingOptions`.
@@ -1046,26 +1021,16 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
   constructor(
     private readonly targetingType: TargetingType,
     private readonly advertiserId: string,
-    {
-      campaignId = null,
-      insertionOrderId = null,
-      lineItemId = null,
-    }: AssignedTargetingOptionsParams = {}
+    assignedTargetingOption?: {campaignId?: string, lineItemId?: string, insertionOrderId?: string},
   ) {
     super('assignedTargetingOptions');
 
-    this.campaignId = campaignId;
-
-    this.insertionOrderId = insertionOrderId;
-
-    this.lineItemId = lineItemId;
-
-    /**
-     * Assigned targeting options are read-only (list & get operations only) for
-     * campaigns and insertion orders.
-     *
-     */
-    this.readOnly = campaignId != null || insertionOrderId != null;
+    if (assignedTargetingOption) {
+      this.lineItemId = assignedTargetingOption.lineItemId;
+      this.campaignId = assignedTargetingOption.campaignId;
+      this.insertionOrderId = assignedTargetingOption.insertionOrderId;
+    }
+    this.readOnly = Boolean(this.campaignId) || Boolean(this.insertionOrderId);
   }
 
   /**
@@ -1078,7 +1043,7 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
   getBaseUrl(): string {
     const prefix = `advertisers/${this.getAdvertiserId()}/`;
     const suffix =
-      `targetingTypes/${this.getTargetingType()}/` + `assignedTargetingOptions`;
+        `targetingTypes/${this.getTargetingType()}/` + `assignedTargetingOptions`;
     let extension = '';
 
     if (this.getCampaignId()) {
@@ -1098,21 +1063,17 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
    *
    * @param callback Callback to trigger after fetching every 'page' of assigned targeting
    *     options
-   * @param filter Optional filter for filtering retrieved
-   *     results. Defaults to null
+   * @param params The parameters to pass.
    * @param maxPages The max number of pages to fetch. Defaults to -1
    *     indicating 'fetch all'
    */
   list(
     callback: (p1: AssignedTargetingOption[]) => void,
-    filter: FilterExpression | null = null,
+    params?: Exclude<ListParams, 'pageSize'>,
     maxPages: number = -1
   ) {
-    const filterQueryString = filter
-      ? `?filter=${filter.toApiQueryString()}`
-      : '';
     super.listResources(
-      this.getBaseUrl() + filterQueryString,
+      this.getBaseUrl() + buildParamString(params, {defaults: {pageSize: 5000}}),
       callback,
       maxPages
     );
@@ -1237,7 +1198,7 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
    * Returns the DV360 campaign identifier.
    *
    */
-  getCampaignId(): string | null {
+  getCampaignId(): string | undefined {
     return this.campaignId;
   }
 
@@ -1245,7 +1206,7 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
    * Returns the DV360 insertion order identifier.
    *
    */
-  getInsertionOrderId(): string | null {
+  getInsertionOrderId(): string | undefined {
     return this.insertionOrderId;
   }
 
@@ -1253,7 +1214,7 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
    * Returns the DV360 line item identifier.
    *
    */
-  getLineItemId(): string | null {
+  getLineItemId(): string | undefined {
     return this.lineItemId;
   }
 
@@ -1265,4 +1226,45 @@ export class AssignedTargetingOptions extends DisplayVideoApiClient {
   isReadOnly(): boolean {
     return this.readOnly;
   }
+}
+
+/**
+ * Returns a `FilterExpression` for active entities.
+ */
+export function activeEntityFilter(): FilterExpression {
+  return new FilterExpression([
+    new Rule('entityStatus', RuleOperator.EQ, STATUS.ACTIVE),
+  ]);
+}
+
+/**
+ * Builds a query string from the provided {@link ListParams}.
+ */
+export function buildParamString(params?: ListParams, {prependStr = '?', defaults = {}}: {prependStr?: '?' | '&', defaults?: Partial<ListParams>} = {prependStr: '?'}) {
+  if (params && params.pageSize !== undefined) {
+    console.warn('pageSize is not supported for override at this time.');
+    delete params.pageSize;
+  }
+  const effectiveParams = {
+    ...defaults,
+    ...params,
+  };
+  if (!effectiveParams) {
+    return '';
+  }
+  const searchParams: Record<string, string> = {};
+  if (effectiveParams.filter) {
+    searchParams['filter'] = effectiveParams.filter.toApiQueryString();
+  }
+
+  if (effectiveParams.pageSize) {
+    searchParams['pageSize'] = encodeURIComponent(String(effectiveParams.pageSize));
+  }
+
+  if (effectiveParams.orderBy) {
+    searchParams['orderBy'] = encodeURIComponent(effectiveParams.orderBy);
+  }
+
+  const result = Object.entries(searchParams).map(([key, value]) => `${encodeURIComponent(key)}=${value}`).join('&');
+  return result ? prependStr + result : '';
 }

@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-import {assertObject} from 'google3/third_party/javascript/closure/asserts/asserts';
-
 import {ObjectUtil, UriUtil} from './utils';
 
 /**

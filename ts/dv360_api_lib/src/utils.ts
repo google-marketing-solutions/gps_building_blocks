@@ -123,6 +123,15 @@ export class FilterExpression {
   }
 }
 
+/**
+ * Parameters that are allowed to be passed to `list` methods.
+ */
+export interface ListParams {
+  filter?: FilterExpression | null;
+  pageSize?: number;
+  orderBy?: string;
+}
+
 /** Uility class for working with URIs. */
 // tslint:disable-next-line:enforce-name-casing Legacy from JS migration
 export const UriUtil = {
@@ -205,7 +214,7 @@ export const ObjectUtil = {
     extension: E
   ): T & E {
     if (original == null) {
-      return Object.assign({}, extension) as T & E;
+      return {...extension} as T & E;
     }
     for (const key in extension) {
       if (extension.hasOwnProperty(key)) {
