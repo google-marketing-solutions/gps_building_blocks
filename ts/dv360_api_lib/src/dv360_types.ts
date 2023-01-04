@@ -305,7 +305,8 @@ export const PacingMapper: Mapper<Pacing> = {
  *
  */
 export interface PerformanceGoal {
-  performanceGoalType: string;
+  /** Should always be set, but for legacy reasons is optional. */
+  performanceGoalType?: string;
   performanceGoalAmountMicros?: string;
   performanceGoalPercentageMicros?: string;
   performanceGoalString?: string;
@@ -328,16 +329,21 @@ export const PerformanceGoalMapper: Mapper<PerformanceGoal> = {
     if (
       ObjectUtil.hasOwnProperties(
         resource,
-        ['performanceGoalType'],
+        [],
         [
           'performanceGoalAmountMicros',
           'performanceGoalPercentageMicros',
           'performanceGoalString',
         ]
       ) &&
-      Object.keys(resource).length === 2
+      Object.keys(resource).length >= 1
     ) {
-      return resource;
+      if (!resource.performanceGoalType) {
+        resource.performanceGoalType = 'PERFORMANCE_GOAL_TYPE_UNSPECIFIED';
+      }
+      if (Object.keys(resource).length === 2) {
+        return resource;
+      }
     }
     return undefined;
   },
