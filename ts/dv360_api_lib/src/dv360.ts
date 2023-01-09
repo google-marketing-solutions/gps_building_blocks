@@ -35,8 +35,8 @@ import {
 } from './dv360_resources';
 import {TargetingType, TARGETING_TYPE} from './dv360_types';
 import {UriUtil} from './utils';
-import {FilterExpression, ListParams, Rule, RuleOperator} from 'google3/third_party/gps_building_blocks/ts/dv360_api_lib/src/utils';
-import {STATUS} from 'google3/third_party/gps_building_blocks/ts/dv360_api_lib/src/dv360_types';
+import {FilterExpression, ListParams, Rule, RuleOperator} from './utils';
+import {STATUS} from './dv360_types';
 const API_SCOPE: string = 'displayvideo';
 
 const API_VERSION: string = 'v1';
