@@ -36,7 +36,7 @@ imputed_data = run_imputation_pipeline(data, categorical_cutoff=10, max_iter=
 """
 
 
-from typing import List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import lightgbm as lgb
 import numpy as np
@@ -44,6 +44,8 @@ import pandas as pd
 from sklearn import impute
 from sklearn import preprocessing
 from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unused-import
+
+SUPPORTED_DATATYPES = ('binary', 'categorical', 'numerical')
 
 
 def detect_data_types(data: pd.DataFrame,
@@ -86,6 +88,28 @@ def detect_data_types(data: pd.DataFrame,
   return data_types
 
 
+def _get_categorical_and_numerical_or_binary_columns(
+    data: pd.DataFrame, data_types: Sequence[str]
+) -> Tuple[List[str], List[str]]:
+  """Returns categorical and numerical columns in dataframe based on data types.
+  """
+  if not set(data_types).issubset(SUPPORTED_DATATYPES):
+    raise ValueError(
+        f'Only {SUPPORTED_DATATYPES} are supported for imputation.'
+    )
+  numerical_binary_columns = [
+      column
+      for column, data_type in zip(data.columns, data_types)
+      if data_type in ('binary', 'numerical')
+  ]
+  categorical_columns = [
+      column
+      for column, data_type in zip(data.columns, data_types)
+      if data_type == 'categorical'
+  ]
+  return categorical_columns, numerical_binary_columns
+
+
 def encode_categorical_data(
     data: pd.DataFrame, data_types: Sequence[str]
 ) -> Tuple[pd.DataFrame, preprocessing.OrdinalEncoder]:
@@ -103,20 +127,26 @@ def encode_categorical_data(
     Data with categorical encoding for categorical variables, as well as the fit
     encoder for later reversal of the encoding.
   """
-  categorical_columns = [
-      column for column, data_type in zip(data.columns, data_types)
-      if data_type == 'categorical'
-  ]
+  categorical_columns, _ = _get_categorical_and_numerical_or_binary_columns(
+      data, data_types
+  )
+  encoded_data = data.copy()
   ordinal_encoder = preprocessing.OrdinalEncoder()
-  data[categorical_columns] = ordinal_encoder.fit_transform(
-      data[categorical_columns])
-  data[categorical_columns] = data[categorical_columns].astype('category')
-  return data, ordinal_encoder
+  encoded_data[categorical_columns] = ordinal_encoder.fit_transform(
+      encoded_data[categorical_columns]
+  )
+  encoded_data[categorical_columns] = encoded_data[categorical_columns].astype(
+      'category'
+  )
+  return encoded_data, ordinal_encoder
 
 
 def impute_categorical_data(
-    data: pd.DataFrame, target: pd.Series,
-    data_types: Sequence[str]) -> Tuple[pd.Series, pd.Series]:
+    data: pd.DataFrame,
+    target: pd.Series,
+    data_types: Sequence[str],
+    random_state: Optional[int] = None,
+) -> Tuple[pd.Series, pd.Series]:
   """Uses LightGBM classification to impute categorical missing data.
 
   The goal here is to impute missing data in our target variable. LightGBM can
@@ -130,6 +160,7 @@ def impute_categorical_data(
       identified.
     target: Target variable for which missing features should be imputed.
     data_types: Data types of all features.
+    random_state: Random state to use for reproducible model fitting.
 
   Returns:
     Data with imputed values and positions of originally missing values.
@@ -137,12 +168,11 @@ def impute_categorical_data(
   missing_indices = target.isna()
   if missing_indices.sum() == 0:
     return target, missing_indices
-  categorical_columns = [
-      column for column, data_type in zip(data.columns, data_types)
-      if data_type == 'categorical'
-  ]
+  categorical_columns, _ = _get_categorical_and_numerical_or_binary_columns(
+      data, data_types
+  )
   categorical_columns.remove(target.name)
-  model = lgb.LGBMClassifier(use_missing=True)
+  model = lgb.LGBMClassifier(use_missing=True, random_state=random_state)
   features = data.drop(labels=[target.name], axis=1)
   model.fit(
       features[~missing_indices],
@@ -197,20 +227,16 @@ def impute_numerical_data(
   if data.notna().values.all():
     return data
 
-  non_numerical_columns = [
-      column for column, data_type in zip(data.columns, data_types)
-      if data_type == 'categorical'
-  ]
-  numerical_columns = [
-      column for column, data_type in zip(data.columns, data_types)
-      if data_type != 'categorical'
-  ]
+  categorical_columns, numerical_columns = (
+      _get_categorical_and_numerical_or_binary_columns(data, data_types)
+  )
 
-  if data[non_numerical_columns].isna().values.any():
+  if data[categorical_columns].isna().values.any():
     raise ValueError('Categorical columns contain NaNs.'
                      'Please run impute_categorical_data first.')
-  one_hot_encoded_data, one_hot_encoder, index_numerical_features = _one_hot_encode(
-      data[non_numerical_columns].values)
+  one_hot_encoded_data, one_hot_encoder, index_numerical_features = (
+      _one_hot_encode(data[categorical_columns].values)
+  )
   data_all = (
       np.concatenate((one_hot_encoded_data, data[numerical_columns].values),
                      axis=1))
@@ -218,7 +244,88 @@ def impute_numerical_data(
   data_imputed = _reverse_one_hot_encoding(data_imputed_one_hot,
                                            one_hot_encoder,
                                            index_numerical_features)
-  return pd.DataFrame(
-      data_imputed,
-      columns=np.concatenate(
-          (non_numerical_columns, numerical_columns))), data.isna()
+  return (
+      pd.DataFrame(
+          data_imputed,
+          columns=np.concatenate((categorical_columns, numerical_columns)),
+      ),
+      data.isna(),
+  )
+
+
+def post_process_binary_data(data: pd.Series):
+  """Rounds imputed data in binary columns to be either 0 or 1."""
+  return data.apply(np.round).apply(np.clip, a_min=0, a_max=1)
+
+
+def run_imputation_pipeline(
+    data: pd.DataFrame,
+    categorical_cutoff: int = 10,
+    data_types: Sequence[str] = (),
+    scaling: bool = True,
+    max_iter: int = 10,
+    random_state: Optional[int] = None,
+    parameters_iterativeimputer: Optional[Dict[str, Union[int, str]]] = None,
+) -> pd.DataFrame:
+  """Runs the full imputation pipeline.
+
+    This function runs the full pipeline to impute missing data.
+
+  Args:
+    data: Data with missings encoded as NaNs to impute.
+    categorical_cutoff: Cutoff-value to use when deciding if numerical data
+      should be treated as categorical or continuous.
+    data_types: Data types present in the data. If this is not provided, types
+      are automatically detected.
+    scaling: Whether or not numerical data (continuous and binary) should be
+      scaled to 0/1 before imputation.
+    max_iter: Maximum number of iterations used by sklearn's IterativeImputer.
+    random_state: Random state to use for IterativeImputer.
+    parameters_iterativeimputer: additional parameters to pass to
+      IterativeImputer.
+
+  Raises:
+    ValueError, if the length of provided data types doesn't match the number
+    of columns.
+  Returns:
+    Data with imputed values.
+  """
+  if data_types:
+    if len(data_types) != len(data.columns):
+      raise ValueError(
+          'Number of passed data types is not equal to the number '
+          'of columns in the data. Please provide one type per '
+          'column or pass None to detect data types automatically.'
+      )
+
+  if not parameters_iterativeimputer:
+    parameters_iterativeimputer = {}
+  imputer = impute.IterativeImputer(
+      random_state=random_state,
+      max_iter=max_iter,
+      **parameters_iterativeimputer,
+  )
+  if not data_types:
+    data_types = detect_data_types(data, categorical_cutoff=categorical_cutoff)
+  categorical_columns, numerical_columns = (
+      _get_categorical_and_numerical_or_binary_columns(data, data_types)
+  )
+  data_imputed = data.copy()
+  if scaling:
+    scaler = preprocessing.MinMaxScaler(feature_range=(0, 1))
+    data_imputed[numerical_columns], _ = scaler.fit_transform(
+        data_imputed[numerical_columns]
+    )
+  for column in categorical_columns:
+    data_imputed[column] = impute_categorical_data(
+        data, data[column], data_types, random_state
+    )
+  data_imputed, _ = impute_numerical_data(data_imputed, data_types, imputer)
+  for column, data_type in zip(data.columns, data_types):
+    if data_type == 'binary':
+      data_imputed[column] = post_process_binary_data(data_imputed[column])
+  if scaling:
+    data_imputed[numerical_columns] = scaler.inverse_transform(
+        data_imputed[numerical_columns]
+    )
+  return data_imputed

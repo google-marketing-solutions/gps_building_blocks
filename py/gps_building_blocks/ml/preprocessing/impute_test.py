@@ -49,8 +49,9 @@ class ImputeTest(absltest.TestCase):
     encoded_data, _ = impute.encode_categorical_data(_MOCK_DATA,
                                                      _expected_data_types)
 
-    testing.assert_frame_equal(encoded_data[['num', 'binary']],
-                               _MOCK_DATA[['num', 'binary']])
+    testing.assert_frame_equal(
+        _MOCK_DATA[['num', 'binary']], encoded_data[['num', 'binary']]
+    )
 
   def test_data_remains_unchanged_if_no_missings(self):
     data_no_missing = _MOCK_DATA.dropna()
@@ -60,7 +61,8 @@ class ImputeTest(absltest.TestCase):
                                                      detected_data_types)
     data_imputed = encoded_data.copy()
     data_imputed['cat'], _ = impute.impute_categorical_data(
-        encoded_data, encoded_data['cat'], detected_data_types)
+        encoded_data, encoded_data['cat'], detected_data_types, random_state=0
+    )
     data_imputed = impute.impute_numerical_data(data_imputed,
                                                 detected_data_types,
                                                 IterativeImputer())
@@ -71,21 +73,22 @@ class ImputeTest(absltest.TestCase):
                                                      _expected_data_types)
     data_imputed = encoded_data.copy()
     data_imputed['cat'], _ = impute.impute_categorical_data(
-        encoded_data, encoded_data['cat'], _expected_data_types)
+        encoded_data, encoded_data['cat'], _expected_data_types, random_state=0
+    )
     data_imputed, _ = impute.impute_numerical_data(data_imputed,
                                                    _expected_data_types,
                                                    IterativeImputer())
     sum_nans = data_imputed.isna().sum().sum()
-    self.assertEqual(sum_nans, 0)
+    self.assertEqual(0, sum_nans)
 
   def test_ValueError_if_nans_in_categorical(self):
     detected_data_types = impute.detect_data_types(
         _MOCK_DATA, categorical_cutoff=3)
     data_imputed = _MOCK_DATA.copy()
     with self.assertRaises(ValueError):
-      data_imputed, _ = impute.impute_numerical_data(data_imputed,
-                                                     detected_data_types,
-                                                     IterativeImputer())
+      data_imputed, _ = impute.impute_numerical_data(
+          data_imputed, detected_data_types, IterativeImputer()
+      )
 
   def test_LGBM_raises_warning_for_using_categorical_featues(self):
     detected_data_types = impute.detect_data_types(
@@ -93,7 +96,31 @@ class ImputeTest(absltest.TestCase):
     data_imputed = _MOCK_DATA.copy()
     with self.assertWarns(UserWarning):
       data_imputed['cat'], _ = impute.impute_categorical_data(
-          data_imputed, data_imputed['cat'], detected_data_types)
+          data_imputed, data_imputed['cat'], detected_data_types, random_state=0
+      )
+
+  def test_ValueError_if_nonsupported_data_type(self):
+    with self.assertRaises(ValueError):
+      impute._get_categorical_and_numerical_or_binary_columns(
+          _MOCK_DATA, data_types=['categorical', 'numerical', 'date']
+      )
+
+  def test_no_overlap_between_numerical_and_nonnumerical_columns(self):
+    categorical_columns, numerical_columns = (
+        impute._get_categorical_and_numerical_or_binary_columns(
+            _MOCK_DATA, data_types=['categorical', 'numerical', 'binary']
+        )
+    )
+    self.assertTrue(set(categorical_columns).isdisjoint(numerical_columns))
+
+  def test_ValueError_if_passed_datatypes_dont_match_columns(self):
+    with self.assertRaises(ValueError):
+      _ = impute.run_imputation_pipeline(
+          data=_MOCK_DATA,
+          categorical_cutoff=3,
+          data_types=['binary'],
+          random_state=0,
+      )
 
 
 if __name__ == '__main__':
