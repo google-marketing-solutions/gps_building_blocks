@@ -17,6 +17,8 @@
 import numpy as np
 import pandas as pd
 
+from sklearn import datasets
+
 from gps_building_blocks.ml.statistical_inference import data_preparation
 from gps_building_blocks.ml.statistical_inference import models
 from absl.testing import absltest
@@ -83,7 +85,7 @@ class LinearModelTest(absltest.TestCase):
               [0.0000000],
               [0.0000000],],
         columns=['effect'],
-        index=[1, 'Intercept', 0, 4, 3, 2])
+        index=[1, 'Intercept', 0, 4, 2, 3])
 
     model.fit(data)
     result = model.get_results()
@@ -156,13 +158,13 @@ class LinearModelTest(absltest.TestCase):
         columns=[
             'effect', 'bootstrap_std', 'bootstrap_interval',
             'significant_bootstrap', 'significant_permutation'],
-        index=[1, 'Intercept', 0, 4, 3, 2])
+        index=[1, 'Intercept', 0, 4, 2, 3])
 
     model.permutation_test(n_permutations=5, verbose=False, n_jobs=1)
     result = model.get_results()
 
     pd.testing.assert_frame_equal(
-        result,
+        result[expected_result.columns],
         expected_result,
         check_dtype=False,
         check_index_type=False)
@@ -188,6 +190,46 @@ class LinearModelTest(absltest.TestCase):
 
     with self.assertWarns(data_preparation.InferenceDataWarning):
       model.fit(data, raise_on_data_error=False)
+
+  def test_p_values_calculation_as_expected(self):
+    diabetes = datasets.load_diabetes()
+    diabetes_data = data_preparation.InferenceData(
+        initial_data=pd.DataFrame(diabetes.data).assign(target=diabetes.target),
+        target_column='target')
+    model = models.InferenceLinearRegression()
+    expected_result = pd.DataFrame(
+        data=[[-792.184, 416.684, -1.901, 0.058],
+              [751.279, 171.902, 4.37, 0.0],
+              [519.839, 66.534, 7.813, 0.0],
+              [476.745, 339.035, 1.406, 0.16],
+              [324.390, 65.422, 4.958, 0.0],
+              [-239.819, 61.222, -3.917, 0.0],
+              [177.064, 161.476, 1.097, 0.273],
+              [152.133, 2.576, 59.061, 0.0],
+              [101.044, 212.533, 0.475, 0.635],
+              [67.625, 65.984, 1.025, 0.306],
+              [-10.012, 59.749, -0.168, 0.867]],
+        index=[4, 8, 2, 5, 3, 1, 7, 'Intercept', 6, 9, 0],
+        columns=['effect', 'standard_error', 't_value', 'p_value'])
+
+    model.fit(diabetes_data, raise_on_data_error=False)
+    result = model.get_results()
+
+    pd.testing.assert_frame_equal(
+        result[expected_result.columns], expected_result,
+        atol=1e-3)
+
+  def test_model_without_intercept_is_excluded_from_result(self):
+    diabetes = datasets.load_diabetes()
+    diabetes_data = data_preparation.InferenceData(
+        initial_data=pd.DataFrame(diabetes.data).assign(target=diabetes.target),
+        target_column='target')
+    model = models.InferenceLinearRegression(fit_intercept=False)
+
+    model.fit(diabetes_data, raise_on_data_error=False)
+    result = model.get_results()
+
+    self.assertNotIn('Intercept', result.index)
 
 if __name__ == '__main__':
   absltest.main()

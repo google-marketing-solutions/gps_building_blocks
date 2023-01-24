@@ -137,52 +137,9 @@ class InferenceModel(metaclass=abc.ABCMeta):
     else:
       return {}
 
+  @abc.abstractmethod
   def get_results(self, confidence_level: float = 0.95) -> pd.DataFrame:
-    """Returns the effect and statistical information for each feature.
-
-    If available, this will return if the feature is statistical significant
-    with the chosen `confidence_level` and it's confidence interval.
-
-    Args:
-      confidence_level: Probability for the plausible values to be within the
-        interval for each feature.
-
-    Returns:
-      A DataFrame with the following information for each features. `effect`,
-      `bootstrap_interval` and `significant` if statistically significant.
-      Results will be sorted in descending order by effect magnitude.
-
-    Raises:
-      RuntimeError: if the Model has not being fit before calling this method.
-    """
-    if not self._is_fit:
-      raise RuntimeError(
-          'InferenceModel must be fit before requesting results.')
-
-    effects = self._extract_effects()
-    bootstrap_margin_of_error = self._extract_bootstrap_margin_of_error(
-        confidence_level)
-
-    results = pd.Series(effects).rename('effect').to_frame()
-    results['bootstrap_std'] = pd.Series(
-        self._extract_boostrap_std(), dtype='float64')
-    results['bootstrap_interval'] = pd.Series(
-        bootstrap_margin_of_error, dtype='float64')
-    results['significant_bootstrap'] = np.nan
-    if bootstrap_margin_of_error:
-      # populate only if bootstrap margin of errors are available
-      results['significant_bootstrap'] = (
-          results['effect'].abs() > results['bootstrap_interval'])
-
-    permutation_results = self._calculate_permutation_test_results(
-        results['effect'], 1 - confidence_level)
-    results['significant_permutation'] = pd.Series(
-        permutation_results, dtype=bool)
-
-    # Sort by `effect` magnitude
-    results = results.iloc[results['effect'].abs().argsort()[::-1]]
-
-    return results
+    """Returns the effect and statistical information for each feature."""
 
   def fit(
       self,
@@ -308,6 +265,7 @@ class _InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
       **kwargs: Any additional parameters to send to the fit function.
     """
     self.model.fit(data, target, **kwargs)
+    self._calculate_tvalues_and_pvalues(data, target)
 
   def fit_bootstrap(
       self,
@@ -401,6 +359,103 @@ class _InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
       self.model.coef_ = coefficients
       if self.model.fit_intercept:
         self.model.intercept_ = intercept
+
+  def _calculate_tvalues_and_pvalues(
+      self, data: pd.DataFrame, target: pd.Series) -> None:
+    """Calculates standard error, t-values and p-values for each variable.
+
+    For more details on the following implementation, please see conversation
+    here: https://stackoverflow.com/questions/27928275.
+
+    Args:
+      data: DataFrame with the input features for the model.
+      target: Target variable to regress to.
+    """
+    if self.model.fit_intercept:
+      matrix_to_multiply = data.assign(Intercept=1)
+      coefficients = np.array(list(self.model.coef_) + [self.model.intercept_])
+    else:
+      matrix_to_multiply = data
+      coefficients = self.model.coef_
+
+    try:
+      inverted_squared_matrix = np.linalg.inv(np.dot(
+          matrix_to_multiply.T.values, matrix_to_multiply.values))
+      cdf_loc = len(matrix_to_multiply) - len(matrix_to_multiply.columns)
+      residuals_squared_sum = np.sum((self.model.predict(data) - target)**2)
+
+      standard_errors = np.sqrt(
+          (residuals_squared_sum / cdf_loc) * inverted_squared_matrix.diagonal()
+      )
+      t_values = coefficients / standard_errors
+      p_values = [
+          2 * (1 - scipy.stats.t.cdf(np.abs(t_value), cdf_loc))
+          for t_value in t_values]
+    except np.linalg.LinAlgError:
+      # This happen when the squared matrix is a Singular matrix
+      standard_errors = t_values = p_values = [np.nan] * len(coefficients)
+
+    self.standard_errors = {
+        column: standard_error for column, standard_error in
+        zip(matrix_to_multiply.columns, standard_errors)}
+    self.t_values = {
+        column: t_value for column, t_value in
+        zip(matrix_to_multiply.columns, t_values)}
+    self.p_values = {
+        column: p_value for column, p_value in
+        zip(matrix_to_multiply.columns, p_values)}
+
+  def get_results(self, confidence_level: float = 0.95) -> pd.DataFrame:
+    """Returns the effect and statistical information for each feature.
+
+    If available, this will return if the feature is statistical significant
+    with the chosen `confidence_level` and it's confidence interval.
+
+    Args:
+      confidence_level: Probability for the plausible values to be within the
+        interval for each feature.
+
+    Returns:
+      A DataFrame with the following information for each features. `effect`,
+      `standard_error`, `t_value`, `p_value`, `bootstrap_interval`,
+      `significant_bootstrap` and `significant_permutation` if the bootstrap and
+      permutation tests are respectively statistically significant. Results will
+      be sorted in descending order by effect magnitude.
+
+    Raises:
+      RuntimeError: if the Model has not being fit before calling this method.
+    """
+    if not self._is_fit:
+      raise RuntimeError(
+          'InferenceModel must be fit before requesting results.')
+
+    effects = self._extract_effects()
+    bootstrap_margin_of_error = self._extract_bootstrap_margin_of_error(
+        confidence_level)
+
+    results = pd.Series(effects).rename('effect').to_frame()
+    results['standard_error'] = pd.Series(self.standard_errors, dtype='float64')
+    results['t_value'] = pd.Series(self.t_values, dtype='float64').round(6)
+    results['p_value'] = pd.Series(self.p_values, dtype='float64').round(6)
+    results['bootstrap_std'] = pd.Series(
+        self._extract_boostrap_std(), dtype='float64')
+    results['bootstrap_interval'] = pd.Series(
+        bootstrap_margin_of_error, dtype='float64')
+    results['significant_bootstrap'] = np.nan
+    if bootstrap_margin_of_error:
+      # populate only if bootstrap margin of errors are available
+      results['significant_bootstrap'] = (
+          results['effect'].abs() > results['bootstrap_interval'])
+
+    permutation_results = self._calculate_permutation_test_results(
+        results['effect'], 1 - confidence_level)
+    results['significant_permutation'] = pd.Series(
+        permutation_results, dtype=bool)
+
+    # Sort by `effect` magnitude
+    results = results.sort_values('effect', key=np.abs, ascending=False)
+
+    return results
 
 
 class InferenceLinearRegression(_InferenceLinearRegressionModel):
