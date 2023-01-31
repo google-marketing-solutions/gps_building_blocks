@@ -41,6 +41,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
+from scipy import special
 from sklearn import impute
 from sklearn import preprocessing
 from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unused-import
@@ -329,3 +330,119 @@ def run_imputation_pipeline(
         data_imputed[numerical_columns]
     )
   return data_imputed
+
+
+def _generate_categorical_variable(
+    n_samples: int,
+    hidden_variable: Sequence[float],
+    categorical_variables: Sequence[str] = ('a', 'b', 'c'),
+    probabilities: Sequence[float] = (0.7, 0.2, 0.1),
+) -> np.ndarray:
+  """Returns an array of categorical variables, depending on a hidden variable.
+
+  Draws categorical variables from two different underlying distributions,
+  depending on the value of a hidden variable.
+
+  Args:
+    n_samples: Number of samples.
+    hidden_variable: Vector of hidden variable which determines probability
+      distribution to draw from.
+    categorical_variables: Categorical variables to generate.
+    probabilities: Probability distribution underlying categorical variables.
+
+  Returns:
+    Random samples of categorical variables.
+  """
+
+  if len(categorical_variables) != len(probabilities):
+    raise ValueError(
+        'Lenght of arrays of categorical variables and '
+        'corresponding probabilities does not match.'
+    )
+
+  categorical_variable = []
+  for i in range(n_samples):
+    if hidden_variable[i] > 0:
+      categorical_variable.append(
+          np.random.choice(categorical_variables, p=probabilities)
+      )
+    else:
+      categorical_variable.append(
+          np.random.choice(categorical_variables, p=probabilities[::-1])
+      )
+  return np.array(categorical_variable)
+
+
+def _generate_missing_data(
+    data: pd.DataFrame, rate_missings: float
+) -> pd.DataFrame:
+  """Replaces data entries with nans to create missing data.
+
+  Args:
+    data: Ground-truth data of which missings should be generated.
+    rate_missings: Rate of missing data to be generated.
+
+  Returns:
+    Data with missing values.
+  """
+
+  data_missing = data.copy()
+  n = len(data)
+  for variable in list(data_missing):
+    missing_index = np.random.choice(n, int(rate_missings * n), replace=False)
+    data_missing[variable][data_missing.index.isin(missing_index)] = np.nan
+  return data_missing
+
+
+def simulate_mixed_data_with_missings(
+    n_samples: int = 1000,
+    n_categorical: int = 1,
+    n_continuous: int = 1,
+    n_binary: int = 1,
+    rate_missings: float = 0.1,
+    random_seed: Optional[int] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+  """Generates observations of correlated variables with missing values.
+
+  Args:
+    n_samples: Number of samples to simulate.
+    n_categorical: Number of categorical variables to simulate.
+    n_continuous: Number of continuous variables to simulate.
+    n_binary: Number of binary variables to simulate.
+    rate_missings: Rate of missing data.
+    random_seed: Random seed for reproducible results.
+
+  Returns:
+   Simulated data with and without missings.
+
+  Raises:
+    ValueError, if the missing rate is not in the range of 0-1.
+  """
+
+  if 0 >= rate_missings >= 1:
+    raise ValueError('Missing-rate needs to be between 0 and 1.')
+
+  if random_seed:
+    np.random.seed(random_seed)
+  hidden_variable = np.random.normal(0, 1, n_samples)
+  data_dict = {}
+  variable_index = 0
+  for _ in range(n_categorical):
+    data_dict[variable_index] = _generate_categorical_variable(
+        n_samples, hidden_variable
+    )
+    variable_index += 1
+  for _ in range(n_continuous):
+    data_dict[variable_index] = hidden_variable + np.random.normal(
+        0, 1, n_samples
+    )
+    variable_index += 1
+  for _ in range(n_binary):
+    data_dict[variable_index] = np.random.binomial(
+        1, special.expit(hidden_variable), n_samples
+    ).astype(np.int32)
+    variable_index += 1
+
+  data = pd.DataFrame(data_dict)
+  data_missing = _generate_missing_data(data, rate_missings)
+  return data, data_missing

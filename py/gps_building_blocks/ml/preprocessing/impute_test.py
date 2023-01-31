@@ -20,6 +20,7 @@ from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unus
 from sklearn.impute import IterativeImputer
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from gps_building_blocks.ml.preprocessing import impute
 
 data_dict = {
@@ -31,7 +32,7 @@ _MOCK_DATA = pd.DataFrame(data_dict)
 _expected_data_types = ['categorical', 'numerical', 'binary']
 
 
-class ImputeTest(absltest.TestCase):
+class ImputeTest(parameterized.TestCase):
 
   def test_detects_expected_data_types(self):
     detected_data_types = impute.detect_data_types(
@@ -121,6 +122,27 @@ class ImputeTest(absltest.TestCase):
           data_types=['binary'],
           random_state=0,
       )
+
+  def test_ValueError_if_missing_rate_outside_of_range(self):
+    with self.assertRaises(ValueError):
+      _ = impute.simulate_mixed_data_with_missings(rate_missings=-1)
+
+  @parameterized.named_parameters(
+      ('100_2_2_0', 100, 2, 2, 0),
+      ('1_20_0_10', 1, 20, 0, 10),
+      ('100_3_3_3', 100, 3, 3, 3),
+  )
+  def test_size_of_data_matches_inputs(
+      self, n_samples, n_binary, n_categorical, n_continuous
+  ):
+    expected_columns = n_binary + n_categorical + n_continuous
+    simulated_data, _ = impute.simulate_mixed_data_with_missings(
+        n_samples, n_categorical, n_continuous, n_binary
+    )
+
+    simulated_rows, simulated_columns = np.shape(simulated_data)
+    self.assertEqual(simulated_rows, n_samples)
+    self.assertEqual(simulated_columns, expected_columns)
 
 
 if __name__ == '__main__':
