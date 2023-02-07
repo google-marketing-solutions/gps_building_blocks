@@ -16,6 +16,7 @@
 import numpy as np
 import pandas as pd
 from pandas import testing
+from sklearn import linear_model
 from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unused-import
 from sklearn.impute import IterativeImputer
 
@@ -143,6 +144,43 @@ class ImputeTest(parameterized.TestCase):
     simulated_rows, simulated_columns = np.shape(simulated_data)
     self.assertEqual(simulated_rows, n_samples)
     self.assertEqual(simulated_columns, expected_columns)
+
+  def test_ValueError_if_not_enough_data_for_performance_gain_assessment(self):
+    data_missing_dict = {
+        'target': [1, np.nan],
+        'num': [1, np.nan],
+        'binary': [0, np.nan],
+    }
+    data_missing = pd.DataFrame(data_missing_dict)
+
+    data_no_missing_dict = {'target': [1, 0], 'num': [1, 5], 'binary': [0, 1]}
+    data_no_missing = pd.DataFrame(data_no_missing_dict)
+
+    with self.assertRaises(ValueError):
+      impute.calculate_model_performance_gain_from_imputation(
+          model=linear_model.LogisticRegression(),
+          data_imputed=data_no_missing,
+          data_missings=data_missing,
+          target='target',
+      )
+
+  def test_ValueError_if_non_numerical_data_for_model_gain_assessment(self):
+    with self.assertRaises(ValueError):
+      impute.calculate_model_performance_gain_from_imputation(
+          model=linear_model.LogisticRegression(),
+          data_imputed=_MOCK_DATA,
+          data_missings=_MOCK_DATA,
+          target='cat',
+      )
+
+  def test_ValueError_if_no_missing_data_in_mae_calculation(self):
+    with self.assertRaises(ValueError):
+      impute.get_imputation_mean_absolute_error(
+          data_ground_truth=_MOCK_DATA.fillna(0),
+          data_missing=_MOCK_DATA.fillna(0),
+          data_imputed=_MOCK_DATA.fillna(0),
+          data_types=_expected_data_types,
+      )
 
 
 if __name__ == '__main__':

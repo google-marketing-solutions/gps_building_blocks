@@ -13,7 +13,7 @@
 # limitations under the License.
 """Imputation for missing data of different types.
 
-Impute utilises an iterative imputation approach as well as logistic regression
+Impute utilises an iterative imputation approach as well as LightGBM
 (for categorical data) to impute missing values. In many cases, imputing missing
 values might be preferrable over dropping the whole observation, as this might
 introduce bias.
@@ -42,7 +42,10 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from scipy import special
+from sklearn import base
 from sklearn import impute
+from sklearn import metrics
+from sklearn import model_selection
 from sklearn import preprocessing
 from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unused-import
 
@@ -331,6 +334,8 @@ def run_imputation_pipeline(
     )
   return data_imputed
 
+# simulation functions
+
 
 def _generate_categorical_variable(
     n_samples: int,
@@ -446,3 +451,126 @@ def simulate_mixed_data_with_missings(
   data = pd.DataFrame(data_dict)
   data_missing = _generate_missing_data(data, rate_missings)
   return data, data_missing
+
+
+# evaluation functions
+def calculate_model_performance_gain_from_imputation(
+    model: base.BaseEstimator,
+    data_imputed: pd.DataFrame,
+    data_missings: pd.DataFrame,
+    target: str,
+    metric: Optional[str] = None,
+    crossvalidation_folds: Optional[int] = None,
+) -> Tuple[float, float]:
+  """Runs crossvalidation to estimate model performance gain of imputation.
+
+  After running the data imputation, this function evaluates which performance
+  gain a chosen model would get from imputing missing values compared to
+  dropping all rows with missing values.
+  As a caveat, it should be noted that this means that not only more data is
+  for training the models, but also for calculating their performance.
+
+  Args:
+    model: A model instance compatible with sklearn's cross_val_score to train
+      on the present data.
+    data_imputed: Data with imputed missings. Only numerical data is supported.
+    data_missings: Original dataset with missings coded as NaN. Only numerical
+      data is supported.
+    target: Name of the target column.
+    metric: The chosen metric for model evaluation. Needs to be compatible with
+      sklearn's cross_val_score method.
+    crossvalidation_folds: Number of folds to use for cross-validation.
+
+  Returns:
+    Model performance for imputed and original dataset.
+
+  Raises:
+    ValueError if non-numerical data is detected, or if not enough valid data
+    points are available for model fitting.
+  """
+
+  if (
+      any(data_imputed.dtypes == 'object')
+      or any(data_imputed.dtypes == 'datetime')
+      or any(data_imputed.dtypes == 'category')
+  ):
+    raise ValueError(
+        'Only numerical datatypes are supported by this function. ',
+        'Please convert your data using e.g. one-hot encoding.',
+    )
+
+  target_imputed = data_imputed[target]
+  imputed_performance = model_selection.cross_val_score(
+      estimator=model,
+      X=data_imputed.drop(target, axis=1),
+      y=target_imputed,
+      cv=crossvalidation_folds,
+      scoring=metric,
+  )
+
+  data_missings_dropped = data_missings.dropna()
+  target_missings = data_missings_dropped[target]
+  if len(data_missings_dropped) <= 1:
+    raise ValueError(
+        'Not enough observation without missing data, '
+        'model fitting is not possible.'
+    )
+  dropped_missings_performance = model_selection.cross_val_score(
+      estimator=model,
+      X=data_missings_dropped.drop(target, axis=1),
+      y=target_missings,
+      cv=crossvalidation_folds,
+      scoring=metric,
+  )
+  return np.mean(imputed_performance), np.mean(dropped_missings_performance)
+
+
+def get_imputation_mean_absolute_error(
+    data_ground_truth: pd.DataFrame,
+    data_missing: pd.DataFrame,
+    data_imputed: pd.DataFrame,
+    data_types: Sequence[str],
+) -> Sequence[float]:
+  """Calculates the mean absolute errors between ground-truth and imputed data.
+
+  If the ground-truth data is known, this function calculates the MAE between
+  the imputed and ground-truth data. Only data points for which data was imputed
+  are being considered in the calculation. Categorical columns are not included
+  in the calculation.
+
+  Args:
+    data_ground_truth: Ground-truth data, for instance from a simulation.
+    data_missing: Data with missing entries.
+    data_imputed: Data with imputed entries.
+    data_types: Data types of the three input data.
+
+  Returns:
+    Mean Absolute Error for imputed datapoints.
+
+  Raises:
+    ValueError if the ground-truth or imputed data contains NaNs, or if no
+    numerical column contains missing data.
+  """
+
+  if data_ground_truth.isna().values.any():
+    raise ValueError('The ground-truth data should not contain NaNs.')
+
+  if data_imputed.isna().values.any():
+    raise ValueError('The imputed data should not contain NaNs.')
+
+  _, numerical_columns = _get_categorical_and_numerical_or_binary_columns(
+      data_ground_truth, data_types
+  )
+  if not data_missing[numerical_columns].isna().values.any():
+    raise ValueError('No missing data in any numerical columns.')
+
+  imputation_mean_absolute_error = []
+  for column in numerical_columns:
+    missing_index = data_missing[column].isna()
+    imputation_mean_absolute_error.append(
+        metrics.mean_absolute_error(
+            data_ground_truth[column][missing_index],
+            data_imputed[column][missing_index],
+        )
+    )
+  return imputation_mean_absolute_error
