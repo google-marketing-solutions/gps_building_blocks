@@ -363,7 +363,7 @@ class GoogleAnalyticsHook(output_hook_interface.OutputHookInterface):
       raise errors.DataOutConnectorSendUnsuccessfulError(
           error=error, msg='Sending a hit to GA has completed unsuccessfully.')
 
-  def send_events(self, events: List[Dict[Any, Any]]
+  def send_events(self, events: List[Dict[Any, Any]]  # pytype: disable=signature-mismatch  # overriding-return-type-checks
                  ) -> Tuple[List[int], List[int]]:
     """Sends all events in the queue to the GA API, (FIFO, via batch).
 

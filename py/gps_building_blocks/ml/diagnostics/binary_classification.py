@@ -439,7 +439,8 @@ def plot_predicted_probabilities(labels: np.ndarray,
     if print_stats:
       label_plot += ': mean=%.4f, std=%.4f, median=%.4f' % (
           np.mean(preds_plot), np.std(preds_plot), np.median(preds_plot))
-    sns.kdeplot(preds_plot, shade=True, color=color, label=label_plot, ax=plots)
+    sns.kdeplot(
+        x=preds_plot, shade=True, color=color, label=label_plot, ax=plots)
 
   pyplot.title('Distribution of predicted probabilities')
   pyplot.legend()

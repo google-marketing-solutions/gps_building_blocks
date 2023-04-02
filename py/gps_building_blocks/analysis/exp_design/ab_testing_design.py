@@ -28,7 +28,7 @@ from statsmodels.stats import power
 from gps_building_blocks.ml import utils
 
 
-def calc_chisquared_sample_size(
+def calc_chisquared_sample_size(  # pytype: disable=annotation-type-mismatch  # numpy-scalars
     baseline_conversion_rate_percentage: np.float64,
     expected_uplift_percentage: np.float64,
     power_percentage: np.float64 = 80,
@@ -74,7 +74,7 @@ def calc_chisquared_sample_size(
   return np.ceil(sample_size)
 
 
-def calc_chisquared_sample_sizes_for_bins(
+def calc_chisquared_sample_sizes_for_bins(  # pytype: disable=annotation-type-mismatch  # numpy-scalars
     labels: np.ndarray,
     probability_predictions: np.ndarray,
     number_bins: int = 3,
@@ -182,7 +182,7 @@ def calc_chisquared_sample_sizes_for_bins(
   return bin_metrics
 
 
-def calc_chisquared_sample_sizes_for_cumulative_bins(
+def calc_chisquared_sample_sizes_for_cumulative_bins(  # pytype: disable=annotation-type-mismatch  # numpy-scalars
     labels: np.ndarray,
     probability_predictions: np.ndarray,
     number_bins: int = 10,
@@ -256,7 +256,7 @@ def calc_chisquared_sample_sizes_for_cumulative_bins(
     for uplift_percentage in uplift_percentages:
       for power_percentage in power_percentages:
         for confidence_level_percentage in confidence_level_percentages:
-          sample_size = calc_chisquared_sample_size(
+          sample_size = calc_chisquared_sample_size(  # pytype: disable=wrong-arg-types  # numpy-scalars
               conv_rate, uplift_percentage, power_percentage,
               confidence_level_percentage)
           cumulative_bin_metrics_list.append(
@@ -274,7 +274,7 @@ def calc_chisquared_sample_sizes_for_cumulative_bins(
       ])
 
 
-def calc_t_sample_size(
+def calc_t_sample_size(  # pytype: disable=annotation-type-mismatch  # numpy-scalars
     baseline_average: np.float64,
     baseline_stdev: np.float64,
     expected_uplift_percentage: np.float64,
@@ -315,7 +315,7 @@ def calc_t_sample_size(
           power=stat_power))
 
 
-def calc_t_sample_sizes_for_bins(
+def calc_t_sample_sizes_for_bins(  # pytype: disable=annotation-type-mismatch  # numpy-scalars
     labels: np.ndarray,
     numeric_predictions: np.ndarray,
     number_bins: int = 3,
@@ -409,7 +409,7 @@ def calc_t_sample_sizes_for_bins(
   return bin_metrics
 
 
-def calc_t_sample_sizes_for_cumulative_bins(
+def calc_t_sample_sizes_for_cumulative_bins(  # pytype: disable=annotation-type-mismatch  # numpy-scalars
     labels: np.ndarray,
     numeric_predictions: np.ndarray,
     number_bins: int = 10,

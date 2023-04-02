@@ -295,7 +295,7 @@ class InferenceData():
         warnings.warn(CategoricalCovariateWarning(message))
 
   def encode_categorical_covariates(
-      self, columns: List[Text]) -> pd.DataFrame:
+      self, columns: List[Text], drop_first: bool = False) -> pd.DataFrame:
     """One-hot encode model covariates that are categorical.
 
     The control columns can be categorical because it will only be used for
@@ -305,12 +305,14 @@ class InferenceData():
     Args:
       columns: List of covariate column names that will be
         transformed using one-hot encoding.
+      drop_first: Whether to get k-1 dummies out of k categorical levels by
+        removing the first level.
 
     Returns:
       Latest version of the data after one-hot encoding applied.
     """
     self.data = pd.get_dummies(
-        self.data, columns=columns, dtype=int)
+        self.data, columns=columns, drop_first=drop_first, dtype=int)
 
     return self.data
 

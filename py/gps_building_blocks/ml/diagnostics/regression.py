@@ -18,6 +18,8 @@ Specially useful when diagnosing a Lifetime Value (LTV) model.
 
 import dataclasses
 from typing import List, Optional, Sequence
+import warnings
+
 from matplotlib import axes
 from matplotlib import pyplot
 import numpy as np
@@ -25,6 +27,7 @@ import pandas as pd
 import scipy as sp
 import seaborn as sns
 from sklearn import metrics
+
 from gps_building_blocks.ml import utils
 from gps_building_blocks.ml.diagnostics import feature_insights
 
@@ -73,6 +76,12 @@ def calc_performance_metrics(
   mape = metrics.mean_absolute_percentage_error(labels, predictions)
   r2 = metrics.r2_score(labels, predictions)
   corr = sp.stats.pearsonr(labels, predictions)[0]
+
+  if mape > 10000:
+    warnings.warn(
+        'The MAPE is higher than 1e4. High MAPE output can occur when actual '
+        'label is small. Suggest to check the distribution of actual label to '
+        'see if there are 0s or small values.')
 
   return _PerformanceMetrics(
       mean_squared_error=round(mse, decimal_points),

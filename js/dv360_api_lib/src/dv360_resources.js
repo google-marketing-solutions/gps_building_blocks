@@ -327,17 +327,21 @@ class Campaign extends DisplayVideoResource {
    *     frequencyCap: !FrequencyCap,
    * }} requiredParams
    * @param {{
+   *     campaignBudgets: (!Array<!CampaignBudget>|undefined),
    *     campaignFlight: (!CampaignFlight|undefined),
    *     status: (!Status|undefined),
    * }=} optionalParams
    */
-  constructor({
+  constructor(
+      {
         id,
         displayName,
         advertiserId,
         campaignGoal,
         frequencyCap,
-      }, {
+      },
+      {
+        campaignBudgets,
         campaignFlight = {plannedDates: {startDate: ApiDate.now()}},
         status = Status.ACTIVE,
       } = {}) {
@@ -354,6 +358,9 @@ class Campaign extends DisplayVideoResource {
 
     /** @private @const {!CampaignFlight} */
     this.campaignFlight_ = campaignFlight;
+
+    /** @private @const { !Array<!CampaignBudget>} */
+    this.campaignBudgets_ = campaignBudgets || [];
   }
 
   /**
@@ -376,24 +383,29 @@ class Campaign extends DisplayVideoResource {
       'frequencyCap',
     ];
     if (ObjectUtil.hasOwnProperties(resource, properties)) {
+      const campaignBudgets = resource['campaignBudgets'];
       const campaignGoal = resource['campaignGoal'];
       const campaignFlight = resource['campaignFlight'];
       const frequencyCap = resource['frequencyCap'];
+      const mappedCampaignBudgets = CampaignBudgetMapper.map(campaignBudgets);
       const mappedCampaignGoal = CampaignGoalMapper.map(campaignGoal);
       const mappedCampaignFlight = CampaignFlightMapper.map(campaignFlight);
       const mappedFrequencyCap = FrequencyCapMapper.map(frequencyCap);
 
       if (mappedCampaignGoal && mappedCampaignFlight && mappedFrequencyCap) {
-        return new Campaign({
-          id: String(resource['campaignId']),
-          displayName: String(resource['displayName']),
-          advertiserId: String(resource['advertiserId']),
-          campaignGoal: mappedCampaignGoal,
-          frequencyCap: mappedFrequencyCap,
-        }, {
-          campaignFlight: mappedCampaignFlight,
-          status: StatusMapper.map(String(resource['entityStatus'])),
-        });
+        return new Campaign(
+            {
+              id: String(resource['campaignId']),
+              displayName: String(resource['displayName']),
+              advertiserId: String(resource['advertiserId']),
+              campaignBudgets: mappedCampaignBudgets,
+              campaignGoal: mappedCampaignGoal,
+              frequencyCap: mappedFrequencyCap,
+            },
+            {
+              campaignFlight: mappedCampaignFlight,
+              status: StatusMapper.map(String(resource['entityStatus'])),
+            });
       }
     }
     throw new Error(
@@ -415,6 +427,7 @@ class Campaign extends DisplayVideoResource {
       displayName: this.getDisplayName(),
       advertiserId: this.getAdvertiserId(),
       entityStatus: String(this.getStatus()),
+      campaignBudgets: CampaignBudgetMapper.toJson(this.getCampaignBudgets()),
       campaignGoal: this.getCampaignGoal(),
       campaignFlight: CampaignFlightMapper.toJson(this.getCampaignFlight()),
       frequencyCap: this.getCampaignFrequencyCap(),
@@ -473,6 +486,15 @@ class Campaign extends DisplayVideoResource {
    */
   getCampaignGoal() {
     return this.campaignGoal_;
+  }
+
+  /**
+   * Returns the campaign budget
+   *
+   * @return { !Array<!CampaignBudget>}
+   */
+  getCampaignBudgets() {
+    return this.campaignBudgets_;
   }
 
   /**

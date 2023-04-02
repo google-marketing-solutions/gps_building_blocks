@@ -339,6 +339,24 @@ class InferenceTest(parameterized.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result)
 
+    data = pd.DataFrame(
+        data=[[0.0, 1.0, 'a', 10.0], [0.0, 1.0, 'b', 10.0],
+              [1.0, 1.0, 'c', 5.00], [1.0, 0.0, 'a', 0.00]],
+        columns=['control', 'variable_1', 'variable_2', 'outcome'])
+    expected_result = pd.DataFrame(
+        data=[[0.0, 1.0, 10.0, 0, 0], [0.0, 1.0, 10.0, 1, 0],
+              [1.0, 1.0, 5.00, 0, 1], [1.0, 0.0, 0.00, 0, 0]],
+        columns=[
+            'control', 'variable_1', 'outcome', 'variable_2_b', 'variable_2_c'
+        ])
+
+    inference_data = data_preparation.InferenceData(
+        data, target_column='outcome')
+    result = inference_data.encode_categorical_covariates(
+        columns=['variable_2'], drop_first=True)
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
   @parameterized.named_parameters(
       ('single_selections', ['1', '2', '3'], ['1', '2', '3']),
       ('double_selection', ['1,2', '3'], ['1', '2', '3']),

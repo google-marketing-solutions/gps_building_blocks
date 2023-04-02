@@ -30,7 +30,7 @@ task_1 --> task_2 --> task_4 -----> task_5 --> task_6
 
 The eight tasks will be scheduled according to the dependencies defined in the @task decorator.
 
-On the `samples` directory, you will find the file `main.py` that contains the workflow definition, and the `requirements.txt` file that defines all the dependencies for the sample.
+On the `samples` directory, you will find the file `main.py` that contains the workflow definition.
 
 ## Deployment
 To run the example:
@@ -38,6 +38,13 @@ To run the example:
 1. Enable Firestore by visiting [this page](https://console.cloud.google.com/firestore). Select 'Native' mode when asked.
 1. Create a BigQuery dataset called `test_dataset`.
 1. cd into the `samples` folder.
+1. Create a file named `requirements.txt` and add the following dependencies:
+
+  ```
+  gps-building-blocks
+  pyOpenSSL
+  ```
+
 1. Deploy the cloud functions by running the following commands:
 
   ```
