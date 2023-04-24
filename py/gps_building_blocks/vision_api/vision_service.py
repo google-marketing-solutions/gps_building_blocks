@@ -15,6 +15,7 @@
 """Vision service that provides access to vision api for getting insights from an image."""
 
 import abc
+import json
 import time
 import traceback
 from typing import Any
@@ -23,6 +24,7 @@ from absl import logging
 from google.cloud import storage
 from googleapiclient import discovery as cloud_discovery
 from googleapiclient import errors as google_api_errors
+import pandas as pd
 
 
 class VisionApiInterface(abc.ABC):
@@ -75,6 +77,7 @@ class ExternalVisionService(VisionApiInterface):
     self._output_gcs_uri = output_gcs_uri
     self._features = features
     self._vision_service = cloud_discovery.build('vision', 'v1')
+    self._storage_client = storage.Client()
 
   def _get_bucket_name(self, bucket_uri: str) -> str:
     """Get bucket name from uri.
@@ -85,7 +88,7 @@ class ExternalVisionService(VisionApiInterface):
     Returns:
       GCS bucket name.
     """
-    return bucket_uri.split('/')[-1]
+    return bucket_uri.split('/')[2]
 
   def _get_all_images(self, images_bucket_uri: str) -> list[str]:
     """Get a list of all image uris from GCS.
@@ -97,8 +100,7 @@ class ExternalVisionService(VisionApiInterface):
       List of gcs uris for all the images.
     """
     images_bucket_name = self._get_bucket_name(images_bucket_uri)
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(images_bucket_name)
+    bucket = self._storage_client.get_bucket(images_bucket_name)
 
     # Lists objects with the given prefix.
     blob_list = list(bucket.list_blobs())
@@ -173,6 +175,8 @@ class ExternalVisionService(VisionApiInterface):
       output_uri: GCS bucket to store responses.
     """
     completed = 'done'
+    if not output_uri.endswith('/'):
+      output_uri = output_uri + '/'
     gcs_destination = {'uri': output_uri}
     output_config = {
         'gcs_destination': gcs_destination,
@@ -213,14 +217,38 @@ class ExternalVisionService(VisionApiInterface):
           status['error'],
       )
 
+  def _write_to_csv(self) -> None:
+    """Read data for all the blobs in the bucket and write to a csv."""
+    url_response_map = {}
+    bucket_name = self._get_bucket_name(self._output_gcs_uri)
+
+    blobs = self._storage_client.list_blobs(bucket_name, prefix='output')
+    bucket = self._storage_client.get_bucket(bucket_name)
+
+    for blob in blobs:
+      bucket_data = bucket.get_blob(blob.name)
+      json_data = bucket_data.download_as_string()
+      json_data = json.loads(json_data)
+      for _, value in json_data.items():
+        for response in value:
+          url_response_map[response['context']['uri']] = response
+
+    responses_df = pd.DataFrame(
+        url_response_map.items(), columns=['Url', 'Response']
+    )
+    bucket.blob('csv_response/responses.csv').upload_from_string(
+        responses_df.to_csv(), 'text/csv'
+    )
+
   def run_async_batch_annotate_images(
-      self, batch_size: int, time_to_sleep: int
+      self, batch_size: int, time_to_sleep: int, write_to_csv: bool = False
   ) -> None:
     """Annotate images in a batch mode asynchronously.
 
     Args:
       batch_size: The max number of responses to output in each JSON file.
       time_to_sleep: Time to wait in seconds for checking status.
+      write_to_csv: Bool argument to decide output format.
     """
     uris = self._get_all_images(self._input_gcs_uri)
     requests_collection = self._create_requests(uris, self._features)
@@ -230,3 +258,5 @@ class ExternalVisionService(VisionApiInterface):
         time_to_sleep=time_to_sleep,
         output_uri=self._output_gcs_uri,
     )
+    if write_to_csv:
+      self._write_to_csv()
