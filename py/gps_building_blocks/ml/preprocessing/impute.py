@@ -229,7 +229,7 @@ def impute_numerical_data(
   """
 
   if data.notna().values.all():
-    return data
+    return data  # pytype: disable=bad-return-type  # typed-pandas
 
   categorical_columns, numerical_columns = (
       _get_categorical_and_numerical_or_binary_columns(data, data_types)
