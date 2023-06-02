@@ -505,7 +505,7 @@ class InferenceData():
             ' maximum variance possible, leading to all columns being dropped.')
         warnings.warn(LowVarianceWarning(message))
     variances = covariates.var(ddof=0)
-    unique_variances = variances.unique()
+    unique_variances = variances.unique()  # pytype: disable=attribute-error  # pandas-15-upgrade
     if all(
         np.isclose(variance, 0) or np.isclose(variance, 1)
         for variance in unique_variances):
