@@ -267,13 +267,85 @@ class InferenceTest(parameterized.TestCase):
               [0.1, 1.0, 0.0, 5.00], [0.2, 0.0, 0.0, 0.00]],
         columns=['variable_0', 'variable_1', 'variable_2', 'outcome'])
     data = data * scaling
-    expected_result = data[['variable_1', 'outcome']]
+    expected_result = data[['variable_1', 'outcome']].columns
 
     inference_data = data_preparation.InferenceData(
         data)
     result = inference_data.address_low_variance(
         threshold=.15,
         drop=True,
+        minmax_scaling=True,
+    ).columns
+
+    pd.testing.assert_index_equal(result, expected_result)
+
+  def test_minmaxscaling_scales_positive_values(self):
+    data = pd.DataFrame(
+        data=[[100.0, 0.0, 10.0],
+              [50.0, 0.0, 10.0],
+              [10.0, 0.0, 5.00],
+              [0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'outcome'])
+    expected_result = pd.DataFrame(
+        data=[[1.0, 0.0, 10.0],
+              [0.5, 0.0, 10.0],
+              [0.1, 0.0, 5.00],
+              [0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'outcome'])
+
+    inference_data = data_preparation.InferenceData(
+        initial_data=data, target_column='outcome')
+    result = inference_data.address_low_variance(
+        threshold=.15,
+        drop=False,
+        minmax_scaling=True,
+    )
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_minmaxscaling_scales_negative_values(self):
+    data = pd.DataFrame(
+        data=[[-100.0, 0.0, 10.0],
+              [-50.0, 0.0, 10.0],
+              [-10.0, 0.0, 5.00],
+              [0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'outcome'])
+    expected_result = pd.DataFrame(
+        data=[[0.0, 0.0, 10.0],
+              [0.5, 0.0, 10.0],
+              [0.9, 0.0, 5.00],
+              [1.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'outcome'])
+
+    inference_data = data_preparation.InferenceData(
+        initial_data=data, target_column='outcome')
+    result = inference_data.address_low_variance(
+        threshold=.15,
+        drop=False,
+        minmax_scaling=True,
+    )
+
+    pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_minmaxscaling_scales_float(self):
+    data = pd.DataFrame(
+        data=[[-100.0, 0.0, 10.0],
+              [100.0, 0.0, 10.0],
+              [60.0, 0.0, 5.00],
+              [0.0, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'outcome'])
+    expected_result = pd.DataFrame(
+        data=[[0.0, 0.0, 10.0],
+              [1.0, 0.0, 10.0],
+              [0.8, 0.0, 5.00],
+              [0.5, 0.0, 0.00]],
+        columns=['variable_0', 'variable_1', 'outcome'])
+
+    inference_data = data_preparation.InferenceData(
+        initial_data=data, target_column='outcome')
+    result = inference_data.address_low_variance(
+        threshold=.15,
+        drop=False,
         minmax_scaling=True,
     )
 

@@ -486,24 +486,29 @@ class InferenceData():
       minmax_scaling: If False (default) no scaling is applied to the data and
         it is expected that the user has done the appropriate normalization
         before. If True, MinMax scaling is applied to ensure variances can be
-        compared across features.
+        compared across features. Also, this will change the underlying
+        covariates values if True.
 
     Returns:
       Latest version of the data after low variance check has been applied.
     """
-    # TODO(): Address boolean and categorical columns
-    covariates = self.data
-    if self.target_column:
-      covariates = covariates.drop(columns=self.target_column)
 
     if minmax_scaling:
-      covariates = pd.DataFrame(
-          preprocessing.minmax_scale(covariates), columns=covariates.columns)
+      to_transform = self.data.columns.drop(self.target_column,
+                                            errors='ignore')
+      self.data[to_transform] = preprocessing.minmax_scale(
+          self.data[to_transform])
       if not 0 <= threshold <= .25:
         message = (
             'The threshold should be between 0 and .25, with .25 being the',
             ' maximum variance possible, leading to all columns being dropped.')
         warnings.warn(LowVarianceWarning(message))
+
+    # TODO(): Address boolean and categorical columns
+    covariates = self.data
+    if self.target_column:
+      covariates = covariates.drop(columns=self.target_column)
+
     variances = covariates.var(ddof=0)
     unique_variances = variances.unique()  # pytype: disable=attribute-error  # pandas-15-upgrade
     if all(
