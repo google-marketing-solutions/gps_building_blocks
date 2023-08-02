@@ -16,11 +16,11 @@
 import networkx as nx
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pandas_testing
+import pandas.testing as pandas_testing
 from sklearn import datasets
 
-from gps_building_blocks.analysis import feature_graph_visualization as fgv
 from absl.testing import absltest
+from gps_building_blocks.analysis import feature_graph_visualization as fgv
 
 
 class FeatureGraphVisualizationTest(absltest.TestCase):

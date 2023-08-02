@@ -3,7 +3,7 @@
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pandas_testing
+import pandas.testing as pandas_testing
 from sklearn import linear_model
 
 from absl.testing import absltest
