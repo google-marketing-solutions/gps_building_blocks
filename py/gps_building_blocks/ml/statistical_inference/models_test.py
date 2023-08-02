@@ -93,8 +93,10 @@ class LinearModelTest(absltest.TestCase):
     pd.testing.assert_frame_equal(
         result[['effect']],
         expected_result,
-        check_less_precise=2,
-        check_index_type=False)
+        atol=0.5e-2,
+        rtol=0.5e-2,
+        check_index_type=False,
+    )
 
   def test_fit_bootstrap(self):
     data = _prepare_data_and_target()
@@ -117,8 +119,10 @@ class LinearModelTest(absltest.TestCase):
     pd.testing.assert_frame_equal(
         result[expected_result.columns],
         expected_result,
-        check_less_precise=1,
-        check_index_type=False)
+        atol=0.5e-1,
+        rtol=0.5e-1,
+        check_index_type=False,
+    )
 
   def test_predict(self):
     data = _prepare_data_and_target()
