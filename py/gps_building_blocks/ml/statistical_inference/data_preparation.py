@@ -730,7 +730,7 @@ class InferenceData():
       if handle_singular_data_errors_automatically:
         rng = np.random.default_rng()
         variances_for_each_column = tmp_data.var(ddof=0)
-        variance_df = pd.DataFrame(data=[variances_for_each_column.to_list()] *
+        variance_df = pd.DataFrame(data=[variances_for_each_column.to_list()] *  # pytype: disable=attribute-error  # pandas-drop-duplicates-overloads
                                    tmp_data.shape[0])
 
       vif_succeeded_flag = False
@@ -891,7 +891,7 @@ def _vif_interactive_input_and_validation(vif_data: pd.DataFrame,
   """
 
   while True:
-    _print_mock(vif_data.set_index('features').head(max_features_to_display))
+    _print_mock(vif_data.set_index('features').head(max_features_to_display))  # pytype: disable=wrong-arg-types  # pandas-drop-duplicates-overloads
     selected_columns = _input_mock(
         'Select one or more variables to remove separated by comma. '
         'To end the interactive session press Enter.\n')
