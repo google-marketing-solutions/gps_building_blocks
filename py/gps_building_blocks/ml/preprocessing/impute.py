@@ -22,7 +22,7 @@ For most users, the following flow would allow to impute missing categorical and
 numerical data:
 
 '''
-data_types = detect_data_type(data)
+data_types = detect_data_types(data)
 for column, data_type in zip(data.columns, data_types):
   if data_type == 'categorical':
     data[column], _ = encode_categorical_data(
@@ -36,6 +36,7 @@ imputed_data = run_imputation_pipeline(data, categorical_cutoff=10, max_iter=
 """
 
 
+import dataclasses
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import lightgbm as lgb
@@ -50,6 +51,12 @@ from sklearn import preprocessing
 from sklearn.experimental import enable_iterative_imputer  # pylint:disable=unused-import
 
 SUPPORTED_DATATYPES = ('binary', 'categorical', 'numerical')
+
+
+@dataclasses.dataclass(frozen=True)
+class ImputationPerformance:
+  performance_imputed: float
+  performance_missing: float
 
 
 def detect_data_types(data: pd.DataFrame,
@@ -92,7 +99,7 @@ def detect_data_types(data: pd.DataFrame,
   return data_types
 
 
-def _get_categorical_and_numerical_or_binary_columns(
+def _retrieve_categorical_and_numerical_or_binary_columns(
     data: pd.DataFrame, data_types: Sequence[str]
 ) -> Tuple[List[str], List[str]]:
   """Returns categorical and numerical columns in dataframe based on data types.
@@ -131,8 +138,8 @@ def encode_categorical_data(
     Data with categorical encoding for categorical variables, as well as the fit
     encoder for later reversal of the encoding.
   """
-  categorical_columns, _ = _get_categorical_and_numerical_or_binary_columns(
-      data, data_types
+  categorical_columns, _ = (
+      _retrieve_categorical_and_numerical_or_binary_columns(data, data_types)
   )
   encoded_data = data.copy()
   ordinal_encoder = preprocessing.OrdinalEncoder()
@@ -172,8 +179,8 @@ def impute_categorical_data(
   missing_indices = target.isna()
   if missing_indices.sum() == 0:
     return target, missing_indices
-  categorical_columns, _ = _get_categorical_and_numerical_or_binary_columns(
-      data, data_types
+  categorical_columns, _ = (
+      _retrieve_categorical_and_numerical_or_binary_columns(data, data_types)
   )
   categorical_columns.remove(target.name)
   model = lgb.LGBMClassifier(use_missing=True, random_state=random_state)
@@ -208,8 +215,11 @@ def _reverse_one_hot_encoding(
 
 
 def impute_numerical_data(
-    data: pd.DataFrame, data_types: Sequence[str],
-    imputer: impute.IterativeImputer) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    *,
+    data: pd.DataFrame,
+    data_types: Sequence[str],
+    imputer: impute.IterativeImputer,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
   """Uses sklearn's IterativeImputer to impute missing values.
 
   Missing values in numerical featuers are imputed using the IterativeImputer,
@@ -229,25 +239,31 @@ def impute_numerical_data(
   """
 
   if data.notna().values.all():
-    return data  # pytype: disable=bad-return-type  # typed-pandas
+    return (data, data.isna())
 
   categorical_columns, numerical_columns = (
-      _get_categorical_and_numerical_or_binary_columns(data, data_types)
+      _retrieve_categorical_and_numerical_or_binary_columns(data, data_types)
   )
 
-  if data[categorical_columns].isna().values.any():
-    raise ValueError('Categorical columns contain NaNs.'
-                     'Please run impute_categorical_data first.')
-  one_hot_encoded_data, one_hot_encoder, index_numerical_features = (
-      _one_hot_encode(data[categorical_columns].values)
-  )
-  data_all = (
-      np.concatenate((one_hot_encoded_data, data[numerical_columns].values),
-                     axis=1))
-  data_imputed_one_hot = imputer.fit_transform(data_all)
-  data_imputed = _reverse_one_hot_encoding(data_imputed_one_hot,
-                                           one_hot_encoder,
-                                           index_numerical_features)
+  if categorical_columns:
+    if data[categorical_columns].isna().values.any():
+      raise ValueError(
+          'Categorical columns contain NaNs.'
+          'Please run impute_categorical_data first.'
+      )
+
+    one_hot_encoded_data, one_hot_encoder, index_numerical_features = (
+        _one_hot_encode(data[categorical_columns].values)
+    )
+    data_all = np.concatenate(
+        (one_hot_encoded_data, data[numerical_columns].values), axis=1
+    )
+    data_imputed_one_hot = imputer.fit_transform(data_all)
+    data_imputed = _reverse_one_hot_encoding(
+        data_imputed_one_hot, one_hot_encoder, index_numerical_features
+    )
+  else:
+    data_imputed = imputer.fit_transform(data)
   return (
       pd.DataFrame(
           data_imputed,
@@ -312,7 +328,7 @@ def run_imputation_pipeline(
   if not data_types:
     data_types = detect_data_types(data, categorical_cutoff=categorical_cutoff)
   categorical_columns, numerical_columns = (
-      _get_categorical_and_numerical_or_binary_columns(data, data_types)
+      _retrieve_categorical_and_numerical_or_binary_columns(data, data_types)
   )
   data_imputed = data.copy()
   if scaling:
@@ -324,7 +340,9 @@ def run_imputation_pipeline(
     data_imputed[column] = impute_categorical_data(
         data, data[column], data_types, random_state
     )
-  data_imputed, _ = impute_numerical_data(data_imputed, data_types, imputer)
+  data_imputed, _ = impute_numerical_data(
+      data=data_imputed, data_types=data_types, imputer=imputer
+  )
   for column, data_type in zip(data.columns, data_types):
     if data_type == 'binary':
       data_imputed[column] = post_process_binary_data(data_imputed[column])
@@ -334,9 +352,8 @@ def run_imputation_pipeline(
     )
   return data_imputed
 
+
 # simulation functions
-
-
 def _generate_categorical_variable(
     n_samples: int,
     hidden_variable: Sequence[float],
@@ -455,13 +472,15 @@ def simulate_mixed_data_with_missings(
 
 # evaluation functions
 def calculate_model_performance_gain_from_imputation(
+    *,
     model: base.BaseEstimator,
     data_imputed: pd.DataFrame,
     data_missings: pd.DataFrame,
-    target: str,
-    metric: Optional[str] = None,
-    crossvalidation_folds: Optional[int] = None,
-) -> Tuple[float, float]:
+    target: pd.Series,
+    metric: str | None = None,
+    crossvalidation_folds: int | None = None,
+    drop_missings: bool | None = True,
+) -> ImputationPerformance:
   """Runs crossvalidation to estimate model performance gain of imputation.
 
   After running the data imputation, this function evaluates which performance
@@ -471,15 +490,18 @@ def calculate_model_performance_gain_from_imputation(
   for training the models, but also for calculating their performance.
 
   Args:
-    model: A model instance compatible with sklearn's cross_val_score to train
-      on the present data.
+    model: Model instance compatible with sklearn's cross_val_score to train on
+      the present data.
     data_imputed: Data with imputed missings. Only numerical data is supported.
     data_missings: Original dataset with missings coded as NaN. Only numerical
       data is supported.
-    target: Name of the target column.
-    metric: The chosen metric for model evaluation. Needs to be compatible with
+    target: Target column, including missing data points.
+    metric: Chosen metric for model evaluation. Needs to be compatible with
       sklearn's cross_val_score method.
     crossvalidation_folds: Number of folds to use for cross-validation.
+    drop_missings: Whether or not to drop missing values. If the chosen model
+      can cope with missings (e.g., LightGBM), model performance can still be
+      assessed.
 
   Returns:
     Model performance for imputed and original dataset.
@@ -492,37 +514,78 @@ def calculate_model_performance_gain_from_imputation(
   if (
       any(data_imputed.dtypes == 'object')
       or any(data_imputed.dtypes == 'datetime')
-      or any(data_imputed.dtypes == 'category')
+      or any(data_missings.dtypes == 'object')
+      or any(data_missings.dtypes == 'datetime')
   ):
+    invalid_columns = []
+    if any(data_imputed.dtypes == 'object') or any(
+        data_imputed.dtypes == 'datetime'
+    ):
+      invalid_columns.extend(
+          [
+              col
+              for col, dtype in zip(data_imputed.columns, data_imputed.dtypes)
+              if dtype == 'object' or dtype == 'datetime'
+          ]
+      )
+
+    if any(data_missings.dtypes == 'object') or any(
+        data_missings.dtypes == 'datetime'
+    ):
+      invalid_columns.extend(
+          [
+              col
+              for col, dtype in zip(data_missings.columns, data_missings.dtypes)
+              if dtype == 'object' or dtype == 'datetime'
+          ]
+      )
+
     raise ValueError(
-        'Only numerical datatypes are supported by this function. ',
+        'Only numerical datatypes are supported by this function, but the '
+        f'columns {invalid_columns} are objects or datetimes. ',
         'Please convert your data using e.g. one-hot encoding.',
     )
 
-  target_imputed = data_imputed[target]
+  non_missing_target_indices = target.notna()
+
   imputed_performance = model_selection.cross_val_score(
       estimator=model,
-      X=data_imputed.drop(target, axis=1),
-      y=target_imputed,
+      X=data_imputed[non_missing_target_indices],
+      y=target[non_missing_target_indices],
       cv=crossvalidation_folds,
       scoring=metric,
   )
 
-  data_missings_dropped = data_missings.dropna()
-  target_missings = data_missings_dropped[target]
-  if len(data_missings_dropped) <= 1:
+  if drop_missings:
+    indices_missing_data = data_missings.isna().any(axis=1)
+    data_missings_valid = data_missings[
+        non_missing_target_indices & ~indices_missing_data
+    ]
+    target_only_valid = target[
+        non_missing_target_indices & ~indices_missing_data
+    ]
+  else:
+    data_missings_valid = data_missings[non_missing_target_indices]
+    target_only_valid = target[non_missing_target_indices]
+
+  print(len(data_missings_valid))
+  if len(data_missings_valid) <= 1:
     raise ValueError(
         'Not enough observation without missing data, '
         'model fitting is not possible.'
     )
-  dropped_missings_performance = model_selection.cross_val_score(
+
+  missings_performance = model_selection.cross_val_score(
       estimator=model,
-      X=data_missings_dropped.drop(target, axis=1),
-      y=target_missings,
+      X=data_missings_valid,
+      y=target_only_valid,
       cv=crossvalidation_folds,
       scoring=metric,
   )
-  return np.mean(imputed_performance), np.mean(dropped_missings_performance)
+  return ImputationPerformance(
+      performance_imputed=np.mean(imputed_performance),
+      performance_missing=np.mean(missings_performance),
+  )
 
 
 def get_imputation_mean_absolute_error(
@@ -558,7 +621,7 @@ def get_imputation_mean_absolute_error(
   if data_imputed.isna().values.any():
     raise ValueError('The imputed data should not contain NaNs.')
 
-  _, numerical_columns = _get_categorical_and_numerical_or_binary_columns(
+  _, numerical_columns = _retrieve_categorical_and_numerical_or_binary_columns(
       data_ground_truth, data_types
   )
   if not data_missing[numerical_columns].isna().values.any():
