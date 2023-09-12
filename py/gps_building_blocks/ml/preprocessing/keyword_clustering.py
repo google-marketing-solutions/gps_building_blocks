@@ -13,9 +13,9 @@
 # limitations under the License.
 """Functions to cluster words/phrase/sentences using embedding."""
 
+from importlib import resources
 from typing import List, Optional, Text, Tuple
 
-import importlib_resources
 import numpy as np
 from numpy import linalg
 import pandas as pd
@@ -49,8 +49,8 @@ class KeywordClustering(object):
       self.model = model
 
     if stopwords is None:
-      stopwords_default = importlib_resources.read_text(preprocess_data,
-                                                        "stopwords_eng.txt")
+      stopwords_default = resources.read_text(preprocess_data,
+                                              "stopwords_eng.txt")
       stopwords_default = stopwords_default.split("\n")[1:]
       self.stopwords_to_remove = list(
           filter(lambda word: word, stopwords_default))

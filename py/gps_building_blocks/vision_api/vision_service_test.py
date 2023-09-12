@@ -13,10 +13,11 @@
 # limitations under the License.
 
 """Test for gps_building_blocks.vision_api.vision_service."""
+
 from unittest import mock
 
-from gps_building_blocks.vision_api import vision_service
 from absl.testing import absltest
+from gps_building_blocks.vision_api import vision_service
 
 
 class VisionServiceTest(absltest.TestCase):
@@ -47,9 +48,7 @@ class VisionServiceTest(absltest.TestCase):
       'run_async_batch_annotate_images',
       autospec=True,
   )
-  def test_invalid_directories(
-      self, mock_run_async_batch_annotate_images
-  ):
+  def test_invalid_directories(self, mock_run_async_batch_annotate_images):
     input_gcs_uri = None
     output_gcs_uri = None
     features = {'LABEL_DETECTION': 20, 'IMAGE_PROPERTIES': 20}
@@ -68,9 +67,7 @@ class VisionServiceTest(absltest.TestCase):
       'run_async_batch_annotate_images',
       autospec=True,
   )
-  def test_batch_size(
-      self, mock_run_async_batch_annotate_images
-  ):
+  def test_batch_size(self, mock_run_async_batch_annotate_images):
     input_gcs_uri = self.create_tempdir('input').full_path
     output_gcs_uri = self.create_tempdir('output').full_path
     features = {'LABEL_DETECTION': 20, 'IMAGE_PROPERTIES': 20}
@@ -128,6 +125,7 @@ class VisionServiceTest(absltest.TestCase):
     external_service._get_all_images(input_gcs_uri)
 
     self.assertRaises(Exception, mock_get_all_images)
+
 
 if __name__ == '__main__':
   absltest.main()

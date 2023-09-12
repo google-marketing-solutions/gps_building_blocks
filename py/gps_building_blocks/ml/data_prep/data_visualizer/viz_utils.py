@@ -17,7 +17,7 @@
 
 import logging
 import os
-from typing import Dict, Optional, Set, Union
+from typing import Dict, Optional, List, Union
 from google.cloud import bigquery
 import matplotlib
 from matplotlib import pyplot
@@ -278,7 +278,7 @@ def plot_line(plot_data: pd.DataFrame,
   line_plot.set_axisbelow(True)
 
 
-def _check_boxplot_data(plot_data: pd.DataFrame, keys: Set[str]) -> None:
+def _check_boxplot_data(plot_data: pd.DataFrame, keys: List[str]) -> None:
   """Checks data for box plot to ensure columns need exist.
 
   Args:
@@ -287,7 +287,7 @@ def _check_boxplot_data(plot_data: pd.DataFrame, keys: Set[str]) -> None:
   Raises:
     RuntimeError: Column does not exist.
   """
-  missing_keys = sorted(keys - set(plot_data.columns))
+  missing_keys = sorted(set(keys) - set(plot_data.columns))
   if missing_keys:
     raise RuntimeError(f'{missing_keys} are missing in plot data.')
 
@@ -329,7 +329,7 @@ def plot_box(plot_data: pd.DataFrame,
     yticklabels_fontsize: Font size of y tick labels.
     xticklabels_rotation: Degrees of rotation for X-axis tick labels.
   """
-  boxplot_keys = {'med', 'q1', 'q3', 'whislo', 'whishi', 'mean'}
+  boxplot_keys = ['med', 'q1', 'q3', 'whislo', 'whishi', 'mean']
   _check_boxplot_data(plot_data, boxplot_keys)
 
   box_props = dict(linestyle='-', linewidth=2, color=box_line_color)

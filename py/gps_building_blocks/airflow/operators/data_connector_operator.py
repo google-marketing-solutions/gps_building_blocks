@@ -27,9 +27,9 @@ class DataConnectorOperator(models.BaseOperator):
   """Custom Operator to send data from an input hook to an output hook."""
 
   def __init__(self, input_hook: input_hook_interface.InputHookInterface,
-               output_hook: output_hook_interface.OutputHookInterface, *args,
+               output_hook: output_hook_interface.OutputHookInterface,
                return_report: bool = False, **kwargs) -> None:
-    super(DataConnectorOperator, self).__init__(*args, **kwargs)
+    super(DataConnectorOperator, self).__init__(**kwargs)
     self.input_hook = input_hook
     self.output_hook = output_hook
     self.return_report = return_report

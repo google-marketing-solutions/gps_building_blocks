@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tests for keyword_clustering."""
 
-import importlib_resources
+from importlib import resources
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -41,8 +41,7 @@ class KeywordClusteringTest(absltest.TestCase):
     cls.kw_clustering = keyword_clustering.KeywordClustering(
         model=cls.model)
 
-    contents = importlib_resources.read_text(preprocess_data,
-                                             "example_cluster_df.txt")
+    contents = resources.read_text(preprocess_data, "example_cluster_df.txt")
     contents = contents.split("\n")[1]
     cls.test_df = pd.read_json(contents)
 

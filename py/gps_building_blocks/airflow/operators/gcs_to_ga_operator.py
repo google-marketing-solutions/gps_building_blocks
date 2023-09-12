@@ -26,7 +26,7 @@ class GoogleCloudStorageToGoogleAnalyticsOperator(
     data_connector_operator.DataConnectorOperator):
   """Custom Operator to send data from Cloud Storage to GoogleAnalytics."""
 
-  def __init__(self, *args,
+  def __init__(self,
                gcs_bucket: Text,
                gcs_prefix: Text,
                gcs_content_type: Text,
@@ -37,7 +37,6 @@ class GoogleCloudStorageToGoogleAnalyticsOperator(
     """Initializes the DataConnectorOperator with an input and output hooks.
 
     Args:
-      *args: arguments for the operator.
       gcs_bucket: Unique name of the bucket holding the target blob.
       gcs_prefix: The path to a location within the bucket.
       gcs_content_type: Blob's content type. Either 'JSON' or 'CSV'.
@@ -53,4 +52,4 @@ class GoogleCloudStorageToGoogleAnalyticsOperator(
         tracking_id=ga_tracking_id, base_params=ga_base_params,
         dry_run=ga_dry_run)
     super(GoogleCloudStorageToGoogleAnalyticsOperator, self).__init__(
-        self.gcs_hook, self.ga_hook, *args, **kwargs)
+        input_hook=self.gcs_hook, output_hook=self.ga_hook, **kwargs)

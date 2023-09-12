@@ -26,7 +26,7 @@ from gps_building_blocks.airflow.utils import blob
 from gps_building_blocks.airflow.utils import errors
 
 MOCK_BASE_HOOK = (
-    'airflow.contrib.hooks.gcs_hook.GoogleCloudStorageHook.__init__')
+    'airflow.providers.google.cloud.hooks.gcs.GCSHook.__init__')
 
 
 def fake_generator(expected):

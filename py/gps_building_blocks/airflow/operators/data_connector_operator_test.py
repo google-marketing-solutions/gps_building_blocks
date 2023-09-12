@@ -43,10 +43,10 @@ class DataConnectorOperatorTest(absltest.TestCase):
 
     self.test_operator_kwargs = {'task_id': 'test_task_id'}
     self.dc_operator = data_connector_operator.DataConnectorOperator(
-        self.mock_gcs_hook, self.mock_ga_hook,
+        input_hook=self.mock_gcs_hook, output_hook=self.mock_ga_hook,
         return_report=True, **self.test_operator_kwargs)
     self.dc_operator_no_report = data_connector_operator.DataConnectorOperator(
-        self.mock_gcs_hook, self.mock_ga_hook,
+        input_hook=self.mock_gcs_hook, output_hook=self.mock_ga_hook,
         **self.test_operator_kwargs)
 
     self.event = {

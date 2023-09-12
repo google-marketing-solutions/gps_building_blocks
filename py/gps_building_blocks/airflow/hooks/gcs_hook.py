@@ -229,7 +229,7 @@ class GoogleCloudStorageHook(base_hook.GoogleCloudStorageHook,
       DataInConnectorError: When listing blob in bucket returns a HttpError.
     """
     try:
-      blob_names = self.list(bucket=self.bucket, prefix=self.prefix)
+      blob_names = self.list(bucket_name=self.bucket, prefix=self.prefix)
     except googleapiclient_errors.HttpError as error:
       raise errors.DataInConnectorError(
           error=error, msg='Failed to get list of blobs from bucket.')

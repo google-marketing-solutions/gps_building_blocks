@@ -26,24 +26,23 @@ class BigQueryToGoogleAnalyticsOperator(
     data_connector_operator.DataConnectorOperator):
   """Custom Operator to send data from BigQuery to Google Analytics."""
 
-  def __init__(self, *args,
+  def __init__(self,
                bq_conn_id: Text,
                bq_dataset_id: Text,
                bq_table_id: Text,
-               bq_selected_fields: Optional[Text] = None,
                ga_tracking_id: Text,
+               bq_selected_fields: Optional[Text] = None,
                ga_base_params: Optional[Mapping[Text, Any]] = None,
                ga_dry_run: Optional[bool] = False,
                **kwargs) -> None:
     """Initializes the DataConnectorOperator with an input and output hooks.
 
     Args:
-      *args: arguments for the operator.
       bq_conn_id: Connection id passed to airflow's BigQueryHook.
       bq_dataset_id: Dataset id of the target table.
       bq_table_id: Table name of the target table.
-      bq_selected_fields: Subset of fields to return (e.g. 'field_1,field_2').
       ga_tracking_id: Google Analytics' tracking id to identify a property.
+      bq_selected_fields: Subset of fields to return (e.g. 'field_1,field_2').
       ga_base_params: Default parameters that serve as the base on which to
         build the Measurement Protocol payload.
       ga_dry_run: If True, this will not send real hits to the endpoint.
@@ -57,4 +56,4 @@ class BigQueryToGoogleAnalyticsOperator(
                                                base_params=ga_base_params,
                                                dry_run=ga_dry_run)
     super(BigQueryToGoogleAnalyticsOperator, self).__init__(
-        self.bq_hook, self.ga_hook, *args, **kwargs)
+        input_hook=self.bq_hook, output_hook=self.ga_hook, **kwargs)

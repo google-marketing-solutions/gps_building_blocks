@@ -27,7 +27,9 @@ from gps_building_blocks.airflow.utils import blob
 from gps_building_blocks.airflow.utils import errors
 
 
-MOCK_BQ_HOOK = ('airflow.contrib.hooks.bigquery_hook.BigQueryHook.__init__')
+MOCK_BQ_HOOK = (
+    'airflow.providers.google.cloud.hooks.bigquery.BigQueryHook.__init__'
+)
 _TIME_ANCHOR = time.time()
 
 
@@ -71,10 +73,7 @@ def fake_data_generator(expected: List[Dict[Text, Any]]):
       values.append({'v': str(item[key])})
     rows.append({'f': values})
     if count == bq_hook._DEFAULT_PAGE_SIZE:
-      next_data = {
-          'totalRows': length,
-          'rows': rows
-      }
+      next_data = {'totalRows': length, 'rows': rows}
       yield next_data
       rows = []
       count = 0
@@ -82,10 +81,8 @@ def fake_data_generator(expected: List[Dict[Text, Any]]):
   if rows:
     next_data = {
         'totalRows': length,
-        'schema': {
-            'fields': fields
-        },
-        'rows': rows
+        'schema': {'fields': fields},
+        'rows': rows,
     }
     yield next_data
 
@@ -111,12 +108,7 @@ def fake_table_generator(expected: List[Text]):
 
   for idx, item in enumerate(expected):
     count = count + 1
-    tables.append(
-        {
-            'tableReference': {
-                'tableId': item
-            }
-        })
+    tables.append({'tableReference': {'tableId': item}})
     if count == bq_hook._DEFAULT_PAGE_SIZE:
       if idx == length - 1:
         next_page_token = None
@@ -125,22 +117,18 @@ def fake_table_generator(expected: List[Text]):
       next_data = {
           'totalItems': length,
           'nextPageToken': next_page_token,
-          'tables': tables
+          'tables': tables,
       }
       yield next_data
       tables = []
       count = 0
 
   if tables:
-    next_data = {
-        'totalItems': length,
-        'nextPageToken': None,
-        'tables': tables
-    }
+    next_data = {'totalItems': length, 'nextPageToken': None, 'tables': tables}
     yield next_data
 
 
-class MockedBigQueryCursor():
+class MockedBigQueryCursor:
   """Replacement Mock for BigQueryCursor."""
 
   def __init__(self, data_generator=None, table_generator=None, fields=None):
@@ -163,8 +151,15 @@ class MockedBigQueryCursor():
     except StopIteration:
       return None
 
-  def get_tabledata(self, dataset_id, table_id, max_results, page_token=None,
-                    start_index=None, selected_fields=None):
+  def get_tabledata(
+      self,
+      dataset_id,
+      table_id,
+      max_results,
+      page_token=None,
+      start_index=None,
+      selected_fields=None,
+  ):
     """Mock method of BigQueryCursor.get_tabledata()."""
     self.dataset_id = dataset_id
     self.table_id = table_id
@@ -177,8 +172,7 @@ class MockedBigQueryCursor():
       next(self.data_generator)
       response = mock.Mock()
       response.reason = 'test_reason'
-      raise googleapiclient_errors.HttpError(
-          resp=response, content=b'test')
+      raise googleapiclient_errors.HttpError(resp=response, content=b'test')
 
     try:
       return next(self.data_generator)
@@ -199,36 +193,40 @@ class BigqueryHookTest(absltest.TestCase):
     super(BigqueryHookTest, self).setUp()
 
     mocked_hook.return_value = mock.MagicMock(
-        bigquery_conn_id='test_conn', autospec=True)
+        bigquery_conn_id='test_conn', autospec=True
+    )
     bq_hook.BigQueryHook._get_field = mock.MagicMock()
     bq_hook.BigQueryHook._get_field.return_value = 'test_project'
 
     self.hook = bq_hook.BigQueryHook(
-        conn_id='test_conn', dataset_id='test_dataset', table_id='test_table',)
+        conn_id='test_conn',
+        dataset_id='test_dataset',
+        table_id='test_table',
+    )
     self.hook.get_conn = mock.MagicMock()
     self.hook.get_conn.return_value = mock.MagicMock()
     self.hook.get_conn.cursor = mock.MagicMock()
 
     self.error_hook = bq_hook.BigQueryHook(
-        conn_id='test_conn', dataset_id='test_dataset', table_id='error_table',)
+        conn_id='test_conn',
+        dataset_id='test_dataset',
+        table_id='error_table',
+    )
     self.error_hook.get_conn = mock.MagicMock()
     self.error_hook.get_conn.return_value = mock.MagicMock()
     self.error_hook.get_conn.cursor = mock.MagicMock()
 
     bq_hook._DEFAULT_PAGE_SIZE = 1
-    self.fields = [{'name': 'a', 'type': 'STRING'},
-                   {'name': 'b', 'type': 'STRING'}]
+    self.fields = [
+        {'name': 'a', 'type': 'STRING'},
+        {'name': 'b', 'type': 'STRING'},
+    ]
 
   def test_events_blobs_generator_get_expected_output(self):
-    expected = [{
-        'a': '1',
-        'b': '2'
-    }, {
-        'a': '3',
-        'b': '4'
-    }]
+    expected = [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}]
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=fake_data_generator(expected), fields=self.fields)
+        data_generator=fake_data_generator(expected), fields=self.fields
+    )
 
     result_list = []
     for blob_item in self.hook.events_blobs_generator():
@@ -236,25 +234,23 @@ class BigqueryHookTest(absltest.TestCase):
 
     self.assertEqual(
         self.hook.url,
-        'bq://{}.{}.{}'.format('test_project', 'test_dataset', 'test_table'))
+        'bq://{}.{}.{}'.format('test_project', 'test_dataset', 'test_table'),
+    )
     self.assertListEqual(expected, result_list)
 
   def test_events_blobs_generator_with_all_data_types(self):
     bq_hook._DEFAULT_PAGE_SIZE = 30
-    expected = [{
-        'a': 2,
-        'b': 'text',
-        'c': 1.1,
-        'd': time.time(),
-        'e': True
-    }]
-    fields = [{'name': 'a', 'type': 'INTEGER'},
-              {'name': 'b', 'type': 'STRING'},
-              {'name': 'c', 'type': 'FLOAT'},
-              {'name': 'd', 'type': 'TIMESTAMP'},
-              {'name': 'e', 'type': 'BOOLEAN'}]
+    expected = [{'a': 2, 'b': 'text', 'c': 1.1, 'd': time.time(), 'e': True}]
+    fields = [
+        {'name': 'a', 'type': 'INTEGER'},
+        {'name': 'b', 'type': 'STRING'},
+        {'name': 'c', 'type': 'FLOAT'},
+        {'name': 'd', 'type': 'TIMESTAMP'},
+        {'name': 'e', 'type': 'BOOLEAN'},
+    ]
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=fake_data_generator(expected), fields=fields)
+        data_generator=fake_data_generator(expected), fields=fields
+    )
 
     result_list = []
     for blob_item in self.hook.events_blobs_generator():
@@ -264,17 +260,16 @@ class BigqueryHookTest(absltest.TestCase):
 
   def test_events_blobs_generator_with_larger_data(self):
     bq_hook._DEFAULT_PAGE_SIZE = 30
-    expected = [{
-        'a': 2,
-        'b': 'c',
-        'c': 'a'
-    }]
-    fields = [{'name': 'a', 'type': 'INTEGER'},
-              {'name': 'b', 'type': 'STRING'},
-              {'name': 'c', 'type': 'STRING'}]
+    expected = [{'a': 2, 'b': 'c', 'c': 'a'}]
+    fields = [
+        {'name': 'a', 'type': 'INTEGER'},
+        {'name': 'b', 'type': 'STRING'},
+        {'name': 'c', 'type': 'STRING'},
+    ]
     expected = expected * 100
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=fake_data_generator(expected), fields=fields)
+        data_generator=fake_data_generator(expected), fields=fields
+    )
 
     result_list = []
     for blob_item in self.hook.events_blobs_generator():
@@ -283,15 +278,10 @@ class BigqueryHookTest(absltest.TestCase):
     self.assertListEqual(expected, result_list)
 
   def test_events_blobs_generator_get_expected_blob_metadata(self):
-    expected = [{
-        'a': '1',
-        'b': '2'
-    }, {
-        'a': '3',
-        'b': '4'
-    }]
+    expected = [{'a': '1', 'b': '2'}, {'a': '3', 'b': '4'}]
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=fake_data_generator(expected), fields=self.fields)
+        data_generator=fake_data_generator(expected), fields=self.fields
+    )
 
     start_index = 0
     for blob_item in self.hook.events_blobs_generator():
@@ -302,7 +292,8 @@ class BigqueryHookTest(absltest.TestCase):
   def test_events_blobs_generator_get_no_result(self):
     expected = []
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=fake_data_generator(expected), fields=self.fields)
+        data_generator=fake_data_generator(expected), fields=self.fields
+    )
 
     result_list = []
     with self.assertRaises(errors.DataInConnectorError):
@@ -312,7 +303,8 @@ class BigqueryHookTest(absltest.TestCase):
   def test_events_blobs_generator_get_result_with_invalid_total_rows(self):
     zero_total_rows_gen = ({} for i in range(1))
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=zero_total_rows_gen, fields=self.fields)
+        data_generator=zero_total_rows_gen, fields=self.fields
+    )
 
     result_list = []
     with self.assertRaises(errors.DataInConnectorError):
@@ -320,23 +312,19 @@ class BigqueryHookTest(absltest.TestCase):
         result_list.extend(blob_item.events)
 
   def test_events_blobs_generator_get_error_when_processing(self):
-    expected = [{
-        'a': '1',
-        'b': '2'
-    }, {
-        'a': '3',
-        'b': '4'
-    }, {
-        'a': '5',
-        'b': '6'
-    }]
+    expected = [
+        {'a': '1', 'b': '2'},
+        {'a': '3', 'b': '4'},
+        {'a': '5', 'b': '6'},
+    ]
     expected_blob_status = [
         blob.BlobStatus.UNPROCESSED,
         blob.BlobStatus.ERROR,
-        blob.BlobStatus.UNPROCESSED
+        blob.BlobStatus.UNPROCESSED,
     ]
     self.error_hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        data_generator=fake_data_generator(expected), fields=self.fields)
+        data_generator=fake_data_generator(expected), fields=self.fields
+    )
 
     result_list = []
     blob_list = []
@@ -346,7 +334,8 @@ class BigqueryHookTest(absltest.TestCase):
 
     self.assertEqual(
         self.error_hook.url,
-        'bq://{}.{}.{}'.format('test_project', 'test_dataset', 'error_table'))
+        'bq://{}.{}.{}'.format('test_project', 'test_dataset', 'error_table'),
+    )
     del expected[1]
     self.assertListEqual(expected, result_list)
     blob_status = [blob_item.status for blob_item in blob_list]
@@ -355,7 +344,8 @@ class BigqueryHookTest(absltest.TestCase):
   def test_list_tables_get_expected_output(self):
     expected = ['table1', 'table2', 'table3']
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        table_generator=fake_table_generator(expected))
+        table_generator=fake_table_generator(expected)
+    )
 
     table_ids = self.hook.list_tables()
 
@@ -365,7 +355,8 @@ class BigqueryHookTest(absltest.TestCase):
     expected = ['table1', 'table2']
     sample_table_ids = ['table1', 'table2', 'chair3']
     self.hook.get_conn().cursor.return_value = MockedBigQueryCursor(
-        table_generator=fake_table_generator(sample_table_ids))
+        table_generator=fake_table_generator(sample_table_ids)
+    )
 
     table_ids = self.hook.list_tables(prefix='table')
 
