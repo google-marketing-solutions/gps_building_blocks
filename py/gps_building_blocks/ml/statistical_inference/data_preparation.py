@@ -18,7 +18,7 @@ import copy
 import enum
 import functools
 import operator
-from typing import Iterable, Iterator, List, Optional, Text, Tuple, Union
+from typing import Iterable, Iterator, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -295,7 +295,7 @@ class InferenceData():
         warnings.warn(CategoricalCovariateWarning(message))
 
   def encode_categorical_covariates(
-      self, columns: List[Text], drop_first: bool = False) -> pd.DataFrame:
+      self, columns: List[str], drop_first: bool = False) -> pd.DataFrame:
     """One-hot encode model covariates that are categorical.
 
     The control columns can be categorical because it will only be used for
@@ -510,7 +510,7 @@ class InferenceData():
       covariates = covariates.drop(columns=self.target_column)
 
     variances = covariates.var(ddof=0)
-    unique_variances = variances.unique()  # pytype: disable=attribute-error  # pandas-15-upgrade
+    unique_variances = variances.unique()
     if all(
         np.isclose(variance, 0) or np.isclose(variance, 1)
         for variance in unique_variances):
