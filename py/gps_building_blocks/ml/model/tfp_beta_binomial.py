@@ -286,6 +286,8 @@ class BetaBinomialModel():
 
   def extract_posterior_parameters(self) -> Dict[str, np.ndarray]:
     """Return posterior draws for all parameters."""
+    if self.trace is None:
+      raise ValueError('fit() not called')
     beta, alpha, kappa = self.trace['state']
     # get rid of chain dimension.
     beta = beta.numpy()[-self.npost:, :, :]
@@ -296,6 +298,8 @@ class BetaBinomialModel():
 
   def __str__(self) -> str:
     """Print coefficient stats (quantile, mean, r-hat)."""
+    if self.trace is None:
+      raise ValueError('fit() not called')
     beta, alpha, kappa = self.trace['state']
     rhats = self.trace['r-hat'][0]
     prob = self.prob
