@@ -176,7 +176,10 @@ class Job:
     try:
       self.pubsub.create_topic(name=self.topic_path)
     except exceptions.GoogleAPICallError as e:
-      if e.grpc_status_code.value[0] != _ALREADY_EXISTS_CODE:
+      if (
+          e.grpc_status_code is None
+          or e.grpc_status_code.value[0] != _ALREADY_EXISTS_CODE
+      ):
         raise
 
     self.tasks = []
