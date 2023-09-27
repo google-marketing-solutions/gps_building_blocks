@@ -510,6 +510,8 @@ class InferenceData():
       covariates = covariates.drop(columns=self.target_column)
 
     variances = covariates.var(ddof=0)
+    # narrow type from Series | float as covariates is definitely a DataFrame.
+    assert isinstance(variances, pd.Series)  # pandas-missing-overload
     unique_variances = variances.unique()
     if all(
         np.isclose(variance, 0) or np.isclose(variance, 1)
