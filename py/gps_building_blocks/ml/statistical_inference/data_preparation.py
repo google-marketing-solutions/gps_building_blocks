@@ -25,14 +25,181 @@ import numpy as np
 import pandas as pd
 from sklearn import model_selection
 from sklearn import preprocessing
+
 from gps_building_blocks.ml.preprocessing import vif
+
+
+class MergeMethod(enum.Enum):
+  """Options for merge_method in address_collinearity_with_vif()."""
+
+  AND = 'and'
+  OR = 'or'
 
 
 class VifMethod(enum.Enum):
   """Options for the vif_method argument in address_collinearity_with_vif()."""
+
   SEQUENTIAL = 'sequential'
   INTERACTIVE = 'interactive'
   QUICK = 'quick'
+  SEQUENTIAL_MERGE = 'sequential_merge'
+
+
+class VifColumnRemover:
+  """Merges or drops columns in a dataframe.
+
+  Used in address_collinearity_with_vif() to keep track of the columns to be
+  merged or dropped.
+
+  Attributes:
+    columns_to_merge: A list of sets of column names that are to be merged. All
+      columns are assumed to be numeric.
+    columns_to_drop: A list of sets of column names that are to be dropped.
+    vif_method: The vif method to be applied, which indicates whether the
+      columns should be merged or dropped.
+    merge_method: The method used to aggregate the values in the merge columns.
+    all_selected_columns: All the columns to be merged or dropped.
+  """
+
+  merge_method: MergeMethod
+  vif_method: VifMethod
+  columns_to_merge: dict[str, set[str]]
+  columns_to_drop: list[str]
+
+  def __init__(
+      self,
+      vif_method: VifMethod,
+      merge_method: MergeMethod | str = MergeMethod.OR,
+  ):
+    """Initializes the merge columns.
+
+    Args:
+      vif_method: The vif method being used, which determines if the columns are
+        dropped or merged.
+      merge_method: The method used to aggregate the values in the merge columns
+        (defaults to 'or').
+    """
+    self.merge_method = MergeMethod(merge_method)
+    self.vif_method = VifMethod(vif_method)
+    self.columns_to_merge = {}
+    self.columns_to_drop = []
+
+  def is_merging(self) -> bool:
+    return self.vif_method == VifMethod.SEQUENTIAL_MERGE
+
+  def is_dropping(self) -> bool:
+    return not self.is_merging()
+
+  def _merge_function(self, input_values: np.ndarray) -> int:
+    if self.merge_method == MergeMethod.AND:
+      return np.min(input_values)
+    elif self.merge_method == MergeMethod.OR:
+      return np.max(input_values)
+    else:
+      raise RuntimeError(f"Merge method '{self.merge_method}' is unexpected.")
+
+  @property
+  def all_selected_columns(self):
+    return functools.reduce(
+        lambda x, y: x | y, self.columns_to_merge.values(), set()
+    )
+
+  def _add_columns_to_merge(self, columns: list[str]) -> None:
+    """Adds columns to be merged."""
+
+    columns = set(columns)
+    columns_already_merged = self.all_selected_columns & columns
+    if columns_already_merged:
+      raise RuntimeError(
+          'Trying to merge the following columns that have already been '
+          f'merged: {columns_already_merged}'
+      )
+
+    new_group = set()
+    for new_column_to_merge in columns:
+      new_column_to_merge = self.columns_to_merge.pop(
+          new_column_to_merge, {new_column_to_merge}
+      )
+      new_group.update(new_column_to_merge)
+
+    self.columns_to_merge[self.get_merged_column_name(new_group)] = new_group
+
+  def add_columns(self, columns: list[str]) -> None:
+    """Adds a set of columns to be merged or dropped.
+
+    If dropping:
+      The columns will be appended to the list of columns to drop
+    If merging:
+    - If all of the columns don't yet exist in columns_to_merge, then a new
+    group will be added.
+    - If any the columns to be merged already exist as merged columns, then a
+    a new group will be created combining all of the listed merged columns.
+    - If any of the columns to be merged is already in a group, an exception
+    will be raised, because we cannot take a single column out of a group
+    and add it to another one - doing so could lead to an endless loop of
+    swapping columns between groups.
+
+    Args:
+      columns: The columns to be added to merge.
+
+    Raises:
+      RuntimeError: If the columns to be merged already exist inside another
+      group
+    """
+    if self.is_merging():
+      self._add_columns_to_merge(columns)
+    else:
+      self.columns_to_drop.extend(columns)
+
+  def get_merged_column_name(self, columns: set[str]) -> str:
+    """Gets the name of the merged columns.
+
+    Args:
+      columns: The column names to be merged.
+
+    Returns:
+      The name of the column they will be merged into.
+    """
+    merge_name_upper_case = self.merge_method.value.upper()
+    merge_name_separator = f'_{merge_name_upper_case}_'
+    return merge_name_separator.join(sorted(columns))
+
+  def _apply_merge(self, data: pd.DataFrame) -> pd.DataFrame:
+    """Applies the merging to a dataframe."""
+
+    for merge_name, merge_set in self.columns_to_merge.items():
+      data[merge_name] = data[list(merge_set)].apply(
+          self._merge_function, axis=1
+      )
+      data = data.drop(columns=list(merge_set))
+    return data
+
+  def apply(self, data: pd.DataFrame) -> pd.DataFrame:
+    """Applies the merging or dropping to a dataframe.
+
+    If merging, this will take all the columns to be merged, merge them into a
+    single column using the merge method, and then drop the original columns.
+
+    If dropping this will just drop the original columns.
+
+    Args:
+      data: The data to apply the merge to.
+
+    Returns:
+      A copy of the data with the columns merged.
+    """
+    data = data.copy()
+    if self.is_merging():
+      data = self._apply_merge(data)
+    else:
+      data = data.drop(columns=self.columns_to_drop)
+    return data
+
+  def __str__(self) -> str:
+    if self.is_merging():
+      return 'Merging: ' + str(list(self.columns_to_merge.values()))
+    else:
+      return 'Dropping: ' + str(self.columns_to_drop)
 
 
 class InferenceDataError(Exception):
@@ -370,6 +537,31 @@ class InferenceData():
       else:
         warnings.warn(ControlVariableWarning(message))
 
+  def _demean_fixed_effects(
+      self, data: pd.DataFrame, fixed_effect_group_id: pd.Series
+  ) -> pd.DataFrame:
+    """Applys demeaning to the data.
+
+    Args:
+      data: The data to de-mean.
+      fixed_effect_group_id: The fixed effect groups to de-mean across.
+
+    Returns:
+      The de-meaned data
+    """
+    demean_columns = [
+        column for column in data if column not in self._control_columns
+    ]
+    demean_variable_mean = data[demean_columns].mean()
+    demean_group_mean = (
+        data[demean_columns].groupby(fixed_effect_group_id).transform('mean')
+    )
+
+    data[demean_columns] -= demean_group_mean
+    data[demean_columns] += demean_variable_mean
+    data = data.set_index(self._control_columns, append=True)
+    return data
+
   def control_with_fixed_effect(
       self,
       control_columns: Iterable[str],
@@ -440,15 +632,15 @@ class InferenceData():
     self.data = self.data.loc[frequency_mask]
     self._fixed_effect_group_id = self._fixed_effect_group_id[frequency_mask]
 
-    demean_columns = [
-        column for column in self.data if column not in control_columns]
-    self._demean_variable_mean = self.data[demean_columns].mean()
-    self._demean_group_mean = self.data[demean_columns].groupby(
-        self._fixed_effect_group_id).transform('mean')
-    self.data[demean_columns] -= self._demean_group_mean
-    self.data[demean_columns] += self._demean_variable_mean
-
-    self.data = self.data.set_index(self._control_columns, append=True)
+    # When running address_collinearity_with_vif() using the sequential_merge
+    # method, we must merge the columns before controlling for fixed effects
+    # and then control the data after creating the merged column.
+    # Therefore we need to make a copy here of the data before controlling
+    # fixed effects.
+    self._data_pre_fixed_effects = self.data.copy()
+    self.data = self._demean_fixed_effects(
+        self.data, self._fixed_effect_group_id
+    )
     self._has_control_factors = True
     self._control_strategy = strategy
 
@@ -629,6 +821,31 @@ class InferenceData():
         'use_correlation_matrix_inversion=False to avoid this error.')
     return ''.join(message_parts)
 
+  def _validate_data_for_vif_method(self, vif_method: VifMethod) -> None:
+    """Checks that the data is valid for the selected vif_method.
+
+    This checks that for sequential_merge all the features are binary.
+
+    Args:
+      vif_method: The vif method to check for.
+    """
+    if vif_method == VifMethod.SEQUENTIAL_MERGE:
+      if self._has_control_factors:
+        data_to_validate = self._data_pre_fixed_effects.drop(
+            columns=self._control_columns
+        )
+      else:
+        data_to_validate = self.data
+
+      data_to_validate = data_to_validate.drop(columns=self.target_column)
+
+      all_columns_are_binary = np.all(data_to_validate.isin([0, 1]).values)
+      if not all_columns_are_binary:
+        raise ValueError(
+            "The 'sequential_merge' vif method is only applicable if all "
+            'features are binary.'
+        )
+
   def address_collinearity_with_vif(
       self,
       vif_method: Union[str, VifMethod] = 'sequential',
@@ -637,7 +854,9 @@ class InferenceData():
       use_correlation_matrix_inversion: bool = True,
       raise_on_ill_conditioned: bool = True,
       min_absolute_corr: float = 0.4,
-      handle_singular_data_errors_automatically: bool = True) -> pd.DataFrame:
+      handle_singular_data_errors_automatically: bool = True,
+      merge_method: str | MergeMethod = 'or',
+  ) -> pd.DataFrame:
     """Uses VIF to identify columns that are collinear and optionally drop them.
 
     The 'vif_method' argument specifies the control flow for the variance
@@ -649,6 +868,9 @@ class InferenceData():
     * interactive: Same as `sequential` but the user is prompted which column(s)
     to remove at each iteration.
     * quick: Remove all columns with VIF value greater than vif_threshold.
+    * sequential_merge: Sequentially merge a column with the highest VIF value
+    with the columns it's most correlated with until all columns meet the
+    vif_threshold.
 
     To remove problematic collinear features, the 'sequential' method performs
     the VIF analysis iteratively, removing the column with the highest VIF each
@@ -666,13 +888,28 @@ class InferenceData():
     at once like this leads to removing variables that otherwise wouldn't be
     removed using the sequential approach.
 
+    The 'sequential_merge' method works similarly to 'sequential', but instead
+    of removing columns it merges the column with the highest VIF with its most
+    correlated column until all columns meet the vif_threshold. This method is
+    only applicable for datasets where all features are binary (1/0 or
+    True/False), or categorical that have been one hot encoded. By default the
+    columns are merged by the "or" method, which will set the merged column to
+    1 if any of the columns being merged are 1. Alternatively you can set the
+    merge method to "and", which will set the merged column to 1 only if all of
+    the columns to be merged are 1. In practice, as these columns should be
+    highly correlated anyway, the choice should make little difference. If you
+    have controlled your data with fixed effects, the VIF and correlations are
+    calculated on the de-meaned data, and each time a set of columns are merged
+    the de-meaning is re-applied.
+
+
     Args:
       vif_method: Specify the control flow for the analysis. It can be either
-        'sequential', 'quick', or 'interactive'.
+        'sequential', 'quick', 'interactive' or 'sequential_merge'.
       vif_threshold: Threshold to identify which columns have high collinearity
         and anything higher than this threshold is dropped or used for warning.
-      drop: Boolean to either drop columns with high VIF or just print a
-        message, default is set to True.
+      drop: Boolean to either drop or merge columns with high VIF or just print
+        a message, default is set to True.
       use_correlation_matrix_inversion: If True, uses correlation matrix
         inversion algorithm to optimize VIF calculations. If False, uses
         regression algorithm.
@@ -697,6 +934,8 @@ class InferenceData():
         number of iterations if the correlation matrix is still singular, the
         method fails with a SingularDataError. This argument is only relevant
         when use_correlation_matrix_inversion=True.
+      merge_method: If vif_method='sequential_merge', this is the method used to
+        merge the columns together. Must be one of 'or' or 'and'.
 
     Returns:
       Data after collinearity check with vif has been applied. When drop=True,
@@ -708,36 +947,49 @@ class InferenceData():
         Also raised when use_correlation_matrix_inversion=True and
         handle_singular_data_errors_automatically=True, if the random noise
         injected into the data was not sufficient to resolve the problem.
-      ValueError: Raised when vif_method is not one of the three expected values
-        ('sequential', 'quick', or 'interactive').
+      ValueError: Raised when vif_method is not one of the four expected values
+        ('sequential', 'quick', 'interactive' or 'sequential_merge').
+      RuntimeError: Raised if the merging process attempts to merge the same
+        column twice.
     """
 
     vif_method = VifMethod(vif_method)
+    self._validate_data_for_vif_method(vif_method)
+    columns_for_vif = VifColumnRemover(vif_method, merge_method)
 
-    covariates = self.data.drop(columns=self.target_column)
-    columns_to_drop = []
-    corr_matrix = covariates.corr()
+    if self._has_control_factors:
+      covariates = self._data_pre_fixed_effects[
+          self.data.columns.values.tolist() + self._control_columns
+      ]
+    else:
+      covariates = self.data
+    covariates = covariates.drop(columns=self.target_column)
 
     fractional_noise_to_add_per_iteration = 1.0e-4
     max_number_of_iterations = 1000
 
     while True:
-      tmp_data = covariates.drop(columns=columns_to_drop)
-
-      trimmed_corr_matrix = corr_matrix.drop(
-          columns_to_drop, axis=0).drop(
-              columns_to_drop, axis=1)
-      corr_matrix_for_vif = trimmed_corr_matrix.copy()
+      tmp_data = columns_for_vif.apply(covariates)
+      if self._has_control_factors:
+        tmp_data = self._demean_fixed_effects(
+            tmp_data, self._fixed_effect_group_id
+        )
+      corr_matrix_for_vif = tmp_data.corr()
 
       if handle_singular_data_errors_automatically:
         rng = np.random.default_rng()
-        variances_for_each_column = tmp_data.var(ddof=0)
-        variance_df = pd.DataFrame(data=[variances_for_each_column.to_list()] *  # pytype: disable=attribute-error  # pandas-drop-duplicates-overloads
-                                   tmp_data.shape[0])
+        variances_for_each_column = tmp_data.var(ddof=0, axis=0)
+        if not isinstance(variances_for_each_column, pd.Series):
+          raise RuntimeError(
+              'variances_for_each_column should always be a pandas series'
+          )
+
+        variance_df = pd.DataFrame(
+            data=[variances_for_each_column.to_list()] * tmp_data.shape[0]
+        )
 
       vif_succeeded_flag = False
       for iteration_count in range(max_number_of_iterations):
-
         if iteration_count > 0:
           corr_matrix_for_vif = tmp_data.corr()
 
@@ -766,7 +1018,7 @@ class InferenceData():
                   'probably means the dataset has too many features relative '
                   'to the number of samples.')
 
-          message = self._generate_vif_error_message(trimmed_corr_matrix)
+          message = self._generate_vif_error_message(corr_matrix_for_vif)
           message += message_postscript
           raise SingularDataError(message)
 
@@ -778,28 +1030,59 @@ class InferenceData():
       if vif_method == VifMethod.INTERACTIVE:
         correlated_features = self._get_list_of_correlated_features(
             vif_data,
-            corr_matrix.drop(columns_to_drop,
-                             axis=0).drop(columns_to_drop, axis=1),
-            min_absolute_corr)
+            corr_matrix_for_vif.drop(
+                columns_for_vif.all_selected_columns, axis=0
+            ).drop(columns_for_vif.all_selected_columns, axis=1),
+            min_absolute_corr,
+        )
         vif_data['correlated_features'] = correlated_features
         selected_columns = _vif_interactive_input_and_validation(vif_data)
+      elif vif_method == VifMethod.SEQUENTIAL_MERGE:
+        max_vif_column = vif_data.iloc[0].features
+        # Take the second highest correlation, because the highest is the
+        # correlation with itself (below).
+        max_corr = (
+            corr_matrix_for_vif[max_vif_column]
+            .sort_values(ascending=False)
+            .values[1]
+        )
+
+        max_corr_mask = corr_matrix_for_vif[max_vif_column] == max_corr
+        selected_columns = corr_matrix_for_vif.loc[
+            max_corr_mask
+        ].index.values.tolist()
+        selected_columns.append(max_vif_column)
       elif vif_method == VifMethod.SEQUENTIAL:
         selected_columns = [vif_data.iloc[0].features]
       else:
         vif_filter = vif_data['VIF'] >= vif_threshold
         selected_columns = vif_data['features'][vif_filter].tolist()
 
-      columns_to_drop.extend(selected_columns)
+      columns_for_vif.add_columns(selected_columns)
 
       if (vif_method == VifMethod.QUICK) or not selected_columns:
         break
 
     if drop:
-      self.data = self.data.drop(columns=columns_to_drop)
+      print(columns_for_vif)
+      final_data = columns_for_vif.apply(covariates)
+      if self._has_control_factors:
+        final_data = self._demean_fixed_effects(
+            final_data, self._fixed_effect_group_id
+        )
+      final_data[self.target_column] = self.data[self.target_column]
+      self.data = final_data
     else:
-      message = (
-          f'Consider removing the following columns due to collinearity: '
-          f'{columns_to_drop}')
+      if vif_method == VifMethod.SEQUENTIAL_MERGE:
+        message = (
+            'Consider merging the following column groups due to collinearity:'
+            f' {columns_for_vif}'
+        )
+      else:
+        message = (
+            'Consider removing the following columns due to collinearity: '
+            f'{columns_for_vif}'
+        )
       warnings.warn(CollinearityWarning(message))
 
     self._checked_collinearity = True

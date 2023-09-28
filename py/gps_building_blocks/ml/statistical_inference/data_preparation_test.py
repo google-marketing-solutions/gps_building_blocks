@@ -27,6 +27,118 @@ from absl.testing import absltest
 from gps_building_blocks.ml.statistical_inference import data_preparation
 
 
+class VifColumnRemoverTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.test_data = pd.DataFrame({
+        'a': np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1]),
+        'b': np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+        'c': np.array([0, 1, 1, 0, 0, 1, 1, 0, 1, 1]),
+        'd': np.array([1, 0, 0, 1, 0, 1, 0, 0, 0, 0]),
+        'e': np.array([0, 0, 0, 0, 0, 1, 1, 1, 0, 1]),
+    })
+
+  def test_dropping_adds_new_columns_to_list(self):
+    drop_columns = data_preparation.VifColumnRemover(vif_method='sequential')
+
+    drop_columns.add_columns({'a', 'b'})
+    drop_columns.add_columns({'c', 'd'})
+
+    expected_columns = ['a', 'b', 'c', 'd']
+    self.assertCountEqual(drop_columns.columns_to_drop, expected_columns)
+
+  def test_dropping_drops_columns(self):
+    drop_columns = data_preparation.VifColumnRemover(vif_method='sequential')
+
+    drop_columns.add_columns({'a', 'b'})
+
+    dropped_data = drop_columns.apply(self.test_data)
+
+    expected_data = self.test_data.copy().drop(columns=['a', 'b'])
+    pd.testing.assert_frame_equal(dropped_data, expected_data)
+
+  def test_merging_add_columns_adds_new_merge_columns_as_a_new_group(self):
+    merge_columns = data_preparation.VifColumnRemover(
+        vif_method='sequential_merge'
+    )
+
+    merge_columns.add_columns({'a', 'b'})
+    merge_columns.add_columns({'c', 'd'})
+
+    expected_groups = {'a_OR_b': {'a', 'b'}, 'c_OR_d': {'c', 'd'}}
+    self.assertDictEqual(merge_columns.columns_to_merge, expected_groups)
+
+  def test_merging_add_columns_combines_existing_merge_columns(self):
+    merge_columns = data_preparation.VifColumnRemover(
+        vif_method='sequential_merge'
+    )
+
+    merge_columns.add_columns({'a', 'b'})
+    merge_columns.add_columns({'a_OR_b', 'c'})
+
+    expected_groups = {'a_OR_b_OR_c': {'a', 'b', 'c'}}
+    self.assertDictEqual(merge_columns.columns_to_merge, expected_groups)
+
+  def test_merging_add_columns_raises_exception_if_column_is_added_twice(self):
+    merge_columns = data_preparation.VifColumnRemover(
+        vif_method='sequential_merge'
+    )
+
+    merge_columns.add_columns({'a', 'b'})
+
+    expected_error_message = (
+        'Trying to merge the following columns that have already been merged: '
+        "{'a'}"
+    )
+    with self.assertRaisesWithLiteralMatch(
+        RuntimeError, expected_error_message
+    ):
+      merge_columns.add_columns({'a', 'c'})
+
+  def test_merging_merge_correctly_merges_columns(self):
+    merge_columns = data_preparation.VifColumnRemover(
+        vif_method='sequential_merge'
+    )
+    merge_columns.add_columns({'a', 'b'})
+    merge_columns.add_columns({'c', 'd'})
+
+    merged_data = merge_columns.apply(self.test_data)
+
+    expected_merged_data = self.test_data.copy()
+    expected_merged_data['a_OR_b'] = expected_merged_data[['a', 'b']].max(
+        axis=1
+    )
+    expected_merged_data['c_OR_d'] = expected_merged_data[['c', 'd']].max(
+        axis=1
+    )
+    expected_merged_data = expected_merged_data.drop(
+        columns=['a', 'b', 'c', 'd']
+    )
+    pd.testing.assert_frame_equal(merged_data, expected_merged_data)
+
+  def test_merging_correctly_merges_columns_with_and_method(self):
+    merge_columns = data_preparation.VifColumnRemover(
+        vif_method='sequential_merge', merge_method='and'
+    )
+    merge_columns.add_columns({'a', 'b'})
+    merge_columns.add_columns({'c', 'd'})
+
+    merged_data = merge_columns.apply(self.test_data)
+
+    expected_merged_data = self.test_data.copy()
+    expected_merged_data['a_AND_b'] = expected_merged_data[['a', 'b']].min(
+        axis=1
+    )
+    expected_merged_data['c_AND_d'] = expected_merged_data[['c', 'd']].min(
+        axis=1
+    )
+    expected_merged_data = expected_merged_data.drop(
+        columns=['a', 'b', 'c', 'd']
+    )
+    pd.testing.assert_frame_equal(merged_data, expected_merged_data)
+
+
 class InferenceTest(parameterized.TestCase):
   _missing_data = pd.DataFrame(
       data=[[np.nan, 0.0000],
@@ -386,6 +498,110 @@ class InferenceTest(parameterized.TestCase):
         drop=True)
 
     pd.testing.assert_frame_equal(result, expected_result)
+
+  def test_address_collinearity_with_vif_cannot_merge_continuous_features(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'],
+    )
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target'
+    )
+    expected_error_message = (
+        "The 'sequential_merge' vif method is only applicable if all "
+        'features are binary.'
+    )
+    with self.assertRaisesWithLiteralMatch(ValueError, expected_error_message):
+      inference_data.address_collinearity_with_vif(
+          vif_method='sequential_merge', drop=True
+      )
+
+  def test_address_collinearity_with_vif_merges_column(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'],
+    )
+    # Make the data binary
+    iris_data = (iris_data >= iris_data.median()).astype(int)
+    expected_merge_columns = ['petal length (cm)', 'petal width (cm)']
+    expected_result = iris_data.copy().drop(columns=expected_merge_columns)
+    expected_result['petal length (cm)_OR_petal width (cm)'] = iris_data[
+        expected_merge_columns
+    ].apply(np.max, axis=1)
+
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target'
+    )
+    result = inference_data.address_collinearity_with_vif(
+        vif_method='sequential_merge', drop=True, vif_threshold=3.0
+    )
+
+    pd.testing.assert_frame_equal(result, expected_result, check_like=True)
+
+  def test_address_collinearity_with_vif_merge_method_is_and(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'],
+    )
+    # Make the data binary
+    iris_data = (iris_data >= iris_data.median()).astype(int)
+
+    expected_merge_columns = ['petal length (cm)', 'petal width (cm)']
+    expected_result = iris_data.copy().drop(columns=expected_merge_columns)
+    expected_result['petal length (cm)_AND_petal width (cm)'] = iris_data[
+        expected_merge_columns
+    ].apply(np.min, axis=1)
+
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target'
+    )
+    result = inference_data.address_collinearity_with_vif(
+        vif_method='sequential_merge',
+        drop=True,
+        merge_method='and',
+        vif_threshold=3.0,
+    )
+
+    pd.testing.assert_frame_equal(result, expected_result, check_like=True)
+
+  def test_address_collinearity_with_vif_and_fixed_effects(self):
+    iris = datasets.load_iris()
+    iris_data = pd.DataFrame(
+        data=np.c_[iris['data'], iris['target']],
+        columns=iris['feature_names'] + ['target'],
+    )
+    # Make the data binary
+    iris_data = (iris_data >= iris_data.median()).astype(int)
+    # Add a random control column
+    iris_data['control_col'] = 0
+    iris_data.loc[np.arange(len(iris_data.index.values)) % 2, 'control_col'] = 1
+    # The expected result is the result of merging the columns and then applying
+    # the fixed effects control
+    expected_merge_columns = ['petal length (cm)', 'petal width (cm)']
+    merged_iris = iris_data.copy().drop(columns=expected_merge_columns)
+    merged_iris['petal length (cm)_OR_petal width (cm)'] = iris_data[
+        expected_merge_columns
+    ].apply(np.max, axis=1)
+    expected_inference_data = data_preparation.InferenceData(
+        merged_iris, target_column='target'
+    )
+    expected_result = expected_inference_data.control_with_fixed_effect(
+        ['control_col']
+    )
+
+    # Testing
+    inference_data = data_preparation.InferenceData(
+        iris_data, target_column='target'
+    )
+    inference_data.control_with_fixed_effect(['control_col'])
+    result = inference_data.address_collinearity_with_vif(
+        vif_method='sequential_merge', drop=True, vif_threshold=3.0
+    )
+
+    pd.testing.assert_frame_equal(result, expected_result, check_like=True)
 
   def test_encode_categorical_covariate_dummy_variable_2(self):
     data = pd.DataFrame(
