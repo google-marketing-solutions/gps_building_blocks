@@ -33,6 +33,7 @@ class FakeTransaction:
     self._client = client
     self._max_attempts = 1
     self._id = 'id'
+    self._read_only = False
 
   def _begin(self, retry_id):
     pass
