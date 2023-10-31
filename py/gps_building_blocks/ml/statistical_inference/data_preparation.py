@@ -35,6 +35,10 @@ class MergeMethod(enum.Enum):
   AND = 'and'
   OR = 'or'
 
+  def merge_separator(self) -> str:
+    """Returns the merge separator."""
+    return f'_{self.value.upper()}_'
+
 
 class VifMethod(enum.Enum):
   """Options for the vif_method argument in address_collinearity_with_vif()."""
@@ -160,8 +164,7 @@ class VifColumnRemover:
     Returns:
       The name of the column they will be merged into.
     """
-    merge_name_upper_case = self.merge_method.value.upper()
-    merge_name_separator = f'_{merge_name_upper_case}_'
+    merge_name_separator = self.merge_method.merge_separator()
     return merge_name_separator.join(sorted(columns))
 
   def _apply_merge(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -837,7 +840,8 @@ class InferenceData():
       else:
         data_to_validate = self.data
 
-      data_to_validate = data_to_validate.drop(columns=self.target_column)
+      if self.target_column:
+        data_to_validate = data_to_validate.drop(columns=self.target_column)
 
       all_columns_are_binary = np.all(data_to_validate.isin([0, 1]).values)
       if not all_columns_are_binary:
@@ -963,7 +967,9 @@ class InferenceData():
       ]
     else:
       covariates = self.data
-    covariates = covariates.drop(columns=self.target_column)
+
+    if self.target_column:
+      covariates = covariates.drop(columns=self.target_column)
 
     fractional_noise_to_add_per_iteration = 1.0e-4
     max_number_of_iterations = 1000
@@ -1070,7 +1076,8 @@ class InferenceData():
         final_data = self._demean_fixed_effects(
             final_data, self._fixed_effect_group_id
         )
-      final_data[self.target_column] = self.data[self.target_column]
+      if self.target_column:
+        final_data[self.target_column] = self.data[self.target_column]
       self.data = final_data
     else:
       if vif_method == VifMethod.SEQUENTIAL_MERGE:

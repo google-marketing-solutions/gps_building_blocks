@@ -517,12 +517,21 @@ class InferenceTest(parameterized.TestCase):
           vif_method='sequential_merge', drop=True
       )
 
-  def test_address_collinearity_with_vif_merges_column(self):
+  @parameterized.named_parameters({
+      'testcase_name': 'with_target',
+      'with_target': True,
+  }, {
+      'testcase_name': 'without_target',
+      'with_target': False,
+  })
+  def test_address_collinearity_with_vif_merges_column(self, with_target=True):
     iris = datasets.load_iris()
     iris_data = pd.DataFrame(
         data=np.c_[iris['data'], iris['target']],
         columns=iris['feature_names'] + ['target'],
     )
+    if not with_target:
+      iris_data = iris_data.drop(columns='target', axis=1)
     # Make the data binary
     iris_data = (iris_data >= iris_data.median()).astype(int)
     expected_merge_columns = ['petal length (cm)', 'petal width (cm)']
@@ -532,7 +541,7 @@ class InferenceTest(parameterized.TestCase):
     ].apply(np.max, axis=1)
 
     inference_data = data_preparation.InferenceData(
-        iris_data, target_column='target'
+        iris_data, target_column='target' if with_target else None
     )
     result = inference_data.address_collinearity_with_vif(
         vif_method='sequential_merge', drop=True, vif_threshold=3.0
@@ -540,12 +549,22 @@ class InferenceTest(parameterized.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result, check_like=True)
 
-  def test_address_collinearity_with_vif_merge_method_is_and(self):
+  @parameterized.named_parameters({
+      'testcase_name': 'with_target',
+      'with_target': True,
+  }, {
+      'testcase_name': 'without_target',
+      'with_target': False,
+  })
+  def test_address_collinearity_with_vif_merge_method_is_and(
+      self, with_target=True):
     iris = datasets.load_iris()
     iris_data = pd.DataFrame(
         data=np.c_[iris['data'], iris['target']],
         columns=iris['feature_names'] + ['target'],
     )
+    if not with_target:
+      iris_data = iris_data.drop(columns='target', axis=1)
     # Make the data binary
     iris_data = (iris_data >= iris_data.median()).astype(int)
 
@@ -556,7 +575,7 @@ class InferenceTest(parameterized.TestCase):
     ].apply(np.min, axis=1)
 
     inference_data = data_preparation.InferenceData(
-        iris_data, target_column='target'
+        iris_data, target_column='target' if with_target else None
     )
     result = inference_data.address_collinearity_with_vif(
         vif_method='sequential_merge',
@@ -567,12 +586,22 @@ class InferenceTest(parameterized.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result, check_like=True)
 
-  def test_address_collinearity_with_vif_and_fixed_effects(self):
+  @parameterized.named_parameters({
+      'testcase_name': 'with_target',
+      'with_target': True,
+  }, {
+      'testcase_name': 'without_target',
+      'with_target': False,
+  })
+  def test_address_collinearity_with_vif_and_fixed_effects(
+      self, with_target=True):
     iris = datasets.load_iris()
     iris_data = pd.DataFrame(
         data=np.c_[iris['data'], iris['target']],
         columns=iris['feature_names'] + ['target'],
     )
+    if not with_target:
+      iris_data = iris_data.drop(columns='target', axis=1)
     # Make the data binary
     iris_data = (iris_data >= iris_data.median()).astype(int)
     # Add a random control column
@@ -586,7 +615,7 @@ class InferenceTest(parameterized.TestCase):
         expected_merge_columns
     ].apply(np.max, axis=1)
     expected_inference_data = data_preparation.InferenceData(
-        merged_iris, target_column='target'
+        merged_iris, target_column='target' if with_target else None
     )
     expected_result = expected_inference_data.control_with_fixed_effect(
         ['control_col']
@@ -594,7 +623,7 @@ class InferenceTest(parameterized.TestCase):
 
     # Testing
     inference_data = data_preparation.InferenceData(
-        iris_data, target_column='target'
+        iris_data, target_column='target' if with_target else None
     )
     inference_data.control_with_fixed_effect(['control_col'])
     result = inference_data.address_collinearity_with_vif(
