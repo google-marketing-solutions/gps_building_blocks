@@ -632,6 +632,37 @@ class InferenceTest(parameterized.TestCase):
 
     pd.testing.assert_frame_equal(result, expected_result, check_like=True)
 
+  def test_address_collinearity_with_vif_raises_error_with_constants(self):
+    data = pd.DataFrame(
+        data=[[True, True],
+              [True, False],
+              [True, True],
+              [True, False],
+              [True, True]],
+        columns=['constant_feature', 'other_feature']
+    )
+    inference_data = data_preparation.InferenceData(data)
+
+    with self.assertRaises(data_preparation.LowVarianceError):
+      inference_data.address_collinearity_with_vif(
+          vif_method='sequential_merge', drop=True)
+
+  def test_address_collinearity_with_vif_raises_error_with_inversely_correlated_features(
+      self):
+    data = pd.DataFrame(
+        data=[[False, True],
+              [True, False],
+              [False, True],
+              [True, False],
+              [False, True]],
+        columns=['constant_feature', 'other_feature']
+    )
+    inference_data = data_preparation.InferenceData(data)
+
+    with self.assertRaises(data_preparation.SequentialMergeError):
+      inference_data.address_collinearity_with_vif(
+          vif_method='sequential_merge', drop=True)
+
   def test_encode_categorical_covariate_dummy_variable_2(self):
     data = pd.DataFrame(
         data=[[0.0, 1.0, 'a', 10.0],

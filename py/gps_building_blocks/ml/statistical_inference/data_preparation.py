@@ -263,7 +263,15 @@ class SingularDataError(InferenceDataError):
   InferenceData.address_collinearity_with_vif() for more details.
   """
 
-  pass
+
+class SequentialMergeError(InferenceDataError):
+  """Error when 'sequential_merge' is used in address_collinearity_with_vif().
+
+  This error is raised when the we're attemping to merge two features that are
+  negatively correlated. The results would be 'feature1_AND_NOT_feature2' or
+  'feature1_OR_NOT_feature2' which would make the interpretation harder. Only
+  positively correlated features will be merge.
+  """
 
 
 # Force custom Warnings to emitted all the time, not only once.
@@ -953,10 +961,15 @@ class InferenceData():
         injected into the data was not sufficient to resolve the problem.
       ValueError: Raised when vif_method is not one of the four expected values
         ('sequential', 'quick', 'interactive' or 'sequential_merge').
+      LowVarianceError: If any column in the data have constant value. Use
+        `InferenceData.address_low_variance` to remove constant columns.
+      SequentialMergeError: If at any point of the VIF iteration it will try to
+        merge two columns that are inversely correlated. This when you have
+        redundant features like "is_male" and "is_not_male" or other instances
+        where the columns are highly correlated.
       RuntimeError: Raised if the merging process attempts to merge the same
         column twice.
     """
-
     vif_method = VifMethod(vif_method)
     self._validate_data_for_vif_method(vif_method)
     columns_for_vif = VifColumnRemover(vif_method, merge_method)
@@ -998,6 +1011,20 @@ class InferenceData():
       for iteration_count in range(max_number_of_iterations):
         if iteration_count > 0:
           corr_matrix_for_vif = tmp_data.corr()
+
+        constant_columns = corr_matrix_for_vif.isnull().all()
+        # pandas-missing-overload
+        assert isinstance(constant_columns, pd.Series)
+        if constant_columns.any():
+          # If there are NaN in the correlation matrix, this means that that are
+          # columns that are constants. If this happens, we should remind the
+          # user to run address_low_variance method beforehand.
+          offending_columns = ', '.join(
+              constant_columns[constant_columns].index)
+          raise LowVarianceError(
+              f'The column(s) ({offending_columns}) have constant value(s) and '
+              'should not be considered for modelling. Please consider using '
+              '`InferenceData.address_low_variance` to remove them.')
 
         try:
           vif_data = vif.calculate_vif(
@@ -1058,6 +1085,12 @@ class InferenceData():
             max_corr_mask
         ].index.values.tolist()
         selected_columns.append(max_vif_column)
+
+        if max_corr < 0:
+          raise SequentialMergeError(
+              f'Cannot merge ({", ".join(selected_columns)}) as they are '
+              f'inversely correlated: {max_corr:3f}. Currently this is not '
+              'supported. Please try using vif_method="sequential".')
       elif vif_method == VifMethod.SEQUENTIAL:
         selected_columns = [vif_data.iloc[0].features]
       else:
