@@ -245,6 +245,7 @@ class Job:
 
   def _get_tasks_ref(self) -> firestore.CollectionReference:
     """Gets tasks reference of current job from database."""
+    assert self.id is not None
     return self.db.collection(self.JOB_STATUS_COLLECTION, self.id,
                               self.FIELD_TASKS)
 
