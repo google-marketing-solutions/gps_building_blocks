@@ -23,7 +23,6 @@ from typing import Any, Dict, Text
 
 from absl import logging
 from googleapiclient import discovery
-from googleapiclient import errors
 from googleapiclient import http
 
 from google.api_core import retry
@@ -42,7 +41,7 @@ class Error(Exception):
   pass
 
 
-def _is_retriable_http_error(error: errors.HttpError) -> bool:
+def _is_retriable_http_error(error: Exception) -> bool:
   """Checks if HttpError is in _RETRIABLE_STATUS_CODES.
 
   This function requires HttpError to have a valid response.
