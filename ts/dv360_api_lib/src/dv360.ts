@@ -23,23 +23,12 @@
  */
 
 import {BaseApiClient} from './base';
-import {
-  Advertiser,
-  AssignedTargetingOption,
-  Campaign,
-  DisplayVideoResource,
-  InsertionOrder,
-  InventorySource,
-  LineItem,
-  TargetingOption,
-} from './dv360_resources';
-import {TargetingType, TARGETING_TYPE} from './dv360_types';
-import {UriUtil} from './utils';
-import {FilterExpression, ListParams, Rule, RuleOperator} from './utils';
-import {STATUS} from './dv360_types';
-const API_SCOPE: string = 'displayvideo';
+import {Advertiser, AssignedTargetingOption, Campaign, DisplayVideoResource, InsertionOrder, InventorySource, LineItem, TargetingOption,} from './dv360_resources';
+import {STATUS, TARGETING_TYPE, TargetingType} from './dv360_types';
+import {FilterExpression, ListParams, Rule, RuleOperator, UriUtil} from './utils';
 
-const API_VERSION: string = 'v1';
+const API_SCOPE = 'displayvideo';
+const API_VERSION = 'v2';
 
 /**
  * An abstract API client for the DV360 API that extends `BaseApiClient`.
