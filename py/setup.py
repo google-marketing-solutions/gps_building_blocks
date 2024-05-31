@@ -63,7 +63,7 @@ setuptools.setup(
         "pandas-gbq==0.19.2",
         "parameterized==0.9.0",
         "plotly==5.18.0",
-        "requests==2.31.0",
+        "requests==2.32.2",
         "scikit-learn==1.1.3",
         "scipy==1.10.1",
         "seaborn==0.12.2",
