@@ -135,9 +135,9 @@ anyio==4.0.0 \
     --hash=sha256:cfdb2b588b9fc25ede96d8db56ed50848b0b649dca3dd1df0b11f683bb9e0b5f \
     --hash=sha256:f7ed51751b2c2add651e5747c891b47e26d2a21be5d32d9311dfe9692f3e5d7a
     # via httpcore
-apache-airflow==2.7.2 \
-    --hash=sha256:1bc2c022bcae24b911e49fafd5fb619b49efba87ed7bc8561a2065810d8fe899 \
-    --hash=sha256:c6fab3449066867d9a7728f40b6b9e27f1ea68bca39b064a27f5c5ddc3262224
+apache-airflow==2.9.3 \
+    --hash=sha256:4a36cb5dbd9925448ef171b72f2db0656121383e16306eded723331963d169db \
+    --hash=sha256:f9a523a57e0e0faa9afabb8e17b58cfca32119ff6889612b54edbdd987ada17b
     # via
     #   apache-airflow-providers-common-sql
     #   apache-airflow-providers-ftp
