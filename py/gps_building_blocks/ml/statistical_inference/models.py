@@ -249,6 +249,8 @@ class _InferenceLinearRegressionModel(InferenceModel, metaclass=abc.ABCMeta):
     if isinstance(self._bootstrap_results, pd.DataFrame):
       return self._bootstrap_results.mean().to_dict()
     else:
+      if self._data is None:
+        raise ValueError('InferenceData is None.')
       data, _ = self._data.get_data_and_target()
       feature_names = data.columns
       coefficients = dict(zip(feature_names, self.model.coef_))
