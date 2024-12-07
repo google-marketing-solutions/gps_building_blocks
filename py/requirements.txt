@@ -618,9 +618,9 @@ flask==2.2.5 \
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.3.6 \
-    --hash=sha256:840480dfd43134bebf78f3c7dc909e324c2689d2d9f27aeb1880a8a25466bc8d \
-    --hash=sha256:8ca9710fa7d2704747d195e11b487d45a571f40559d8399d9d5dfa42ea1f3c78
+flask-appbuilder==4.5.1 \
+    --hash=sha256:4b61267d880299915951c6cd120856e107344cee8a11be832725c21f9bdc5f59 \
+    --hash=sha256:a53116ac26f276ac206fb549d5e23bcfb49612cccfd52da984af7951758e6eb0
     # via apache-airflow
 flask-babel==2.0.0 \
     --hash=sha256:e6820a052a8d344e178cdd36dd4bb8aea09b4bda3d5f9fa9f008df2c7f2f5468 \
