@@ -69,7 +69,7 @@ setuptools.setup(
         "seaborn==0.12.2",
         "setuptools==66.1.1",
         "six==1.16.0",
-        "sqlparse==0.4.4",
+        "sqlparse==0.5.0",
         "statsmodels==0.14.0",
         "tensorflow==2.13.1",
         "tensorflow-hub==0.15.0",
