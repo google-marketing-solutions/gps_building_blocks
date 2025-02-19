@@ -67,7 +67,7 @@ setuptools.setup(
         "scikit-learn==1.1.3",
         "scipy==1.10.1",
         "seaborn==0.12.2",
-        "setuptools==66.1.1",
+        "setuptools==70.0.0",
         "six==1.16.0",
         "sqlparse==0.4.4",
         "statsmodels==0.14.0",
