@@ -59,8 +59,7 @@ def regressor_cv_default():
       l1_ratio=[.0001, .1, .5, .7, .9, .95, .99, 1],
       n_alphas=100,
       cv=10,
-      random_state=30,
-      normalize=True)
+      random_state=30)
 
 
 def resample(data: pd.DataFrame,
@@ -109,7 +108,7 @@ def resample(data: pd.DataFrame,
   return data.iloc[indices], target.iloc[indices]
 
 
-def regression_iterate(regressor: linear_model._base.LinearModel,
+def regression_iterate(regressor: linear_model._base.LinearModel,# pytype: disable=annotation-type-mismatch
                        data: pd.DataFrame,
                        target: pd.Series,
                        sample_frac: float = 1,
@@ -155,7 +154,7 @@ def regression_iterate(regressor: linear_model._base.LinearModel,
 def permutation_test(
     data: pd.DataFrame,
     target: pd.Series,
-    regressor: linear_model._base.LinearModel = regressor_default(),
+    regressor: linear_model._base.LinearModel = regressor_default(),# pytype: disable=annotation-type-mismatch
     n_permutations: int = 100,
     n_jobs: int = 1,
     verbose: bool = True) -> pd.DataFrame:
@@ -195,9 +194,9 @@ def permutation_test(
 def regression_bootstrap(
     data: pd.DataFrame,
     target: pd.Series,
-    regressor: linear_model._base.LinearModel = regressor_default(),
+    regressor: linear_model._base.LinearModel = regressor_default(),# pytype: disable=annotation-type-mismatch
     regressor_cv: Optional[linear_model._base.LinearModel] = \
-    regressor_cv_default(),
+    regressor_cv_default(),# pytype: disable=annotation-type-mismatch
     bootstraps: Optional[int] = 1000,
     sample_frac: float = 1,
     replacement: bool = True,
@@ -294,7 +293,7 @@ def regression_bootstrap(
 def _tune_hyperparams(
     data: pd.DataFrame,
     target: pd.Series,
-    regressor_cv: linear_model._base.LinearModel,
+    regressor_cv: linear_model._base.LinearModel,# pytype: disable=annotation-type-mismatch
     n_jobs: Optional[int] = 1) -> Dict[Text, float]:
   """Tunes the hyperparameters prior to bootstraping.
 
