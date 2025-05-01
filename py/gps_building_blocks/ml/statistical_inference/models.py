@@ -229,7 +229,7 @@ class InferenceModel(metaclass=abc.ABCMeta):
     _, target = data.get_data_and_target()
     predictions = self.predict(data, **kwargs)
 
-    return {fit_metric.value: fit_metric.score(target, predictions)
+    return {fit_metric.value: fit_metric.score(target, predictions)  # pytype: disable=bad-return-type
             for fit_metric in valid_fit_metrics}
 
 
