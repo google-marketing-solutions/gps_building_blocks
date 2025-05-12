@@ -201,7 +201,7 @@ def _one_hot_encode(
   one_hot_encoder = preprocessing.OneHotEncoder()
   one_hot_encoded_data = one_hot_encoder.fit_transform(data).toarray()
   index_numerical_features = np.shape(one_hot_encoded_data)[1]
-  return (one_hot_encoded_data, one_hot_encoder, index_numerical_features)  # pytype: disable=bad-return-type  # sklearn-update
+  return (one_hot_encoded_data, one_hot_encoder, index_numerical_features)
 
 
 def _reverse_one_hot_encoding(
