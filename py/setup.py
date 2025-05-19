@@ -62,7 +62,7 @@ setuptools.setup(
         "parameterized==0.9.0",
         "plotly==5.18.0",
         "requests>=2.31.0,<3.0",
-        "setuptools==66.1.1",
+        "setuptools==78.1.1",
         "scikit-learn==1.1.3",
         "scipy==1.10.1",
         "seaborn==0.12.2",
