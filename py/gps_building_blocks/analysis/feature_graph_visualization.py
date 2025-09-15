@@ -169,9 +169,10 @@ def plot_graph(graph: nx.Graph,
           size=[5*a for a in node_adjacencies],
           colorbar=dict(
               thickness=15,
-              title='Number of edges',
               xanchor='left',
-              titleside='right',
+              title=dict(
+                  side='right',
+                  text='Number of edges'),
               nticks=max_degree,
           ),
           line_width=1,
@@ -182,8 +183,8 @@ def plot_graph(graph: nx.Graph,
   fig = go.Figure(
       data=edge_trace + [node_trace],
       layout=go.Layout(
-          title=title,
-          titlefont_size=16,
+          title=dict(
+              text=title, font_size=16),
           showlegend=False,
           hovermode='closest',
           autosize=False,
