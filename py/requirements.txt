@@ -1545,9 +1545,9 @@ jsonschema-specifications==2023.7.1 \
     --hash=sha256:05adf340b659828a004220a9613be00fa3f223f2b82002e273dee62fd50524b1 \
     --hash=sha256:c91a50404e88a1f6ba40636778e2ee08f6e24c5613fe4c53ac24578a5a7f72bb
     # via jsonschema
-keras==2.13.1 \
-    --hash=sha256:5ce5f706f779fa7330e63632f327b75ce38144a120376b2ae1917c00fa6136af \
-    --hash=sha256:5df12cc241a015a11b65ddb452c0eeb2744fce21d9b54ba48db87492568ccc68
+keras==3.11.3 \
+    --hash=sha256:efda616835c31b7d916d72303ef9adec1257320bc9fd4b2b0138840fc65fb5b7 \
+    --hash=sha256:f484f050e05ee400455b05ec8c36ed35edc34de94256b6073f56cfe68f65491f
     # via tensorflow
 kiwisolver==1.4.5 \
     --hash=sha256:00bd361b903dc4bbf4eb165f24d1acbee754fce22ded24c3d56eec268658a5cf \
