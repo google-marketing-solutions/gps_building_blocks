@@ -146,9 +146,9 @@ apache-airflow==2.7.2 \
     #   apache-airflow-providers-imap
     #   apache-airflow-providers-sqlite
     #   gps-building-blocks (setup.py)
-apache-airflow-providers-common-sql==1.8.0 \
-    --hash=sha256:45117fa38f5a2e83cdb9a8d3bdfdbd602bfdc7a894d087b26e6ebb94df79ec32 \
-    --hash=sha256:4d8d99f33f7b5a3e313ef12c5a2f10d1612477ed2e784d0ffb721447e076e3f7
+apache-airflow-providers-common-sql==1.25.0rc1 \
+    --hash=sha256:3bce7434f600228d8dfc9b86f6d64a6d3be242b72b70c4beaa54fee5e7b60e17 \
+    --hash=sha256:43c906d2f3bf66ad16240cc3450593503ef0220b95dedb2beff6ad45268a56e7
     # via
     #   apache-airflow
     #   apache-airflow-providers-google
