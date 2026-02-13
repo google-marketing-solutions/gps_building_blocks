@@ -66,7 +66,7 @@ setuptools.setup(
         "scikit-learn==1.1.3",
         "scipy==1.10.1",
         "seaborn==0.12.2",
-        "sqlparse==0.4.4",
+        "sqlparse==0.5.4",
         "statsmodels==0.14.0",
         "tensorflow==2.13.1",
         "tensorflow-hub==0.15.0",

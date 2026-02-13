@@ -3022,9 +3022,9 @@ sqlalchemy-utils==0.41.1 \
     --hash=sha256:6c96b0768ea3f15c0dc56b363d386138c562752b84f647fb8d31a2223aaab801 \
     --hash=sha256:a2181bff01eeb84479e38571d2c0718eb52042f9afd8c194d0d02877e84b7d74
     # via flask-appbuilder
-sqlparse==0.4.4 \
-    --hash=sha256:5430a4fe2ac7d0f93e66f1efc6e1338a41884b7ddf2a350cedd20ccc4d9d28f3 \
-    --hash=sha256:d446183e84b8349fa3061f0fe7f06ca94ba65b426946ffebe6e3e8295332420c
+sqlparse==0.5.4 \
+    --hash=sha256:4396a7d3cf1cd679c1be976cf3dc6e0a51d0111e87787e7a8d780e7d5a998f9e \
+    --hash=sha256:99a9f0314977b76d776a0fcb8554de91b9bb8a18560631d6bc48721d07023dcb
     # via
     #   apache-airflow-providers-common-sql
     #   google-cloud-spanner
