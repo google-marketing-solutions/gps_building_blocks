@@ -161,9 +161,9 @@ apache-airflow-providers-google==10.10.1 \
     --hash=sha256:17eb532839b0a0f21a75f594ef1387f42efa93fd04f7da392a9b13994d83a7df \
     --hash=sha256:41f697ffff45311c9be4f5b13b5e5d6aba22060621176a1becbd1d77db78cb36
     # via gps-building-blocks (setup.py)
-apache-airflow-providers-http==4.6.0 \
-    --hash=sha256:c9b08782031daa8c18ba62c2c8ae687659968d636fbf6b9fbed488d1fe4f0162 \
-    --hash=sha256:ca3cf6c209cb27144fd4d676ee5feef96a1ed67002f13bf4a8b74d859ef8b56c
+apache-airflow-providers-http==6.0.0 \
+    --hash=sha256:cae4369e2265432feaf7507eaa2bf4fca542817c33516215243fee0ab45dd3f0 \
+    --hash=sha256:f620eb385641c0ce977a63f911ebc8a636237955040044f3ebc9af955e464bb2
     # via apache-airflow
 apache-airflow-providers-imap==3.4.0 \
     --hash=sha256:347f78efa0e1353f90be78244fad0136d7c0cb1af25b9a3ba296d4e31fb53f6c \
