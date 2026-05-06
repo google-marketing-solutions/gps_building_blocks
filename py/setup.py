@@ -43,7 +43,7 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
         "absl-py==2.0.0",
-        "apache-airflow>=2.7.2,<3.0",
+        "apache-airflow>=2.7.2,<4.0",
         "apache-airflow-providers-google>=10.10.1,<11.0",
         "google-api-core[grpc]>=2.12.0,<3.0",
         "google-api-python-client>=2.105.0,<3.0",
